@@ -50,9 +50,9 @@ impl ColumnTypeOptions {
         }
     }
 
-    pub(crate) fn not_null() -> Self {
+    pub(crate) fn null() -> Self {
         ColumnTypeOptions {
-            not_null: true,
+            not_null: false,
             ..Default::default()
         }
     }

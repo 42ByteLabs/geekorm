@@ -11,6 +11,15 @@ impl Columns {
             columns: Vec::new(),
         }
     }
+
+    pub fn is_valid_column(&self, column: &str) -> bool {
+        for col in &self.columns {
+            if col.name == column {
+                return true;
+            }
+        }
+        false
+    }
 }
 
 impl Iterator for Columns {
@@ -38,12 +47,21 @@ impl ToSqlite for Columns {
 
     fn on_select(&self, query: &crate::QueryBuilder) -> Result<String, crate::Error> {
         let mut full_query = String::new();
+
+        // Support for WHERE
+        if !query.where_clause.is_empty() {
+            full_query.push_str("WHERE ");
+            for column in &query.where_clause {
+                full_query.push_str(column);
+                full_query.push(' ');
+            }
+        }
         // Support for ORDER BY
         let mut order_by = Vec::new();
         if !query.order_by.is_empty() {
             for (column, order) in &query.order_by {
                 // TODO(geekmasher): Validate that the column exists in the table
-                order_by.push(format!("{} {}", column, order));
+                order_by.push(format!("{} {}", column, order.to_sqlite()));
             }
 
             full_query += format!("ORDER BY {}", order_by.join(", ")).as_str();
