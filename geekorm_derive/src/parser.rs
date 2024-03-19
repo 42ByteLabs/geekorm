@@ -60,6 +60,12 @@ fn generate_struct(
                 geekorm::QueryBuilder::select()
                     .table(#ident::table())
             }
+
+            fn count() -> geekorm::QueryBuilder {
+                geekorm::QueryBuilder::select()
+                    .table(#ident::table())
+                    .count()
+            }
         }
     })
 }

@@ -2,7 +2,7 @@ use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
 
 use geekorm::Table;
-use syn::{Type, TypePath};
+use syn::{GenericArgument, Ident, Type, TypePath};
 
 #[derive(Debug, Clone)]
 pub(crate) struct TableDerive {
@@ -111,34 +111,68 @@ impl ToTokens for ColumnTypeDerive {
 
 impl From<&Type> for ColumnTypeDerive {
     fn from(ty: &Type) -> Self {
-        match ty {
-            Type::Slice(_) => ColumnTypeDerive::Text(ColumnTypeOptionsDerive::default()),
-            Type::Path(path) => {
-                if path.path.is_ident("String") {
-                    ColumnTypeDerive::Text(ColumnTypeOptionsDerive::default())
-                } else if path.path.is_ident("i32")
-                    || path.path.is_ident("i64")
-                    || path.path.is_ident("u32")
-                    || path.path.is_ident("u64")
-                {
-                    ColumnTypeDerive::Integer(ColumnTypeOptionsDerive::default())
-                } else if path.path.is_ident("bool") {
-                    ColumnTypeDerive::Boolean(ColumnTypeOptionsDerive::default())
-                } else {
-                    panic!("Unsupported column type :: {:?}", ty.to_token_stream())
+        parse_path(ty, ColumnTypeOptionsDerive::default())
+    }
+}
+
+fn parse_path(typ: &Type, opts: ColumnTypeOptionsDerive) -> ColumnTypeDerive {
+    match typ {
+        Type::Slice(_) => ColumnTypeDerive::Text(ColumnTypeOptionsDerive::default()),
+        Type::Path(path) => {
+            let ident = path.path.segments.first().unwrap().ident.clone();
+
+            match ident.to_string().as_str() {
+                "String" => ColumnTypeDerive::Text(opts),
+                "i32" => ColumnTypeDerive::Integer(opts),
+                "i64" => ColumnTypeDerive::Integer(opts),
+                "u32" => ColumnTypeDerive::Integer(opts),
+                "u64" => ColumnTypeDerive::Integer(opts),
+                "bool" => ColumnTypeDerive::Boolean(opts),
+                "Option" => {
+                    let new_opts = ColumnTypeOptionsDerive {
+                        not_null: false,
+                        ..opts
+                    };
+
+                    // Get the inner type of the Option
+                    let inner_type = match path.path.segments.first().unwrap().arguments {
+                        syn::PathArguments::AngleBracketed(ref args) => args.args.first().unwrap(),
+                        _ => panic!("Unsupported Option type :: {:?}", ident.to_string()),
+                    };
+
+                    // Parse the inner type
+                    match inner_type {
+                        GenericArgument::Type(typ) => parse_path(typ, new_opts),
+                        _ => panic!("Unsupported Option type :: {:?}", ident.to_string()),
+                    }
                 }
+                _ => panic!("Unsupported column path type :: {:?}", ident.to_string()),
             }
-            _ => panic!("Unsupported column type :: {:?}", ty.to_token_stream()),
         }
+
+        _ => panic!(
+            "Unsupported column generic type :: {:?}",
+            typ.to_token_stream()
+        ),
     }
 }
 
 #[allow(unused)]
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub(crate) struct ColumnTypeOptionsDerive {
     pub(crate) primary_key: bool,
     pub(crate) unique: bool,
     pub(crate) not_null: bool,
+}
+
+impl Default for ColumnTypeOptionsDerive {
+    fn default() -> Self {
+        ColumnTypeOptionsDerive {
+            primary_key: false,
+            unique: false,
+            not_null: true,
+        }
+    }
 }
 
 impl ToTokens for ColumnTypeOptionsDerive {
