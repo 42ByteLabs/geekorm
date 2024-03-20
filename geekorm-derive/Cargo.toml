@@ -1,5 +1,5 @@
 [package]
-name = "geekorm_derive"
+name = "geekorm-derive"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,7 +7,7 @@ edition = "2021"
 proc-macro = true
 
 [dependencies]
+geekorm-core = { workspace = true, path = "../geekorm-core" }
 proc-macro2 = "1.0.79"
 quote = "1.0.35"
 syn = "2.0.53"
-geekorm = { path = "../geekorm/" }

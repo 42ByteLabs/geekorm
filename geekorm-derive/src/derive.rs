@@ -1,7 +1,7 @@
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
 
-use geekorm::Table;
+use geekorm_core::Table;
 use syn::{GenericArgument, Ident, Type, TypePath};
 
 #[derive(Debug, Clone)]

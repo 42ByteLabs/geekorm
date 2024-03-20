@@ -2,13 +2,17 @@ use std::fmt::Display;
 
 use crate::{Columns, QueryBuilder, ToSqlite};
 
+/// The Table struct for creating tables
 #[derive(Debug, Clone, Default)]
 pub struct Table {
+    /// Name of the table
     pub name: String,
+    /// Columns in the table
     pub columns: Columns,
 }
 
 impl Table {
+    /// Function to check if a column name is valid
     pub fn is_valid_column(&self, column: &str) -> bool {
         self.columns.is_valid_column(column)
     }

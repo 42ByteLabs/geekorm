@@ -2,7 +2,7 @@ use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
 use syn::{parse_macro_input, Data, DataStruct, DeriveInput, Fields};
 
-use geekorm::{Columns, Table};
+use geekorm_core::{Columns, Table};
 
 use crate::derive::{
     ColumnDerive, ColumnTypeDerive, ColumnTypeOptionsDerive, ColumnsDerive, TableDerive,

@@ -1,18 +1,27 @@
 use crate::ToSqlite;
 
+/// Query Type (CREATE, SELECT, etc.)
 #[derive(Debug, Clone, Default)]
 pub enum QueryType {
+    /// Create a new table
     Create,
+    /// Select data from a table
     #[default]
     Select,
+    /// Insert data into a table (not implemented)
     Insert,
+    /// Update data in a table (not implemented)
     Update,
+    /// Delete data from a table (not implemented)
     Delete,
 }
 
+/// Query Order (ASC / DESC)
 #[derive(Debug, Clone)]
 pub enum QueryOrder {
+    /// Ascending
     Asc,
+    /// Descending
     Desc,
 }
 
@@ -25,15 +34,23 @@ impl ToSqlite for QueryOrder {
     }
 }
 
+/// Query Condition (EQ, NE, etc.)
 #[derive(Debug, Clone, Default)]
 pub enum QueryCondition {
+    /// Equal
     #[default]
     Eq,
+    /// Not Equal
     Ne,
+    /// Like
     Like,
+    /// Greater Than
     Gt,
+    /// Less Than
     Lt,
+    /// Greater Than or Equal to
     Gte,
+    /// Less Than or Equal to
     Lte,
 }
 
@@ -51,14 +68,18 @@ impl ToSqlite for QueryCondition {
     }
 }
 
+/// Where Condition (AND, OR)
 #[derive(Debug, Clone, Default)]
 pub enum WhereCondition {
+    /// And condition
     #[default]
     And,
+    /// Or condition
     Or,
 }
 
 impl WhereCondition {
+    /// Get all where conditions as a vector of strings
     pub fn all() -> Vec<String> {
         vec![
             WhereCondition::And.to_sqlite(),

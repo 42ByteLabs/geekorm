@@ -1,0 +1,19 @@
+[package]
+name = "geekorm-core"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+
+
+[features]
+# default = ["chrono", "uuid"]
+# defaults 
+uuid = []
+chrono = []
+
+# backends (experimental)
+backends = []
+libsql = ["backends"]
+
+[dependencies]
+thiserror = "1"

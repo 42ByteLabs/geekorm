@@ -1,17 +1,21 @@
 use crate::{ColumnType, ToSqlite};
 
+/// A list of columns in a table
 #[derive(Debug, Clone, Default)]
 pub struct Columns {
+    /// List of columns
     pub columns: Vec<Column>,
 }
 
 impl Columns {
+    /// Create a new instance of Columns
     pub fn new() -> Self {
         Columns {
             columns: Vec::new(),
         }
     }
 
+    /// Validate if a column exists
     pub fn is_valid_column(&self, column: &str) -> bool {
         for col in &self.columns {
             if col.name == column {
@@ -70,13 +74,17 @@ impl ToSqlite for Columns {
     }
 }
 
+/// A column in a table
 #[derive(Debug, Clone)]
 pub struct Column {
+    /// Name of the column
     pub name: String,
+    /// Type of the column (e.g. TEXT, INTEGER, etc)
     pub column_type: ColumnType,
 }
 
 impl Column {
+    /// Create a new instance of Column
     pub fn new(name: String, column_type: ColumnType) -> Self {
         Column { name, column_type }
     }

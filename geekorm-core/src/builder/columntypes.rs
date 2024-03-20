@@ -1,9 +1,14 @@
 use crate::ToSqlite;
 
+/// A column type and its options / properties
 #[derive(Debug, Clone)]
 pub enum ColumnType {
+    /// Text column type with options
     Text(ColumnTypeOptions),
+    /// Integer column type with options
     Integer(ColumnTypeOptions),
+    /// Boolean column type with options
+    Boolean(ColumnTypeOptions),
 }
 
 impl ToSqlite for ColumnType {
@@ -23,14 +28,25 @@ impl ToSqlite for ColumnType {
                 }
                 format!("INTEGER {}", options.on_create())
             }
+            ColumnType::Boolean(options) => {
+                let opts = options.on_create();
+                if opts.is_empty() {
+                    return "INTEGER".to_string();
+                }
+                format!("INTEGER {}", options.on_create())
+            }
         }
     }
 }
 
+/// Column type options / properties
 #[derive(Debug, Clone, Default)]
 pub struct ColumnTypeOptions {
+    /// Is the column a primary key for the table
     pub primary_key: bool,
+    /// Is the column unique
     pub unique: bool,
+    /// Is the column nullable
     pub not_null: bool,
 }
 
@@ -77,6 +93,12 @@ impl ToSqlite for ColumnTypeOptions {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_column_type_boolean() {
+        let column_type = ColumnType::Boolean(ColumnTypeOptions::default());
+        assert_eq!(column_type.on_create(), "INTEGER");
+    }
 
     #[test]
     fn test_column_type_to_sql() {

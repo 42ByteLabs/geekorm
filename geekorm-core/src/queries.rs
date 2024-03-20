@@ -7,19 +7,29 @@ use crate::{
     Error, Table, ToSqlite,
 };
 
+/// The built Query struct with the query and values to use
 #[derive(Debug, Clone, Default)]
 pub struct Query {
+    /// The resulting SQLite Query
     pub query: String,
+    /// The values to use in the query (where / insert / update)
     pub values: Values,
 }
 
 impl Query {
+    /// Create a new Query
     pub fn new(query: String, values: Values) -> Self {
         Query { query, values }
     }
 
+    /// Initialize using the QueryBuilder struct
     pub fn init() -> QueryBuilder {
         QueryBuilder::default()
+    }
+
+    /// Get the query as a &str
+    pub fn to_str(&self) -> &str {
+        &self.query
     }
 }
 
@@ -29,6 +39,39 @@ impl Display for Query {
     }
 }
 
+/// The QueryBuilder struct for building queries using the builder pattern
+///
+/// # Example
+/// ```rust
+/// use geekorm::prelude::*;
+/// use geekorm_derive::GeekTable;
+///
+/// #[derive(Debug, Default, GeekTable)]
+/// pub struct User {
+///     pub username: String,
+///     pub age: i32,
+///     pub postcode: Option<String>,
+/// }
+///
+/// # fn main() {
+/// // Build a query to create a new table
+/// let create_query = User::create().build().expect("Failed to build create query");
+/// println!("Create Query :: {}", create_query);
+///
+/// // Build a query to select rows from the table
+/// let select_query = User::select()
+///     .where_eq("username", "geekmaher")
+///     .order_by("age", QueryOrder::Asc)
+///     .build()
+///     .expect("Failed to build select query");
+/// println!("Select Query :: {}", select_query);
+/// // Output:
+/// // SELECT * FROM User WHERE username = ? ORDER BY age ASC;
+/// # assert_eq!(select_query.query, "SELECT * FROM User WHERE username = ? ORDER BY age ASC;");
+///
+///
+/// # }
+/// ```
 #[derive(Debug, Clone, Default)]
 pub struct QueryBuilder {
     pub(crate) table: Table,
@@ -41,6 +84,7 @@ pub struct QueryBuilder {
 
     /// The where clause
     pub(crate) where_clause: Vec<String>,
+    /// This variable is used to determine if the last where condition was set
     pub(crate) where_condition_last: bool,
     /// The order by clause
     pub(crate) order_by: Vec<(String, QueryOrder)>,
@@ -51,13 +95,14 @@ pub struct QueryBuilder {
 }
 
 impl QueryBuilder {
+    /// Build a select query
     pub fn select() -> QueryBuilder {
         QueryBuilder {
             query_type: QueryType::Select,
             ..Default::default()
         }
     }
-
+    /// Build a create query
     pub fn create() -> QueryBuilder {
         QueryBuilder {
             query_type: QueryType::Create,
@@ -65,29 +110,26 @@ impl QueryBuilder {
         }
     }
 
-    pub fn insert() -> QueryBuilder {
-        QueryBuilder {
-            query_type: QueryType::Insert,
-            ..Default::default()
-        }
-    }
-
+    /// Set the table for the query builder
     pub fn table(mut self, table: Table) -> Self {
         self.table = table.clone();
         self
     }
 
+    /// Add a value to the list of values for parameterized queries
     pub fn add_value(mut self, value: Value) -> Self {
         self.values.push(value);
         self
     }
 
+    /// Add an AND condition to the where clause
     pub fn and(mut self) -> Self {
         self.where_clause.push(WhereCondition::And.to_sqlite());
         self.where_condition_last = true;
         self
     }
 
+    /// Add an OR condition to the where clause
     pub fn or(mut self) -> Self {
         self.where_clause.push(WhereCondition::Or.to_sqlite());
         self.where_condition_last = true;
@@ -161,8 +203,8 @@ impl QueryBuilder {
         self
     }
 
+    /// Order the query by a particular column
     pub fn order_by(mut self, column: &str, order: QueryOrder) -> Self {
-        // TODO(geekmasher): Check if column exists in table
         if self.table.is_valid_column(column) {
             self.order_by.push((column.to_string(), order));
         } else {
@@ -177,6 +219,7 @@ impl QueryBuilder {
         self
     }
 
+    /// Count the number of rows in the query
     pub fn count(mut self) -> Self {
         self.count = true;
         self
@@ -201,6 +244,7 @@ impl QueryBuilder {
         self
     }
 
+    /// Build a Query from the QueryBuilder and perform some checks
     pub fn build(&self) -> Result<Query, crate::Error> {
         if let Some(ref error) = self.error {
             return Err(error.clone());

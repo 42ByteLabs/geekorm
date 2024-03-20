@@ -1,9 +1,12 @@
+/// List of Values
 #[derive(Debug, Clone, Default)]
 pub struct Values {
+    /// List of values
     pub values: Vec<Value>,
 }
 
 impl Values {
+    /// Create a new instance of Values
     pub fn new() -> Self {
         Values { values: Vec::new() }
     }
@@ -18,18 +21,23 @@ impl Iterator for Values {
 }
 
 impl Values {
+    /// Push a new value to the list of values
     pub fn push(&mut self, value: Value) {
         self.values.push(value);
     }
 
+    /// Get a value by index from the list of values
     pub fn get(&self, index: usize) -> Option<&Value> {
         self.values.get(index)
     }
 }
 
+/// A value for a column
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Value {
+    /// A text (String) value
     Text(String),
+    /// An integer (i32) value
     Integer(i32),
 }
 
@@ -42,6 +50,12 @@ impl Default for Value {
 impl From<String> for Value {
     fn from(value: String) -> Self {
         Value::Text(value)
+    }
+}
+
+impl From<&String> for Value {
+    fn from(value: &String) -> Self {
+        Value::Text(value.to_string())
     }
 }
 

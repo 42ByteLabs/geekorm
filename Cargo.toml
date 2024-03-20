@@ -1,3 +1,46 @@
 [workspace]
 resolver = "2"
-members = ["geekorm", "geekorm_derive", "cli"]
+members = [".", "geekorm-core", "geekorm-derive", "cli", "examples/users"]
+
+[workspace.package]
+version = "0.1.0"
+license = "MIT"
+edition = "2021"
+keywords = ["database", "orm", "sqlite"]
+categories = ["database"]
+# repository = 
+authors = ["GeekMasher"]
+
+
+[package]
+name = "geekorm"
+readme = "README.md"
+documentation = "https://docs.rs/geekorm"
+description = "A simple and easy to use ORM for SQLite databases"
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+authors.workspace = true
+
+[features]
+default = ["serde", "uuid", "chrono"]
+
+backends = ["libsql"]
+libsql = []
+
+[workspace.dependencies]
+geekorm-core = { workspace = true, path = "geekorm-core" }
+geekorm-derive = { workspace = true, path = "geekorm-derive" }
+
+[dependencies]
+geekorm-core = { workspace = true, path = "geekorm-core" }
+geekorm-derive = { workspace = true, path = "geekorm-derive" }
+# Optional dependencies
+serde = { version = "1.0", optional = true }
+uuid = { version = "0.8", optional = true }
+chrono = { version = "0.4", optional = true }
+
+
+[[test]]
+name = "geekorm-example-users"
+path = "./examples/users/src/main.rs"
