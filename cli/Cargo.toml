@@ -5,6 +5,4 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.81"
-
-geekorm = { path = "../geekorm/" }
-geekorm_derive = { path = "../geekorm_derive/" }
+geekorm = { path = "../" }

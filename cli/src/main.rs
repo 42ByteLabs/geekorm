@@ -2,7 +2,6 @@
 use anyhow::Result;
 // Imports
 use geekorm::prelude::*;
-use geekorm_derive::GeekTable;
 
 #[derive(Debug, Default, GeekTable)]
 pub struct User {
@@ -22,7 +21,6 @@ fn main() -> Result<()> {
 
     let select = User::select()
         .where_ne("name", "Mathew")
-        // .and()
         .and()
         .where_gt("age", 20)
         .and()
