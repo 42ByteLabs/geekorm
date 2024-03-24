@@ -13,6 +13,7 @@ pub(crate) mod backends;
 
 pub use crate::builder::columns::{Column, Columns};
 pub use crate::builder::columntypes::{ColumnType, ColumnTypeOptions};
+pub use crate::builder::keys::{ForeignKey, PrimaryKey};
 pub use crate::builder::table::Table;
 pub use crate::queries::{Query, QueryBuilder};
 
@@ -33,19 +34,39 @@ pub enum Error {
 /// Trait for creating tables
 pub trait TableBuilder {
     /// Get the table struct
-    fn table() -> Table;
+    fn table() -> Table
+    where
+        Self: Sized;
+
+    /// Get the table struct for the current instance
+    fn get_table(&self) -> Table
+    where
+        Self: Sized;
+
     /// Get the name of the table
-    fn table_name() -> String;
+    fn table_name() -> String
+    where
+        Self: Sized;
+
+    /// Get the primary key name
+    fn get_primary_key(&self) -> Option<String>;
 
     /// Create a new table
-    fn create() -> QueryBuilder;
+    fn create() -> QueryBuilder
+    where
+        Self: Sized;
     /// Select rows in the table
-    fn select() -> QueryBuilder {
+    fn select() -> QueryBuilder
+    where
+        Self: Sized,
+    {
         QueryBuilder::select()
     }
 
     /// Count the rows in the table
-    fn count() -> QueryBuilder;
+    fn count() -> QueryBuilder
+    where
+        Self: Sized;
 }
 
 /// Trait for converting a struct to SQLite

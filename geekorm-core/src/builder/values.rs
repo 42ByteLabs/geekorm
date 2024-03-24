@@ -1,3 +1,5 @@
+use crate::PrimaryKey;
+
 /// List of Values
 #[derive(Debug, Clone, Default)]
 pub struct Values {
@@ -39,11 +41,22 @@ pub enum Value {
     Text(String),
     /// An integer (i32) value
     Integer(i32),
+    /// A boolean (i32) value (0 or 1)
+    /// This is because SQLite does not have a boolean type
+    Boolean(i32),
+    /// Identifier Key type (Primary / Forigen Key) which is a UUID
+    Identifier(String),
 }
 
 impl Default for Value {
     fn default() -> Self {
         Value::Text(String::new())
+    }
+}
+
+impl From<PrimaryKey> for Value {
+    fn from(value: PrimaryKey) -> Self {
+        Value::Identifier(value.to_string())
     }
 }
 
@@ -62,6 +75,12 @@ impl From<&String> for Value {
 impl From<&str> for Value {
     fn from(value: &str) -> Self {
         Value::Text(value.to_string())
+    }
+}
+
+impl From<bool> for Value {
+    fn from(value: bool) -> Self {
+        Value::Boolean(if value { 1 } else { 0 })
     }
 }
 

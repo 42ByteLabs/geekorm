@@ -1,6 +1,9 @@
 use std::fmt::Display;
 
-use crate::builder::models::{QueryCondition, QueryOrder, QueryType, WhereCondition};
+use crate::builder::{
+    joins::{TableJoin, TableJoins},
+    models::{QueryCondition, QueryOrder, QueryType, WhereCondition},
+};
 
 use crate::{
     builder::values::{Value, Values},
@@ -43,8 +46,8 @@ impl Display for Query {
 ///
 /// # Example
 /// ```rust
+/// use geekorm::{GeekTable, QueryOrder};
 /// use geekorm::prelude::*;
-/// use geekorm_derive::GeekTable;
 ///
 /// #[derive(Debug, Default, GeekTable)]
 /// pub struct User {
@@ -68,14 +71,18 @@ impl Display for Query {
 /// // Output:
 /// // SELECT * FROM User WHERE username = ? ORDER BY age ASC;
 /// # assert_eq!(select_query.query, "SELECT * FROM User WHERE username = ? ORDER BY age ASC;");
-///
-///
 /// # }
 /// ```
 #[derive(Debug, Clone, Default)]
 pub struct QueryBuilder {
     pub(crate) table: Table,
     pub(crate) query_type: QueryType,
+    /// If a query should use aliases
+    pub(crate) aliases: bool,
+
+    pub(crate) columns: Vec<String>,
+
+    /// Count the rows instead of returning them
     pub(crate) count: bool,
     /// The limit of the rows to return
     pub(crate) limit: Option<usize>,
@@ -88,6 +95,9 @@ pub struct QueryBuilder {
     pub(crate) where_condition_last: bool,
     /// The order by clause
     pub(crate) order_by: Vec<(String, QueryOrder)>,
+
+    pub(crate) joins: TableJoins,
+
     /// The values to use (where / insert)
     pub(crate) values: Values,
 
@@ -95,6 +105,10 @@ pub struct QueryBuilder {
 }
 
 impl QueryBuilder {
+    /// Create a new QueryBuilder
+    pub fn new() -> Self {
+        QueryBuilder::default()
+    }
     /// Build a select query
     pub fn select() -> QueryBuilder {
         QueryBuilder {
@@ -113,6 +127,12 @@ impl QueryBuilder {
     /// Set the table for the query builder
     pub fn table(mut self, table: Table) -> Self {
         self.table = table.clone();
+        self
+    }
+
+    /// Set the columns for the query builder
+    pub fn columns(mut self, columns: Vec<&str>) -> Self {
+        self.columns = columns.iter().map(|c| c.to_string()).collect();
         self
     }
 
@@ -215,6 +235,25 @@ impl QueryBuilder {
                 ),
                 String::from("order_by"),
             ));
+        }
+        self
+    }
+
+    /// Adds a table to join with the current table
+    ///
+    /// Note: GeekOrm only joins tables with the `INNER JOIN` clause and primary keys
+    pub fn join(mut self, table: Table) -> Self {
+        if let Some(key) = self.table.get_primary_key() {
+            if table.is_valid_column(key.as_str()) || self.table.is_valid_column(key.as_str()) {
+                // TODO(geekmasher): The tables should be references to avoid cloning
+                self.joins
+                    .push(TableJoin::new(self.table.clone(), table.clone()));
+            } else {
+                self.error = Some(Error::QueryBuilderError(
+                    format!("Column `{}` does not exist in table `{}`", key, table.name),
+                    String::from("join"),
+                ));
+            }
         }
         self
     }

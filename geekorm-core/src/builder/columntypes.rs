@@ -1,8 +1,14 @@
+use serde::{Deserialize, Serialize};
+
 use crate::ToSqlite;
 
 /// A column type and its options / properties
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ColumnType {
+    /// Identifier column type (Primary Key) which is a UUID (TEXT)
+    Identifier(ColumnTypeOptions),
+    /// Foreign Key column type with the table name
+    ForeignKey(ColumnTypeOptions),
     /// Text column type with options
     Text(ColumnTypeOptions),
     /// Integer column type with options
@@ -14,6 +20,16 @@ pub enum ColumnType {
 impl ToSqlite for ColumnType {
     fn on_create(&self) -> String {
         match self {
+            ColumnType::Identifier(opts) => {
+                format!("INTEGER {}", opts.on_create())
+            }
+            ColumnType::ForeignKey(options) => {
+                let opts = options.on_create();
+                if opts.is_empty() {
+                    return "TEXT".to_string();
+                }
+                format!("TEXT {}", opts)
+            }
             ColumnType::Text(options) => {
                 let opts = options.on_create();
                 if opts.is_empty() {
@@ -39,11 +55,26 @@ impl ToSqlite for ColumnType {
     }
 }
 
+impl ColumnType {
+    /// Check if the column type is a primary key
+    pub fn is_primary_key(&self) -> bool {
+        matches!(self, ColumnType::Identifier(_))
+    }
+
+    /// Check if the column type is a foreign key
+    pub fn is_foreign_key(&self) -> bool {
+        matches!(self, ColumnType::ForeignKey(_))
+    }
+}
+
 /// Column type options / properties
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ColumnTypeOptions {
     /// Is the column a primary key for the table
     pub primary_key: bool,
+    /// Is the column a foreign key
+    /// TableName::ColumnName
+    pub foreign_key: String,
     /// Is the column unique
     pub unique: bool,
     /// Is the column nullable
@@ -54,8 +85,18 @@ impl ColumnTypeOptions {
     pub(crate) fn primary_key() -> Self {
         ColumnTypeOptions {
             primary_key: true,
+            unique: false,
             not_null: true,
-            ..Default::default()
+            foreign_key: String::new(),
+        }
+    }
+
+    pub(crate) fn foreign_key(key: String) -> Self {
+        ColumnTypeOptions {
+            primary_key: false,
+            foreign_key: key,
+            unique: false,
+            not_null: true,
         }
     }
 

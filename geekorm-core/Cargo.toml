@@ -4,16 +4,22 @@ version.workspace = true
 edition.workspace = true
 authors.workspace = true
 
-
 [features]
-# default = ["chrono", "uuid"]
-# defaults 
+default = ["uuid", "chrono"]
+
 uuid = []
 chrono = []
 
-# backends (experimental)
-backends = []
-libsql = ["backends"]
+# This feature is for testing
+backends = ["libsql"]
+libsql = []
 
 [dependencies]
 thiserror = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+uuid = { version = "1", features = ["v4"] }
+chrono = { version = "0.4" }
+
+[dev-dependencies]
+geekorm = { path = ".." }

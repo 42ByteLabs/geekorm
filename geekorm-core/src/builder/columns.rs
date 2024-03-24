@@ -1,7 +1,8 @@
 use crate::{ColumnType, ToSqlite};
+use serde::{Deserialize, Serialize};
 
 /// A list of columns in a table
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Columns {
     /// List of columns
     pub columns: Vec<Column>,
@@ -23,6 +24,29 @@ impl Columns {
             }
         }
         false
+    }
+
+    /// Get the Primary Key column of a table
+    pub fn get_primary_key(&self) -> Option<&Column> {
+        self.columns.iter().find(|col| col.is_primary_key())
+    }
+
+    /// Get the Foreign Keys columns of a table
+    pub fn get_foreign_keys(&self) -> Vec<&Column> {
+        self.columns
+            .iter()
+            .filter(|col| matches!(col.column_type, ColumnType::ForeignKey(_)))
+            .collect()
+    }
+
+    /// Get the length of the columns
+    pub fn len(&self) -> usize {
+        self.columns.len()
+    }
+
+    /// Check if the columns is empty
+    pub fn is_empty(&self) -> bool {
+        self.columns.is_empty()
     }
 }
 
@@ -46,6 +70,16 @@ impl ToSqlite for Columns {
         for column in &self.columns {
             sql.push(column.on_create());
         }
+
+        for foreign_key in self.get_foreign_keys() {
+            sql.push(format!(
+                "FOREIGN KEY ({parent}) REFERENCES {child} ({child_column})",
+                parent = "",
+                child = foreign_key.name,
+                child_column = ""
+            ));
+        }
+
         sql.join(", ")
     }
 
@@ -75,7 +109,7 @@ impl ToSqlite for Columns {
 }
 
 /// A column in a table
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Column {
     /// Name of the column
     pub name: String,
@@ -88,16 +122,33 @@ impl Column {
     pub fn new(name: String, column_type: ColumnType) -> Self {
         Column { name, column_type }
     }
+
+    /// Check if the column is a primary key
+    pub fn is_primary_key(&self) -> bool {
+        self.column_type.is_primary_key()
+    }
 }
 
 impl ToSqlite for Column {
     fn on_create(&self) -> String {
-        format!("{} {}", self.name, self.column_type.on_create())
+        match &self.column_type {
+            ColumnType::ForeignKey(opts) => {
+                let (ftable, fcolumn) = opts.foreign_key.split_once("::").unwrap();
+                format!(
+                    "FOREIGN KEY ({name}) REFERENCES {parent} ({parent_column})",
+                    name = self.name,
+                    parent = ftable,
+                    parent_column = fcolumn
+                )
+            }
+            _ => format!("{} {}", self.name, self.column_type.on_create()),
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use crate::ColumnTypeOptions;
 
     #[test]
@@ -114,5 +165,20 @@ mod tests {
             ColumnType::Integer(ColumnTypeOptions::default()),
         );
         assert_eq!(column.on_create(), "age INTEGER");
+    }
+
+    #[test]
+    fn test_foreign_key_to_sql() {
+        let column = Column::new(
+            String::from("user_id"),
+            ColumnType::ForeignKey(ColumnTypeOptions {
+                foreign_key: String::from("users::user_id"),
+                ..Default::default()
+            }),
+        );
+        assert_eq!(
+            column.on_create(),
+            "FOREIGN KEY (user_id) REFERENCES users (user_id)"
+        );
     }
 }
