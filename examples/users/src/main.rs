@@ -1,6 +1,6 @@
 #![allow(dead_code)]
-
-use geekorm::{GeekTable, TableBuilder};
+use geekorm::prelude::*;
+use geekorm::GeekTable;
 
 #[derive(Debug, Clone, GeekTable)]
 struct User {
