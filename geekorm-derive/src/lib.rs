@@ -6,7 +6,12 @@ extern crate proc_macro2;
 extern crate quote;
 extern crate syn;
 
+#[macro_use]
+mod macros;
+
 mod derive;
+mod errors;
+mod internal;
 mod parser;
 
 use parser::derive_parser;

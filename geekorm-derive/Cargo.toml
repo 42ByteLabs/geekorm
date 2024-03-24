@@ -3,11 +3,30 @@ name = "geekorm-derive"
 version = "0.1.0"
 edition = "2021"
 
+build = "build.rs"
+
+[features]
+default = ["uuid"]
+
+uuid = []
+chrono = []
+
 [lib]
 proc-macro = true
 
 [dependencies]
-geekorm-core = { workspace = true, path = "../geekorm-core" }
-proc-macro2 = "1.0.79"
-quote = "1.0.35"
-syn = "2.0.53"
+geekorm-core = { path = "../geekorm-core" }
+# macro magic
+proc-macro2 = "1"
+quote = "1"
+syn = "2"
+# serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# uuid
+uuid = { version = "1", features = ["v4"] }
+chrono = { version = "0.4", features = ["serde"] }
+thiserror = "1.0.58"
+
+[dev-dependencies]
+geekorm = { path = ".." }
