@@ -14,7 +14,8 @@
 //! Here is a simple example of how to use GeekORM:
 //!
 //! ```rust
-//! use geekorm::{GeekTable, TableBuilder, QueryOrder};
+//! use geekorm::prelude::*;
+//! use geekorm::{GeekTable, QueryOrder};
 //!
 //! #[derive(Debug, Clone, GeekTable)]
 //! struct User {
@@ -64,8 +65,11 @@
 // Builder Modules
 pub use geekorm_core::builder::columns::{Column, Columns};
 pub use geekorm_core::builder::columntypes::{ColumnType, ColumnTypeOptions};
+pub use geekorm_core::builder::keys::{ForeignKey, PrimaryKey};
 pub use geekorm_core::builder::models::{QueryCondition, QueryOrder, QueryType};
 pub use geekorm_core::builder::table::Table;
+/// Values
+pub use geekorm_core::builder::values::{Value, Values};
 
 // Query Modules
 pub use geekorm_core::queries::QueryBuilder;
@@ -74,8 +78,21 @@ pub use geekorm_core::queries::QueryBuilder;
 /// GeekTable Derive Macro
 pub use geekorm_derive::GeekTable;
 
-// Traits
-/// Table Builder Trait
-pub use geekorm_core::TableBuilder;
-/// ToSqlite Trait
-pub use geekorm_core::ToSqlite;
+pub mod prelude {
+    //! GeekORM prelude
+    //!
+    //! The prelude module re-exports the most commonly used traits and types from the GeekORM crate.
+    //!
+    //! The prelude is useful for importing commonly used items in a single line.
+    //!
+    //! # Example
+    //!
+    //! ```rust
+    //! use geekorm::prelude::*;
+    //! ```
+
+    pub use crate::GeekTable;
+    // Traits
+    pub use geekorm_core::TableBuilder;
+    pub use geekorm_core::ToSqlite;
+}

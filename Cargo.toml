@@ -1,11 +1,19 @@
 [workspace]
 resolver = "2"
-members = [".", "geekorm-core", "geekorm-derive", "cli", "examples/users"]
+members = [
+    ".",
+    "geekorm-core",
+    "geekorm-derive",
+    "cli",
+    "examples/users",
+    "examples/foreignkeys",
+]
 
 [workspace.package]
 version = "0.1.0"
 license = "MIT"
 edition = "2021"
+rust-version = "1.74"
 keywords = ["database", "orm", "sqlite"]
 categories = ["database"]
 # repository = 
@@ -22,25 +30,28 @@ license.workspace = true
 edition.workspace = true
 authors.workspace = true
 
+
+[package.metadata.release]
+shared-version = true
+
 [features]
-default = ["serde", "uuid", "chrono"]
+default = ["uuid", "chrono"]
+
+uuid = ["geekorm-derive/uuid"]
+chrono = ["geekorm-derive/chrono"]
 
 backends = ["libsql"]
 libsql = []
 
-[workspace.dependencies]
-geekorm-core = { workspace = true, path = "geekorm-core" }
-geekorm-derive = { workspace = true, path = "geekorm-derive" }
-
 [dependencies]
-geekorm-core = { workspace = true, path = "geekorm-core" }
-geekorm-derive = { workspace = true, path = "geekorm-derive" }
-# Optional dependencies
-serde = { version = "1.0", optional = true }
-uuid = { version = "0.8", optional = true }
-chrono = { version = "0.4", optional = true }
+geekorm-core = { version = "^0.1.0", path = "geekorm-core" }
+geekorm-derive = { version = "^0.1.0", path = "geekorm-derive" }
 
 
 [[test]]
 name = "geekorm-example-users"
 path = "./examples/users/src/main.rs"
+
+[[test]]
+name = "geekorm-example-foreignkeys"
+path = "./examples/foreignkeys/src/main.rs"
