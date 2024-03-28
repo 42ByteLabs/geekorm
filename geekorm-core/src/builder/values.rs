@@ -54,9 +54,9 @@ impl Default for Value {
     }
 }
 
-impl From<PrimaryKey> for Value {
-    fn from(value: PrimaryKey) -> Self {
-        Value::Identifier(value.to_string())
+impl From<PrimaryKey<String>> for Value {
+    fn from(value: PrimaryKey<String>) -> Self {
+        Value::Identifier(value.into())
     }
 }
 

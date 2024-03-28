@@ -8,13 +8,17 @@ pub mod builder;
 /// Query module
 pub mod queries;
 
-#[cfg(feature = "backends")]
-pub(crate) mod backends;
+/// Backend module
+pub mod backends;
+
+#[cfg(feature = "libsql")]
+pub use backends::libsql;
 
 pub use crate::builder::columns::{Column, Columns};
 pub use crate::builder::columntypes::{ColumnType, ColumnTypeOptions};
 pub use crate::builder::keys::{ForeignKey, PrimaryKey};
 pub use crate::builder::table::Table;
+pub use crate::builder::values::{Value, Values};
 pub use crate::queries::{Query, QueryBuilder};
 
 use thiserror::Error;
@@ -48,9 +52,6 @@ pub trait TableBuilder {
     where
         Self: Sized;
 
-    /// Get the primary key name
-    fn get_primary_key(&self) -> Option<String>;
-
     /// Create a new table
     fn create() -> QueryBuilder
     where
@@ -67,6 +68,19 @@ pub trait TableBuilder {
     fn count() -> QueryBuilder
     where
         Self: Sized;
+}
+
+/// Trait for Tables with a primary key
+///
+pub trait TablePrimaryKey
+where
+    Self: TableBuilder,
+{
+    /// Get the name of the primary key column
+    fn primary_key() -> String;
+
+    /// Get the primary key column name
+    fn primary_key_value(&self) -> Value;
 }
 
 /// Trait for converting a struct to SQLite

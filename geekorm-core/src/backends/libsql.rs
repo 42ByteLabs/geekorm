@@ -1,7 +1,14 @@
-use crate::backends::Backend;
+use crate::PrimaryKey;
+use libsql::Value;
 
-pub struct LibSqlBackend {}
+impl From<PrimaryKey> for Value {
+    fn from(value: PrimaryKey) -> Self {
+        value.value.into()
+    }
+}
 
-impl Backend for LibSqlBackend {
-    fn execute(&self, query: &str) -> Result<(), crate::Error> {}
+impl From<&PrimaryKey> for Value {
+    fn from(value: &PrimaryKey) -> Self {
+        value.value.clone().into()
+    }
 }

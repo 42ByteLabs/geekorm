@@ -6,47 +6,155 @@ use uuid::Uuid;
 
 use crate::ToSqlite;
 
-/// Primary Key
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PrimaryKey {
-    /// The
-    pub value: String,
+/// Primary Key Type
+///
+/// The Primary Key is a column in a Table used to uniquely identify a row.
+///
+/// In GeekORM, it can be an `i32` (default), a `String`, or a `Uuid`.
+///
+/// # Example
+///
+/// Here is an example of how to use the PrimaryKey struct with an integer
+///
+/// ```rust
+/// use geekorm::PrimaryKey;
+///
+/// struct User {
+///    pub id: PrimaryKey<i32>,
+///    pub username: String,
+/// }
+///
+/// let user = User {
+///     id: PrimaryKey::new(1),
+///     username: String::from("JohnDoe")
+/// };
+/// # assert_eq!(user.id, PrimaryKey::new(1));
+/// # assert_eq!(user.username, String::from("JohnDoe"));
+/// ```
+///
+/// Here is an example of how to use the PrimaryKey struct with a String
+///
+/// ```rust
+/// use geekorm::PrimaryKey;
+///
+/// struct User {
+///     pub id: PrimaryKey<String>,
+///     pub username: String,
+/// }
+///
+/// let user = User {
+///     id: PrimaryKey::new(String::from("1")),
+///     username: String::from("JohnDoe")
+/// };
+/// # assert_eq!(user.id, PrimaryKey::new(String::from("1")));
+/// # assert_eq!(user.username, String::from("JohnDoe"));
+/// ```
+///
+/// Here is an example of how to use the PrimaryKey struct with a Uuid.
+///
+/// Note: This requires the `uuid` feature to be enabled.
+///
+/// ```rust
+/// use geekorm::PrimaryKeyUuid;
+///
+/// struct User {
+///     pub id: PrimaryKeyUuid,
+///     pub username: String,
+/// }
+///
+/// let user = User {
+///     id: PrimaryKeyUuid::new(uuid::Uuid::new_v4()),
+///     username: String::from("JohnDoe")
+/// };
+/// # assert_eq!(user.username, String::from("JohnDoe"));
+/// ```
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct PrimaryKey<T>
+where
+    T: Display + 'static,
+{
+    value: T,
 }
 
-impl PrimaryKey {
-    /// Create a new primary key
-    pub fn new() -> Self {
-        PrimaryKey::default()
+impl PrimaryKey<i32> {
+    /// Create a new primary key with an integer
+    pub fn new(value: i32) -> Self {
+        Self { value }
     }
 }
 
-impl Display for PrimaryKey {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.value)
+impl PrimaryKey<String> {
+    /// Create a new primary key with a String
+    pub fn new(value: String) -> Self {
+        Self { value }
     }
 }
 
-impl Default for PrimaryKey {
+/// Primary Key as an Integer
+pub type PrimaryKeyInteger = PrimaryKey<i32>;
+
+impl Default for PrimaryKeyInteger {
+    fn default() -> Self {
+        PrimaryKey { value: 0 }
+    }
+}
+
+/// Primary Key as a Uuid
+#[cfg(feature = "uuid")]
+pub type PrimaryKeyUuid = PrimaryKey<Uuid>;
+
+#[cfg(feature = "uuid")]
+impl Default for PrimaryKeyUuid {
     fn default() -> Self {
         PrimaryKey {
-            value: Uuid::new_v4().to_string(),
+            value: Uuid::new_v4(),
         }
     }
 }
 
-impl ToSqlite for PrimaryKey {
+#[cfg(feature = "uuid")]
+impl PrimaryKeyUuid {
+    /// Create a new primary key with a Uuid
+    pub fn new(value: Uuid) -> Self {
+        Self { value }
+    }
+}
+
+impl ToSqlite for PrimaryKey<String> {
     fn on_create(&self) -> String {
         String::from("PRIMARY KEY")
     }
 }
 
-impl From<String> for PrimaryKey {
+impl From<i32> for PrimaryKey<i32> {
+    fn from(value: i32) -> Self {
+        PrimaryKey { value }
+    }
+}
+
+impl From<String> for PrimaryKeyInteger {
+    fn from(value: String) -> Self {
+        PrimaryKey {
+            value: value.parse().unwrap(),
+        }
+    }
+}
+
+impl From<&str> for PrimaryKeyInteger {
+    fn from(value: &str) -> Self {
+        PrimaryKey {
+            value: value.parse().unwrap(),
+        }
+    }
+}
+
+impl From<String> for PrimaryKey<String> {
     fn from(value: String) -> Self {
         PrimaryKey { value }
     }
 }
 
-impl From<&str> for PrimaryKey {
+impl From<&str> for PrimaryKey<String> {
     fn from(value: &str) -> Self {
         PrimaryKey {
             value: String::from(value),
@@ -54,7 +162,97 @@ impl From<&str> for PrimaryKey {
     }
 }
 
-impl Serialize for PrimaryKey {
+impl From<String> for PrimaryKeyUuid {
+    fn from(value: String) -> Self {
+        PrimaryKeyUuid {
+            value: Uuid::parse_str(&value).unwrap(),
+        }
+    }
+}
+
+impl From<&str> for PrimaryKeyUuid {
+    fn from(value: &str) -> Self {
+        PrimaryKeyUuid {
+            value: Uuid::parse_str(value).unwrap(),
+        }
+    }
+}
+
+impl From<PrimaryKey<String>> for String {
+    fn from(value: PrimaryKey<String>) -> Self {
+        value.value
+    }
+}
+
+impl From<PrimaryKeyInteger> for i32 {
+    fn from(value: PrimaryKeyInteger) -> Self {
+        value.value
+    }
+}
+
+impl Serialize for PrimaryKeyInteger {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_i32(self.value)
+    }
+}
+
+impl<'de> Deserialize<'de> for PrimaryKeyInteger {
+    fn deserialize<D>(deserializer: D) -> Result<PrimaryKeyInteger, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        struct PrimaryKeyVisitor;
+
+        impl<'de> Visitor<'de> for PrimaryKeyVisitor {
+            type Value = PrimaryKeyInteger;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("an integer representing a primary key")
+            }
+
+            fn visit_i32<E>(self, v: i32) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                Ok(PrimaryKeyInteger::from(v))
+            }
+
+            fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                Ok(PrimaryKeyInteger::from(v as i32))
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<PrimaryKeyInteger, E>
+            where
+                E: serde::de::Error,
+            {
+                match value.parse::<i32>() {
+                    Ok(value) => Ok(PrimaryKeyInteger::from(value)),
+                    Err(_) => Err(serde::de::Error::custom("Invalid integer value")),
+                }
+            }
+
+            fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                match v.parse::<i32>() {
+                    Ok(value) => Ok(PrimaryKeyInteger::from(value)),
+                    Err(_) => Err(serde::de::Error::custom("Invalid integer value")),
+                }
+            }
+        }
+
+        deserializer.deserialize_i32(PrimaryKeyVisitor)
+    }
+}
+
+impl Serialize for PrimaryKey<String> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -62,27 +260,71 @@ impl Serialize for PrimaryKey {
         serializer.serialize_str(&self.value)
     }
 }
-impl<'de> Deserialize<'de> for PrimaryKey {
-    fn deserialize<D>(deserializer: D) -> Result<PrimaryKey, D::Error>
+
+impl<'de> Deserialize<'de> for PrimaryKey<String> {
+    fn deserialize<D>(deserializer: D) -> Result<PrimaryKey<String>, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
         struct PrimaryKeyVisitor;
 
         impl<'de> Visitor<'de> for PrimaryKeyVisitor {
-            type Value = PrimaryKey;
+            type Value = PrimaryKey<String>;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
                 formatter.write_str("a string representing a primary key")
             }
 
-            fn visit_str<E>(self, value: &str) -> Result<PrimaryKey, E>
+            fn visit_str<E>(self, value: &str) -> Result<PrimaryKey<String>, E>
             where
                 E: serde::de::Error,
             {
                 Ok(PrimaryKey::from(value))
             }
-            fn visit_string<E>(self, value: String) -> Result<PrimaryKey, E>
+            fn visit_string<E>(self, value: String) -> Result<PrimaryKey<String>, E>
+            where
+                E: serde::de::Error,
+            {
+                Ok(PrimaryKey::from(value))
+            }
+        }
+
+        deserializer.deserialize_str(PrimaryKeyVisitor)
+    }
+}
+
+#[cfg(feature = "uuid")]
+impl Serialize for PrimaryKey<Uuid> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(self.value.to_string().as_str())
+    }
+}
+
+#[cfg(feature = "uuid")]
+impl<'de> Deserialize<'de> for PrimaryKey<Uuid> {
+    fn deserialize<D>(deserializer: D) -> Result<PrimaryKeyUuid, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        struct PrimaryKeyVisitor;
+
+        impl<'de> Visitor<'de> for PrimaryKeyVisitor {
+            type Value = PrimaryKeyUuid;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a string representing a primary key")
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<PrimaryKeyUuid, E>
+            where
+                E: serde::de::Error,
+            {
+                Ok(PrimaryKey::from(value))
+            }
+            fn visit_string<E>(self, value: String) -> Result<PrimaryKeyUuid, E>
             where
                 E: serde::de::Error,
             {
@@ -99,12 +341,35 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_primary_key_serde() {
-        let pk = PrimaryKey::new();
+    fn test_primary_key_string() {
+        let pk = PrimaryKey::<String>::new(String::from("1"));
         let pk_json = serde_json::to_string(&pk).unwrap();
-        assert_eq!(pk_json, format!("\"{}\"", pk.value));
+        assert_eq!(pk_json, "\"1\"");
 
-        let pk_deserialized: PrimaryKey = serde_json::from_str(pk_json.as_str()).unwrap();
+        let pk_deserialized: PrimaryKey<String> = serde_json::from_str(&pk_json).unwrap();
+        assert_eq!(pk, pk_deserialized);
+    }
+
+    #[test]
+    fn test_primary_key_i32() {
+        let pk = PrimaryKeyInteger::new(1);
+        let pk_json = serde_json::to_string(&pk).unwrap();
+
+        assert_eq!(pk_json, "1");
+
+        let pk_deserialized: PrimaryKeyInteger = serde_json::from_str(&pk_json).unwrap();
+        assert_eq!(pk, pk_deserialized);
+    }
+
+    #[test]
+    #[cfg(feature = "uuid")]
+    fn test_primary_key_uuid() {
+        let id = Uuid::new_v4();
+
+        let pk = PrimaryKeyUuid::new(id);
+        let pk_json = serde_json::to_string(&pk).unwrap();
+
+        let pk_deserialized: PrimaryKeyUuid = serde_json::from_str(&pk_json).unwrap();
         assert_eq!(pk, pk_deserialized);
     }
 }

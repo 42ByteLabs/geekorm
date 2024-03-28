@@ -94,9 +94,9 @@ impl ToSqlite for TableJoinOptions {
         Ok(format!(
             "{ptable}.{pcolumn} = {ctable}.{ccolumn}",
             ptable = self.parent.name,
-            pcolumn = self.parent.get_primary_key().unwrap(),
+            pcolumn = self.parent.get_primary_key(),
             ctable = self.child.name,
-            ccolumn = self.child.get_primary_key().unwrap()
+            ccolumn = self.child.get_primary_key()
         ))
     }
 }

@@ -27,8 +27,11 @@ impl Columns {
     }
 
     /// Get the Primary Key column of a table
-    pub fn get_primary_key(&self) -> Option<&Column> {
-        self.columns.iter().find(|col| col.is_primary_key())
+    pub fn get_primary_key(&self) -> Option<Column> {
+        self.columns
+            .iter()
+            .find(|col| col.column_type.is_primary_key())
+            .cloned()
     }
 
     /// Get the Foreign Keys columns of a table

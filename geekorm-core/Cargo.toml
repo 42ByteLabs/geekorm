@@ -11,8 +11,7 @@ uuid = []
 chrono = []
 
 # This feature is for testing
-backends = ["libsql"]
-libsql = []
+libsql = ["dep:libsql"]
 
 [dependencies]
 thiserror = "1"
@@ -20,6 +19,8 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 uuid = { version = "1", features = ["v4"] }
 chrono = { version = "0.4" }
+libsql = { version = "0.3.2", optional = true }
+
 
 [dev-dependencies]
 geekorm = { path = ".." }

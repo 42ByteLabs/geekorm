@@ -243,17 +243,16 @@ impl QueryBuilder {
     ///
     /// Note: GeekOrm only joins tables with the `INNER JOIN` clause and primary keys
     pub fn join(mut self, table: Table) -> Self {
-        if let Some(key) = self.table.get_primary_key() {
-            if table.is_valid_column(key.as_str()) || self.table.is_valid_column(key.as_str()) {
-                // TODO(geekmasher): The tables should be references to avoid cloning
-                self.joins
-                    .push(TableJoin::new(self.table.clone(), table.clone()));
-            } else {
-                self.error = Some(Error::QueryBuilderError(
-                    format!("Column `{}` does not exist in table `{}`", key, table.name),
-                    String::from("join"),
-                ));
-            }
+        let key = self.table.get_primary_key();
+        if table.is_valid_column(key.as_str()) || self.table.is_valid_column(key.as_str()) {
+            // TODO(geekmasher): The tables should be references to avoid cloning
+            self.joins
+                .push(TableJoin::new(self.table.clone(), table.clone()));
+        } else {
+            self.error = Some(Error::QueryBuilderError(
+                format!("Column `{}` does not exist in table `{}`", key, table.name),
+                String::from("join"),
+            ));
         }
         self
     }

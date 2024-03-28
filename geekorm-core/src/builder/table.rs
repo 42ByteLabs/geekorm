@@ -17,9 +17,14 @@ impl Table {
         self.columns.is_valid_column(column)
     }
 
-    /// Function to get the name of the primary key of the table
-    pub fn get_primary_key(&self) -> Option<String> {
-        self.columns.get_primary_key().map(|col| col.name.clone())
+    /// Get the name of the primary key column
+    pub fn get_primary_key(&self) -> String {
+        self.columns
+            .columns
+            .iter()
+            .find(|col| col.column_type.is_primary_key())
+            .map(|col| col.name.clone())
+            .unwrap_or_else(|| String::from("id"))
     }
 }
 
