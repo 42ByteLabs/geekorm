@@ -1,6 +1,6 @@
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
-use syn::{parse_macro_input, Data, DataStruct, DeriveInput, Fields};
+use syn::{parse_macro_input, spanned::Spanned, Data, DataStruct, DeriveInput, Fields};
 
 use geekorm_core::{Columns, Table};
 
@@ -21,9 +21,8 @@ pub(crate) fn derive_parser(ast: &DeriveInput) -> Result<TokenStream, syn::Error
                 .named
                 .iter()
                 .map(|f| {
-                    let name = f.ident.as_ref().unwrap().to_string();
                     // TODO(geekmasher): handle unwrap here better
-                    ColumnDerive::new(name, ColumnTypeDerive::try_from(&f.ty).unwrap())
+                    ColumnDerive::new(f.ident.as_ref().unwrap().clone(), f.ty.clone())
                 })
                 .collect();
             let table = TableDerive {
@@ -53,6 +52,13 @@ fn generate_struct(
     let mut stream = TokenStream::new();
 
     stream.extend(generate_table_builder(ident, generics, &table)?);
+    stream.extend(generate_table_primary_key(ident, generics, &table)?);
+
+    // TODO(geekmasher): Generate the Foreign Keys for the struct
+    // stream.extend(generate_foreign_key(ident, generics, &table)?);
+
+    #[cfg(feature = "new")]
+    stream.extend(generate_new(ident, generics, &table));
 
     Ok(stream)
 }
@@ -78,10 +84,6 @@ fn generate_table_builder(
                 stringify!(#ident).to_string()
             }
 
-            fn get_primary_key(&self) -> Option<String> {
-                #table.get_primary_key()
-            }
-
             fn create() -> geekorm::QueryBuilder {
                 geekorm::QueryBuilder::create()
                     .table(#ident::table())
@@ -100,7 +102,79 @@ fn generate_table_builder(
     })
 }
 
-#[allow(dead_code)]
+fn generate_table_primary_key(
+    ident: &syn::Ident,
+    generics: &syn::Generics,
+    table: &TableDerive,
+) -> Result<TokenStream, syn::Error> {
+    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
+
+    if let Some(key) = table.columns.get_primary_key() {
+        let name = key.name.clone();
+
+        let identifier = syn::Ident::new(name.as_str(), name.span());
+
+        Ok(quote! {
+            impl #impl_generics geekorm_core::TablePrimaryKey for #ident #ty_generics #where_clause {
+                fn primary_key() -> String {
+                    String::from(#name)
+                }
+
+                fn primary_key_value(&self) -> geekorm::Value {
+                    geekorm::Value::from(self.#identifier)
+                }
+            }
+        })
+    } else {
+        Ok(quote! {})
+    }
+}
+
+/// Generate the a `new()` function for the struct that will be used to create a new instance of the struct
+#[allow(dead_code, unused_variables)]
+fn generate_new(
+    ident: &syn::Ident,
+    generics: &syn::Generics,
+    table: &TableDerive,
+) -> Result<TokenStream, syn::Error> {
+    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
+    let params = table.columns.to_params();
+    let self_block = table.columns.to_self();
+
+    Ok(quote! {
+        impl #impl_generics #ident #ty_generics #where_clause {
+            #[allow(dead_code)]
+            pub fn new(#params) -> Self {
+                #self_block
+            }
+        }
+    })
+}
+
+#[allow(dead_code, unused_variables)]
+fn generate_foreign_key(
+    ident: &syn::Ident,
+    generics: &syn::Generics,
+    table: &TableDerive,
+) -> Result<TokenStream, syn::Error> {
+    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
+
+    let keys = table.columns.get_foreign_keys();
+
+    let mut stream = TokenStream::new();
+    for key in keys {
+        stream.extend(quote! {
+            impl #impl_generics geekorm::ForeignKey for #ident #ty_generics #where_clause {
+                fn foreign_key() -> geekorm::ForeignKey {
+                    #table.foreign_key()
+                }
+            }
+        })
+    }
+    Ok(stream)
+}
+
+#[allow(dead_code, unused_variables)]
 fn generate_serde(
     ident: &syn::Ident,
     generics: &syn::Generics,

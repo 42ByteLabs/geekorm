@@ -6,10 +6,12 @@ edition = "2021"
 build = "build.rs"
 
 [features]
-default = ["uuid"]
+default = ["uuid", "chrono"]
 
 uuid = []
 chrono = []
+new = []
+primary_key = []
 
 [lib]
 proc-macro = true

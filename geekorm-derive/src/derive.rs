@@ -1,4 +1,7 @@
-use std::any::{Any, TypeId};
+use std::{
+    any::{Any, TypeId},
+    fmt::Debug,
+};
 
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
@@ -49,6 +52,52 @@ pub(crate) struct ColumnsDerive {
     pub(crate) columns: Vec<ColumnDerive>,
 }
 
+impl ColumnsDerive {
+    pub(crate) fn get_primary_key(&self) -> Option<ColumnDerive> {
+        self.columns
+            .iter()
+            .filter_map(|col| {
+                if let ColumnTypeDerive::Identifier(_) = &col.coltype {
+                    Some(col.clone())
+                } else {
+                    None
+                }
+            })
+            .next()
+    }
+
+    pub(crate) fn get_foreign_keys(&self) -> Vec<ColumnDerive> {
+        self.columns
+            .iter()
+            .filter_map(|c| {
+                if let ColumnTypeDerive::ForeignKey(_) = &c.coltype {
+                    Some(c.clone())
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
+
+    /// Convert the columns into a list of parameters for a function
+    pub(crate) fn to_params(&self) -> TokenStream {
+        let columns = self.columns.iter().map(|c| c.to_params()).filter_map(|c| c);
+        quote! {
+            #(#columns),*
+        }
+    }
+
+    /// Creates a new instance of the struct and passes in the columns
+    pub(crate) fn to_self(&self) -> TokenStream {
+        let columns = self.columns.iter().map(|c| c.to_self());
+        quote! {
+            Self {
+                #(#columns),*
+            }
+        }
+    }
+}
+
 impl Iterator for ColumnsDerive {
     type Item = ColumnDerive;
 
@@ -84,15 +133,93 @@ impl From<Vec<ColumnDerive>> for ColumnsDerive {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub(crate) struct ColumnDerive {
+    pub(crate) identifier: Ident,
+    pub(crate) itype: Type,
+
     pub(crate) name: String,
     pub(crate) coltype: ColumnTypeDerive,
 }
 
 impl ColumnDerive {
-    pub(crate) fn new(name: String, coltype: ColumnTypeDerive) -> Self {
-        ColumnDerive { name, coltype }
+    /// Create a new instance of Column
+    pub(crate) fn new(identifier: Ident, itype: Type) -> Self {
+        let name = identifier.to_string();
+        let coltype = ColumnTypeDerive::try_from(&itype).unwrap();
+        ColumnDerive {
+            identifier,
+            itype,
+            name,
+            coltype,
+        }
+    }
+
+    /// Convert the column into a list of parameters for a function
+    pub(crate) fn to_params(&self) -> Option<TokenStream> {
+        let identifier = &self.identifier;
+        let itype = &self.itype;
+        // Ignore PrimaryKey / ForeignKey / Option<T>
+        if let Type::Path(TypePath { path, .. }) = itype {
+            if let Some(segment) = path.segments.first() {
+                if segment.ident == "Option" || segment.ident == "PrimaryKey" {
+                    return None;
+                } else if segment.ident == "ForeignKey" {
+                    // Get inner type of ForeignKey
+                    let inner_type = match path.segments.first().unwrap().arguments {
+                        syn::PathArguments::AngleBracketed(ref args) => args.args.first().unwrap(),
+                        _ => panic!("Expected angle bracketed arguments"),
+                    };
+
+                    // Make inner_type a reference
+
+                    return Some(quote! {
+                        #identifier: &#inner_type
+                    });
+                }
+            }
+        }
+        Some(quote! {
+            #identifier: #itype
+        })
+    }
+
+    /// Create a new instance of the struct and pass in the column
+    pub(crate) fn to_self(&self) -> TokenStream {
+        let identifier = &self.identifier;
+        if let Type::Path(TypePath { path, .. }) = &self.itype {
+            if let Some(segment) = path.segments.first() {
+                if segment.ident == "Option" {
+                    // Option is always None in new()
+                    return quote! {
+                        #identifier: None
+                    };
+                } else if segment.ident == "PrimaryKey" {
+                    // Generate a new primary key
+                    return quote! {
+                        #identifier: geekorm::PrimaryKey::new()
+                    };
+                } else if segment.ident == "ForeignKey" {
+                    // Generate a new foreign key
+                    todo!("RIP");
+                    // return quote! {
+                    //     #identifier: geekorm::ForeignKey::new(#identifier),
+                    // };
+                }
+            }
+        }
+        quote! {
+            #identifier
+        }
+    }
+}
+
+impl Debug for ColumnDerive {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ColumnDerive")
+            .field("name", &self.name)
+            .field("coltype", &self.coltype)
+            .finish()
     }
 }
 
@@ -190,12 +317,25 @@ fn parse_path(typ: &Type, opts: ColumnTypeOptionsDerive) -> Result<ColumnTypeDer
 
             Ok(match ident.to_string().as_str() {
                 // GeekORM types
-                "PrimaryKey" => ColumnTypeDerive::Identifier(ColumnTypeOptionsDerive {
-                    primary_key: true,
-                    foreign_key: String::new(),
-                    unique: true,
-                    not_null: true,
-                }),
+                "PrimaryKey" => {
+                    let inner_type = match path.path.segments.first().unwrap().arguments {
+                        syn::PathArguments::AngleBracketed(ref args) => args.args.first().unwrap(),
+                        _ => abort!(ident, "Unsupported PrimaryKey type"),
+                    };
+                    let inner_type_name = match inner_type {
+                        GenericArgument::Type(Type::Path(TypePath { path, .. })) => {
+                            path.segments.first().unwrap().ident.to_string()
+                        }
+                        _ => panic!("Unsupported PrimaryKey type"),
+                    };
+
+                    ColumnTypeDerive::Identifier(ColumnTypeOptionsDerive {
+                        primary_key: true,
+                        foreign_key: String::new(),
+                        unique: true,
+                        not_null: true,
+                    })
+                }
                 "ForeignKey" => {
                     // ForeignKey<Table> (get Table type)
                     let inner_type = match path.path.segments.first().unwrap().arguments {
@@ -217,9 +357,7 @@ fn parse_path(typ: &Type, opts: ColumnTypeOptionsDerive) -> Result<ColumnTypeDer
                         .unwrap_or_else(|| panic!("Table {} not found", inner_type_name));
 
                     // Get the primary key of the table or default to "id"
-                    let primary_key = table
-                        .get_primary_key()
-                        .unwrap_or_else(|| String::from("id"));
+                    let primary_key = table.get_primary_key();
 
                     let options = ColumnTypeOptionsDerive {
                         primary_key: false,
