@@ -8,6 +8,7 @@ members = [
     "examples/users",
     "examples/foreignkeys",
     "examples/turso-libsql",
+    "examples/insert",
 ]
 
 [workspace.package]
@@ -43,15 +44,17 @@ chrono = ["geekorm-derive/chrono"]
 
 # Generate new functions for Tables
 new = ["geekorm-derive/new"]
+# Generate helper functions for Tables
+helpers = ["geekorm-derive/helpers"]
 # Generate primary key functions for Tables automatically
 primary_key = ["geekorm-derive/primary_key"]
 # Backends for the ORM
-libsql = ["dep:libsql"]
+backends = ["geekorm-core/backends"]
+libsql = ["geekorm-core/libsql"]
 
 [dependencies]
 geekorm-core = { version = "^0.1.0", path = "geekorm-core" }
 geekorm-derive = { version = "^0.1.0", path = "geekorm-derive" }
-libsql = { version = "0.3.2", optional = true }
 
 [dev-dependencies]
 anyhow = "1"
@@ -61,6 +64,10 @@ tokio = { version = "1.36.0", features = ["full"] }
 [[test]]
 name = "geekorm-example-users"
 path = "./examples/users/src/main.rs"
+
+[[test]]
+name = "geekorm-example-insert"
+path = "./examples/insert/src/main.rs"
 
 [[test]]
 name = "geekorm-example-foreignkeys"

@@ -66,6 +66,7 @@
 // Builder Modules
 pub use geekorm_core::builder::columns::{Column, Columns};
 pub use geekorm_core::builder::columntypes::{ColumnType, ColumnTypeOptions};
+pub use geekorm_core::builder::table::Table;
 // Keys Modules
 pub use geekorm_core::builder::keys::foreign::ForeignKey;
 #[cfg(feature = "uuid")]
@@ -74,10 +75,10 @@ pub use geekorm_core::builder::keys::primary::{PrimaryKey, PrimaryKeyInteger};
 
 // Query Builder Modules
 pub use geekorm_core::builder::models::{QueryCondition, QueryOrder, QueryType};
-pub use geekorm_core::builder::table::Table;
 pub use geekorm_core::builder::values::{Value, Values};
 
 // Query Modules
+pub use geekorm_core::queries::Query;
 pub use geekorm_core::queries::QueryBuilder;
 
 // Derive Crate
@@ -99,6 +100,7 @@ pub mod prelude {
 
     pub use crate::GeekTable;
     // Traits
+    pub use geekorm_core::backends::GeekConnection;
     pub use geekorm_core::TableBuilder;
     pub use geekorm_core::TablePrimaryKey;
     pub use geekorm_core::ToSqlite;
