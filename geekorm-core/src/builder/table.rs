@@ -100,6 +100,49 @@ impl ToSqlite for Table {
         }
         Ok(full_query)
     }
+
+    fn on_insert(&self, query: &QueryBuilder) -> Result<String, crate::Error> {
+        let mut full_query = format!("INSERT INTO {} ", self.name);
+
+        let mut columns: Vec<String> = Vec::new();
+        let mut values: Vec<String> = Vec::new();
+
+        for column_name in query.values.order.iter() {
+            let column = query.table.columns.get(column_name).unwrap();
+            let value = query.values.get(&column_name).unwrap();
+
+            // Skip auto increment columns
+            if column.column_type.is_auto_increment() {
+                continue;
+            }
+
+            columns.push(column_name.clone());
+
+            // Add to Values
+            match value {
+                crate::Value::Identifier(_) | crate::Value::Text(_) => {
+                    // Security: String values should never be directly inserted into the query
+                    // This is to prevent SQL injection attacks
+                    values.push(String::from("?"));
+                }
+                crate::Value::Integer(value) => values.push(value.to_string()),
+                crate::Value::Boolean(value) => values.push(value.to_string()),
+                crate::Value::Null => values.push("NULL".to_string()),
+            }
+        }
+
+        // Generate the column names
+        full_query.push('(');
+        full_query.push_str(&columns.join(", "));
+        full_query.push(')');
+
+        // Generate values
+        full_query.push_str(" VALUES (");
+        full_query.push_str(&values.join(", "));
+        full_query.push(')');
+
+        Ok(full_query)
+    }
 }
 
 impl Display for Table {

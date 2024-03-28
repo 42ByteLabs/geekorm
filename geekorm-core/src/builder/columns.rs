@@ -42,6 +42,11 @@ impl Columns {
             .collect()
     }
 
+    /// Get a column by name
+    pub fn get(&self, column: &str) -> Option<&Column> {
+        self.columns.iter().find(|col| col.name == column)
+    }
+
     /// Get the length of the columns
     pub fn len(&self) -> usize {
         self.columns.len()

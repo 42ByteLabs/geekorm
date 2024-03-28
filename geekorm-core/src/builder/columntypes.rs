@@ -61,6 +61,15 @@ impl ColumnType {
         matches!(self, ColumnType::Identifier(_))
     }
 
+    /// Check if the column type is an auto increment
+    pub fn is_auto_increment(&self) -> bool {
+        match self {
+            ColumnType::Identifier(opts) => opts.auto_increment,
+            ColumnType::Integer(opts) => opts.auto_increment,
+            _ => false,
+        }
+    }
+
     /// Check if the column type is a foreign key
     pub fn is_foreign_key(&self) -> bool {
         matches!(self, ColumnType::ForeignKey(_))
@@ -79,15 +88,16 @@ pub struct ColumnTypeOptions {
     pub unique: bool,
     /// Is the column nullable
     pub not_null: bool,
+    /// Auto increment the column
+    pub auto_increment: bool,
 }
 
 impl ColumnTypeOptions {
     pub(crate) fn primary_key() -> Self {
         ColumnTypeOptions {
             primary_key: true,
-            unique: false,
-            not_null: true,
-            foreign_key: String::new(),
+            auto_increment: true,
+            ..Default::default()
         }
     }
 
@@ -97,6 +107,7 @@ impl ColumnTypeOptions {
             foreign_key: key,
             unique: false,
             not_null: true,
+            auto_increment: false,
         }
     }
 
@@ -126,6 +137,9 @@ impl ToSqlite for ColumnTypeOptions {
         }
         if self.unique {
             sql.push("UNIQUE");
+        }
+        if self.auto_increment {
+            sql.push("AUTOINCREMENT");
         }
         sql.join(" ")
     }

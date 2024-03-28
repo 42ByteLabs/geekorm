@@ -1,36 +1,47 @@
-use crate::PrimaryKey;
+use std::collections::HashMap;
+
+use crate::{builder::keys::primary::PrimaryKeyInteger, PrimaryKey};
 
 /// List of Values
 #[derive(Debug, Clone, Default)]
 pub struct Values {
     /// List of values
-    pub values: Vec<Value>,
+    pub(crate) values: HashMap<String, Value>,
+    /// List of columns in the order they were added
+    pub(crate) order: Vec<String>,
 }
 
 impl Values {
     /// Create a new instance of Values
     pub fn new() -> Self {
-        Values { values: Vec::new() }
+        Values {
+            values: HashMap::new(),
+            order: Vec::new(),
+        }
     }
-}
 
-impl Iterator for Values {
-    type Item = Value;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.values.pop()
-    }
-}
-
-impl Values {
-    /// Push a new value to the list of values
-    pub fn push(&mut self, value: Value) {
-        self.values.push(value);
+    /// Push a value to the list of values
+    pub fn push(&mut self, column: String, value: impl Into<Value>) {
+        self.order.push(column.clone());
+        self.values.insert(column, value.into());
     }
 
     /// Get a value by index from the list of values
-    pub fn get(&self, index: usize) -> Option<&Value> {
-        self.values.get(index)
+    pub fn get(&self, column: &String) -> Option<&Value> {
+        self.values.get(column)
+    }
+}
+
+impl IntoIterator for Values {
+    type Item = Value;
+    type IntoIter = std::vec::IntoIter<Value>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.order
+            .into_iter()
+            .map(move |column| self.values[&column].clone())
+            .collect::<Vec<Value>>()
+            .into_iter()
     }
 }
 
@@ -46,6 +57,8 @@ pub enum Value {
     Boolean(i32),
     /// Identifier Key type (Primary / Forigen Key) which is a UUID
     Identifier(String),
+    /// A NULL value
+    Null,
 }
 
 impl Default for Value {
@@ -57,6 +70,18 @@ impl Default for Value {
 impl From<PrimaryKey<String>> for Value {
     fn from(value: PrimaryKey<String>) -> Self {
         Value::Identifier(value.into())
+    }
+}
+
+impl From<PrimaryKeyInteger> for Value {
+    fn from(value: PrimaryKeyInteger) -> Self {
+        Value::Integer(value.into())
+    }
+}
+
+impl From<&PrimaryKeyInteger> for Value {
+    fn from(value: &PrimaryKeyInteger) -> Self {
+        Value::Integer(value.clone().into())
     }
 }
 
@@ -84,9 +109,46 @@ impl From<bool> for Value {
     }
 }
 
+impl From<&bool> for Value {
+    fn from(value: &bool) -> Self {
+        Value::Boolean(if *value { 1 } else { 0 })
+    }
+}
+
+impl<T> From<Option<T>> for Value
+where
+    T: Into<Value>,
+{
+    fn from(value: Option<T>) -> Self {
+        match value {
+            Some(value) => value.into(),
+            None => Value::Null,
+        }
+    }
+}
+
+impl<T> From<&Option<T>> for Value
+where
+    T: Into<Value>,
+    Value: for<'a> From<&'a T>,
+{
+    fn from(value: &Option<T>) -> Self {
+        match value {
+            Some(value) => value.into(),
+            None => Value::Null,
+        }
+    }
+}
+
 impl From<i32> for Value {
     fn from(value: i32) -> Self {
         Value::Integer(value)
+    }
+}
+
+impl From<&i32> for Value {
+    fn from(value: &i32) -> Self {
+        Value::Integer(value.clone())
     }
 }
 

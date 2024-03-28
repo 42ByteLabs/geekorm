@@ -1,5 +1,5 @@
 use core::fmt;
-use std::fmt::Display;
+use std::fmt::{Debug, Display};
 
 use serde::{de::Visitor, Deserialize, Serialize, Serializer};
 use uuid::Uuid;
@@ -68,12 +68,21 @@ use crate::ToSqlite;
 /// };
 /// # assert_eq!(user.username, String::from("JohnDoe"));
 /// ```
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct PrimaryKey<T>
 where
     T: Display + 'static,
 {
     value: T,
+}
+
+impl<T> Debug for PrimaryKey<T>
+where
+    T: Debug + Display + 'static,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "PrimaryKey({})", self.value)
+    }
 }
 
 impl PrimaryKey<i32> {
@@ -221,6 +230,13 @@ impl<'de> Deserialize<'de> for PrimaryKeyInteger {
             }
 
             fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                Ok(PrimaryKeyInteger::from(v as i32))
+            }
+
+            fn visit_i64<E>(self, v: i64) -> Result<Self::Value, E>
             where
                 E: serde::de::Error,
             {

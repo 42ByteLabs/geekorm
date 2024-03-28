@@ -17,12 +17,18 @@ pub struct Query {
     pub query: String,
     /// The values to use in the query (where / insert / update)
     pub values: Values,
+
+    pub(crate) table: Table,
 }
 
 impl Query {
     /// Create a new Query
-    pub fn new(query: String, values: Values) -> Self {
-        Query { query, values }
+    pub fn new(query: String, values: Values, table: Table) -> Self {
+        Query {
+            query,
+            values,
+            table,
+        }
     }
 
     /// Initialize using the QueryBuilder struct
@@ -124,6 +130,14 @@ impl QueryBuilder {
         }
     }
 
+    /// Build an insert query
+    pub fn insert() -> QueryBuilder {
+        QueryBuilder {
+            query_type: QueryType::Insert,
+            ..Default::default()
+        }
+    }
+
     /// Set the table for the query builder
     pub fn table(mut self, table: Table) -> Self {
         self.table = table.clone();
@@ -137,8 +151,8 @@ impl QueryBuilder {
     }
 
     /// Add a value to the list of values for parameterized queries
-    pub fn add_value(mut self, value: Value) -> Self {
-        self.values.push(value);
+    pub fn add_value(mut self, column: &str, value: impl Into<Value>) -> Self {
+        self.values.push(column.to_string(), value.into());
         self
     }
 
@@ -168,7 +182,7 @@ impl QueryBuilder {
 
             self.where_clause
                 .push(format!("{} {} ?", column, condition.to_sqlite()));
-            self.values.push(value);
+            self.values.push(column.to_string(), value);
             self.where_condition_last = false;
         } else {
             self.error = Some(Error::QueryBuilderError(
@@ -288,10 +302,26 @@ impl QueryBuilder {
             return Err(error.clone());
         }
         match self.query_type {
-            QueryType::Create => Ok(Query::new(self.table.on_create(), Values::new())),
+            QueryType::Create => Ok(Query::new(
+                self.table.on_create(),
+                Values::new(),
+                self.table.clone(),
+            )),
             QueryType::Select => {
                 let query = self.table.on_select(self)?;
-                Ok(Query::new(query.clone(), self.values.clone()))
+                Ok(Query::new(
+                    query.clone(),
+                    self.values.clone(),
+                    self.table.clone(),
+                ))
+            }
+            QueryType::Insert => {
+                let query = self.table.on_insert(self)?;
+                Ok(Query::new(
+                    query.clone(),
+                    self.values.clone(),
+                    self.table.clone(),
+                ))
             }
             _ => todo!("Implement other query types"),
         }

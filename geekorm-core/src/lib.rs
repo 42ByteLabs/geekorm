@@ -56,6 +56,7 @@ pub trait TableBuilder {
     fn create() -> QueryBuilder
     where
         Self: Sized;
+
     /// Select rows in the table
     fn select() -> QueryBuilder
     where
@@ -63,6 +64,11 @@ pub trait TableBuilder {
     {
         QueryBuilder::select()
     }
+
+    /// Insert a row into the table
+    fn insert(item: &Self) -> Query
+    where
+        Self: Sized;
 
     /// Count the rows in the table
     fn count() -> QueryBuilder
@@ -100,6 +106,14 @@ pub trait ToSqlite {
         Err(Error::QueryBuilderError(
             format!("on_select not implemented for table: {}", query.table),
             String::from("on_select"),
+        ))
+    }
+
+    /// Convert to SQLite for inserting a row
+    fn on_insert(&self, query: &QueryBuilder) -> Result<String, Error> {
+        Err(Error::QueryBuilderError(
+            format!("on_insert not implemented for table: {}", query.table),
+            String::from("on_insert"),
         ))
     }
 }
