@@ -13,6 +13,9 @@ pub trait GeekConnection {
     /// The error type
     type Error;
 
+    #[allow(async_fn_in_trait)]
+    async fn row_count(connection: &Self::Connection, query: Query) -> Result<i64, Self::Error>;
+
     /// Query the database with an active Connection and Query
     #[allow(async_fn_in_trait)]
     async fn query(connection: &Self::Connection, query: Query) -> Result<Self::Rows, Self::Error>;

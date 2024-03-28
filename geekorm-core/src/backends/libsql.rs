@@ -11,6 +11,17 @@ where
     type Rows = Vec<T>;
     type Error = libsql::Error;
 
+    async fn row_count(
+        connection: &Self::Connection,
+        query: crate::Query,
+    ) -> Result<i64, Self::Error> {
+        let mut statement = connection.prepare(query.to_str()).await?;
+        let mut rows = statement.query(()).await?;
+
+        let row = rows.next().await?.unwrap();
+        Ok(row.get(0).unwrap())
+    }
+
     async fn query(
         connection: &Self::Connection,
         query: crate::Query,
