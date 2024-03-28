@@ -3,7 +3,7 @@ use std::{
     fmt::Debug,
 };
 
-use proc_macro2::TokenStream;
+use proc_macro2::{Span, TokenStream};
 use quote::{quote, ToTokens};
 
 use geekorm_core::{
@@ -162,20 +162,24 @@ impl ColumnDerive {
         // Ignore PrimaryKey / ForeignKey / Option<T>
         if let Type::Path(TypePath { path, .. }) = itype {
             if let Some(segment) = path.segments.first() {
-                if segment.ident == "Option" || segment.ident == "PrimaryKey" {
-                    return None;
-                } else if segment.ident == "ForeignKey" {
-                    // Get inner type of ForeignKey
-                    let inner_type = match path.segments.first().unwrap().arguments {
-                        syn::PathArguments::AngleBracketed(ref args) => args.args.first().unwrap(),
-                        _ => panic!("Expected angle bracketed arguments"),
-                    };
+                match segment.ident.to_string().as_str() {
+                    "Option" | "PrimaryKey" | "PrimaryKeyInteger" => return None,
+                    "ForeignKey" => {
+                        // Get inner type of ForeignKey
+                        let inner_type = match path.segments.first().unwrap().arguments {
+                            syn::PathArguments::AngleBracketed(ref args) => {
+                                args.args.first().unwrap()
+                            }
+                            _ => panic!("Expected angle bracketed arguments"),
+                        };
 
-                    // Make inner_type a reference
+                        // Make inner_type a reference
 
-                    return Some(quote! {
-                        #identifier: &#inner_type
-                    });
+                        return Some(quote! {
+                            #identifier: &#inner_type
+                        });
+                    }
+                    _ => {}
                 }
             }
         }
@@ -189,27 +193,51 @@ impl ColumnDerive {
         let identifier = &self.identifier;
         if let Type::Path(TypePath { path, .. }) = &self.itype {
             if let Some(segment) = path.segments.first() {
-                if segment.ident == "Option" {
-                    // Option is always None in new()
-                    return quote! {
-                        #identifier: None
-                    };
-                } else if segment.ident == "PrimaryKey" {
-                    // Generate a new primary key
-                    return quote! {
-                        #identifier: geekorm::PrimaryKey::new()
-                    };
-                } else if segment.ident == "ForeignKey" {
-                    // Generate a new foreign key
-                    todo!("RIP");
-                    // return quote! {
-                    //     #identifier: geekorm::ForeignKey::new(#identifier),
-                    // };
+                match segment.ident.to_string().as_str() {
+                    "Option" => {
+                        // Option is always None in new()
+                        return quote! {
+                            #identifier: None
+                        };
+                    }
+                    // TODO(geekmasher): Add PrimaryKey<T> support
+                    "PrimaryKeyInteger" => {
+                        // Generate a new primary key
+                        return quote! {
+                            #identifier: geekorm::PrimaryKeyInteger::new(0)
+                        };
+                    }
+                    "ForeignKey" => {
+                        // Generate a new foreign key
+                        todo!("RIP");
+                        // return quote! {
+                        //     #identifier: geekorm::ForeignKey::new(#identifier),
+                        // };
+                    }
+                    _ => {}
                 }
             }
         }
         quote! {
             #identifier
+        }
+    }
+
+    pub(crate) fn get_selector(&self, table_ident: &Ident) -> TokenStream {
+        let identifier = &self.identifier;
+        let name = &self.name;
+
+        let func_name = format!("select_by_{}", identifier);
+        let func = Ident::new(&func_name, Span::call_site());
+
+        quote! {
+            fn #func(value: impl Into<geekorm::Value>) -> geekorm::Query {
+                geekorm::QueryBuilder::select()
+                    .table(#table_ident::table())
+                    .where_eq(#name, value.into())
+                    .build()
+                    .expect("Failed to build query")
+            }
         }
     }
 }
@@ -332,10 +360,19 @@ fn parse_path(typ: &Type, opts: ColumnTypeOptionsDerive) -> Result<ColumnTypeDer
                     ColumnTypeDerive::Identifier(ColumnTypeOptionsDerive {
                         primary_key: true,
                         foreign_key: String::new(),
-                        unique: true,
-                        not_null: true,
+                        unique: false,
+                        not_null: false,
+                        // If the inner type is an integer, auto increment
+                        auto_increment: inner_type_name == "Integer",
                     })
                 }
+                "PrimaryKeyInteger" => ColumnTypeDerive::Integer(ColumnTypeOptionsDerive {
+                    primary_key: true,
+                    foreign_key: String::new(),
+                    unique: false,
+                    not_null: false,
+                    auto_increment: true,
+                }),
                 "ForeignKey" => {
                     // ForeignKey<Table> (get Table type)
                     let inner_type = match path.path.segments.first().unwrap().arguments {
@@ -364,6 +401,7 @@ fn parse_path(typ: &Type, opts: ColumnTypeOptionsDerive) -> Result<ColumnTypeDer
                         foreign_key: format!("{}::{}", inner_type_name, primary_key),
                         unique: false,
                         not_null: true,
+                        auto_increment: false,
                     };
                     ColumnTypeDerive::ForeignKey(options)
                 }
@@ -412,6 +450,7 @@ pub(crate) struct ColumnTypeOptionsDerive {
     pub(crate) foreign_key: String,
     pub(crate) unique: bool,
     pub(crate) not_null: bool,
+    pub(crate) auto_increment: bool,
 }
 
 impl Default for ColumnTypeOptionsDerive {
@@ -421,6 +460,7 @@ impl Default for ColumnTypeOptionsDerive {
             unique: false,
             not_null: true,
             foreign_key: String::new(),
+            auto_increment: false,
         }
     }
 }
@@ -431,6 +471,7 @@ impl ToTokens for ColumnTypeOptionsDerive {
         let foreign_key = &self.foreign_key;
         let unique = &self.unique;
         let not_null = &self.not_null;
+        let auto_increment = &self.auto_increment;
 
         tokens.extend(quote! {
             geekorm::ColumnTypeOptions {
@@ -438,6 +479,7 @@ impl ToTokens for ColumnTypeOptionsDerive {
                 unique: #unique,
                 not_null: #not_null,
                 foreign_key: String::from(#foreign_key),
+                auto_increment: #auto_increment,
             }
         });
     }
@@ -450,6 +492,7 @@ impl From<ColumnTypeOptionsDerive> for geekorm_core::ColumnTypeOptions {
             foreign_key: opts.foreign_key,
             unique: opts.unique,
             not_null: opts.not_null,
+            auto_increment: opts.auto_increment,
         }
     }
 }

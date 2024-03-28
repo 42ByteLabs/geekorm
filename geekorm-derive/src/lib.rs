@@ -48,6 +48,9 @@ use syn::{parse_macro_input, Data, DataStruct, DeriveInput, Fields};
 ///
 /// When the `new` feature is enabled, the following methods are generated for the struct:
 ///
+/// - `PrimaryKey<T>` fields are not generated
+/// - `Option<T>` fields are not generated
+///
 /// ```rust
 /// use geekorm::GeekTable;
 /// use geekorm::prelude::*;
@@ -94,6 +97,31 @@ use syn::{parse_macro_input, Data, DataStruct, DeriveInput, Fields};
 ///     .expect("Failed to build SELECT query");
 /// ```
 ///
+/// # Generated Helper Methods
+///
+/// When the `helpers` feature is enabled, the following helper methods are generated for the struct:
+///
+/// Note: This is a very experimental feature and might change in the future.
+///
+/// ```rust
+/// use geekorm::GeekTable;
+/// use geekorm::prelude::*;
+///
+/// #[derive(GeekTable)]
+/// struct User {
+///     name: String,
+///     age: i32,
+///     occupation: String,
+/// }
+///
+/// // Select by column helper function
+/// let user = User::select_by_name("geekmasher");
+/// # assert_eq!(user.query, String::from("SELECT * FROM User WHERE name = ?;"));
+/// let user = User::select_by_age(69);
+/// # assert_eq!(user.query, String::from("SELECT * FROM User WHERE age = ?;"));
+/// let user = User::select_by_occupation("Software Developer");
+/// # assert_eq!(user.query, String::from("SELECT * FROM User WHERE occupation = ?;"));
+/// ```
 #[proc_macro_derive(GeekTable)]
 pub fn table_derive(input: TokenStream) -> TokenStream {
     let ast: DeriveInput = parse_macro_input!(input as DeriveInput);

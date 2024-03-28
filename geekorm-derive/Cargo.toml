@@ -12,6 +12,10 @@ uuid = []
 chrono = []
 new = []
 primary_key = []
+helpers = []
+
+backends = ["libsql"]
+libsql = ["geekorm-core/libsql"]
 
 [lib]
 proc-macro = true

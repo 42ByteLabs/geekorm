@@ -60,6 +60,12 @@ fn generate_struct(
     #[cfg(feature = "new")]
     stream.extend(generate_new(ident, generics, &table));
 
+    #[cfg(feature = "backends")]
+    stream.extend(generate_backend(ident, generics, &table)?);
+
+    #[cfg(feature = "helpers")]
+    stream.extend(generate_helpers(ident, generics, &table)?);
+
     Ok(stream)
 }
 
@@ -69,6 +75,15 @@ fn generate_table_builder(
     table: &TableDerive,
 ) -> Result<TokenStream, syn::Error> {
     let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
+
+    let mut insert_values = TokenStream::new();
+    for column in table.columns.columns.iter() {
+        let name = &column.name;
+        let ident = syn::Ident::new(name.as_str(), name.span());
+        insert_values.extend(quote! {
+            .add_value(#name, &item.#ident)
+        });
+    }
 
     Ok(quote! {
         impl #impl_generics geekorm::prelude::TableBuilder for #ident #ty_generics #where_clause {
@@ -93,6 +108,14 @@ fn generate_table_builder(
                     .table(#ident::table())
             }
 
+            fn insert(item: &Self) -> geekorm::Query {
+                geekorm::QueryBuilder::insert()
+                    .table(#ident::table())
+                    #insert_values
+                    .build()
+                    .expect("Failed to build insert query")
+            }
+
             fn count() -> geekorm::QueryBuilder {
                 geekorm::QueryBuilder::select()
                     .table(#ident::table())
@@ -115,7 +138,7 @@ fn generate_table_primary_key(
         let identifier = syn::Ident::new(name.as_str(), name.span());
 
         Ok(quote! {
-            impl #impl_generics geekorm_core::TablePrimaryKey for #ident #ty_generics #where_clause {
+            impl #impl_generics geekorm::prelude::TablePrimaryKey for #ident #ty_generics #where_clause {
                 fn primary_key() -> String {
                     String::from(#name)
                 }
@@ -128,6 +151,19 @@ fn generate_table_primary_key(
     } else {
         Ok(quote! {})
     }
+}
+
+#[allow(dead_code, unused_variables)]
+fn generate_backend(
+    ident: &syn::Ident,
+    generics: &syn::Generics,
+    table: &TableDerive,
+) -> Result<TokenStream, syn::Error> {
+    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
+
+    Ok(quote! {
+        impl #impl_generics geekorm::GeekConnector for #ident #ty_generics #where_clause {}
+    })
 }
 
 /// Generate the a `new()` function for the struct that will be used to create a new instance of the struct
@@ -147,6 +183,27 @@ fn generate_new(
             pub fn new(#params) -> Self {
                 #self_block
             }
+        }
+    })
+}
+
+#[allow(dead_code, unused_variables)]
+fn generate_helpers(
+    ident: &syn::Ident,
+    generics: &syn::Generics,
+    table: &TableDerive,
+) -> Result<TokenStream, syn::Error> {
+    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
+
+    let mut stream = TokenStream::new();
+    // Generate the selectors for the columns
+    for column in table.columns.columns.iter() {
+        stream.extend(column.get_selector(ident));
+    }
+
+    Ok(quote! {
+        impl #impl_generics #ident #ty_generics #where_clause {
+            #stream
         }
     })
 }
