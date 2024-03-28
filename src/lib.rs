@@ -19,6 +19,7 @@
 //!
 //! #[derive(Debug, Clone, GeekTable)]
 //! struct User {
+//!    id: PrimaryKeyInteger,
 //!    username: String,
 //!    email: String,
 //!    age: i32,
@@ -65,10 +66,15 @@
 // Builder Modules
 pub use geekorm_core::builder::columns::{Column, Columns};
 pub use geekorm_core::builder::columntypes::{ColumnType, ColumnTypeOptions};
-pub use geekorm_core::builder::keys::{ForeignKey, PrimaryKey};
+// Keys Modules
+pub use geekorm_core::builder::keys::foreign::ForeignKey;
+#[cfg(feature = "uuid")]
+pub use geekorm_core::builder::keys::primary::PrimaryKeyUuid;
+pub use geekorm_core::builder::keys::primary::{PrimaryKey, PrimaryKeyInteger};
+
+// Query Builder Modules
 pub use geekorm_core::builder::models::{QueryCondition, QueryOrder, QueryType};
 pub use geekorm_core::builder::table::Table;
-/// Values
 pub use geekorm_core::builder::values::{Value, Values};
 
 // Query Modules
@@ -94,5 +100,6 @@ pub mod prelude {
     pub use crate::GeekTable;
     // Traits
     pub use geekorm_core::TableBuilder;
+    pub use geekorm_core::TablePrimaryKey;
     pub use geekorm_core::ToSqlite;
 }

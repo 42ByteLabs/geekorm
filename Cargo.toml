@@ -7,6 +7,7 @@ members = [
     "cli",
     "examples/users",
     "examples/foreignkeys",
+    "examples/turso-libsql",
 ]
 
 [workspace.package]
@@ -40,13 +41,22 @@ default = ["uuid", "chrono"]
 uuid = ["geekorm-derive/uuid"]
 chrono = ["geekorm-derive/chrono"]
 
-backends = ["libsql"]
-libsql = []
+# Generate new functions for Tables
+new = ["geekorm-derive/new"]
+# Generate primary key functions for Tables automatically
+primary_key = ["geekorm-derive/primary_key"]
+# Backends for the ORM
+libsql = ["dep:libsql"]
 
 [dependencies]
 geekorm-core = { version = "^0.1.0", path = "geekorm-core" }
 geekorm-derive = { version = "^0.1.0", path = "geekorm-derive" }
+libsql = { version = "0.3.2", optional = true }
 
+[dev-dependencies]
+anyhow = "1"
+libsql = "0.3.2"
+tokio = { version = "1.36.0", features = ["full"] }
 
 [[test]]
 name = "geekorm-example-users"
@@ -55,3 +65,7 @@ path = "./examples/users/src/main.rs"
 [[test]]
 name = "geekorm-example-foreignkeys"
 path = "./examples/foreignkeys/src/main.rs"
+
+[[test]]
+name = "geekorm-example-turso-libsql"
+path = "./examples/turso-libsql/src/main.rs"
