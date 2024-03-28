@@ -1,7 +1,7 @@
 use crate::ToSqlite;
 
 /// Query Type (CREATE, SELECT, etc.)
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub enum QueryType {
     /// Create a new table
     Create,

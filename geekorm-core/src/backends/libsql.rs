@@ -20,16 +20,22 @@ where
         let mut statement = connection.prepare(query.to_str()).await?;
         // Convert the values to libsql::Value
         let mut parameters: Vec<libsql::Value> = Vec::new();
-        for (column_name, value) in query.values.values {
+
+        // for (column_name, value) in query.values.values {
+        for column_name in &query.values.order {
+            let value = query.values.get(&column_name.to_string()).unwrap();
             let column = query.table.columns.get(column_name.as_str()).unwrap();
 
-            // Skip auto increment columns
-            if column.column_type.is_auto_increment() {
+            // Skip auto increment columns if the query is an insert
+            if query.query_type == crate::builder::models::QueryType::Insert
+                && column.column_type.is_auto_increment()
+            {
                 continue;
             }
 
-            parameters.push(value.into_value()?);
+            parameters.push(value.clone().into_value()?);
         }
+
         // Execute the query
         let mut rows = statement.query(parameters).await?;
         let mut results = Vec::new();

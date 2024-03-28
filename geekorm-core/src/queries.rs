@@ -13,6 +13,8 @@ use crate::{
 /// The built Query struct with the query and values to use
 #[derive(Debug, Clone, Default)]
 pub struct Query {
+    /// The type of query (select, insert, update, delete)
+    pub query_type: QueryType,
     /// The resulting SQLite Query
     pub query: String,
     /// The values to use in the query (where / insert / update)
@@ -23,8 +25,9 @@ pub struct Query {
 
 impl Query {
     /// Create a new Query
-    pub fn new(query: String, values: Values, table: Table) -> Self {
+    pub fn new(query_type: QueryType, query: String, values: Values, table: Table) -> Self {
         Query {
+            query_type,
             query,
             values,
             table,
@@ -303,6 +306,7 @@ impl QueryBuilder {
         }
         match self.query_type {
             QueryType::Create => Ok(Query::new(
+                self.query_type.clone(),
                 self.table.on_create(),
                 Values::new(),
                 self.table.clone(),
@@ -310,6 +314,7 @@ impl QueryBuilder {
             QueryType::Select => {
                 let query = self.table.on_select(self)?;
                 Ok(Query::new(
+                    self.query_type.clone(),
                     query.clone(),
                     self.values.clone(),
                     self.table.clone(),
@@ -318,6 +323,7 @@ impl QueryBuilder {
             QueryType::Insert => {
                 let query = self.table.on_insert(self)?;
                 Ok(Query::new(
+                    self.query_type.clone(),
                     query.clone(),
                     self.values.clone(),
                     self.table.clone(),
