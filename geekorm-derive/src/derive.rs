@@ -17,12 +17,37 @@ use uuid::Uuid;
 #[cfg(feature = "chrono")]
 use chrono::DateTime;
 
-use crate::internal::TableState;
+use crate::{
+    attr::{GeekAttribute, GeekAttributeKeys, GeekAttributeValue},
+    internal::TableState,
+};
 
 #[derive(Debug, Clone)]
 pub(crate) struct TableDerive {
     pub name: String,
     pub columns: ColumnsDerive,
+}
+
+impl TableDerive {
+    #[allow(irrefutable_let_patterns)]
+    pub(crate) fn apply_attributes(&mut self, attributes: &Vec<GeekAttribute>) {
+        for attr in attributes {
+            if let Some(key) = &attr.key {
+                match key {
+                    GeekAttributeKeys::Rename => {
+                        if let Some(value) = &attr.value {
+                            if let GeekAttributeValue::String(name) = value {
+                                self.name = name.to_string();
+                            }
+                        }
+                    }
+                    GeekAttributeKeys::Skip | GeekAttributeKeys::ForeignKey => {}
+                }
+            } else {
+                // TODO(geekmasher): Handle this better
+            }
+        }
+    }
 }
 
 impl ToTokens for TableDerive {
@@ -155,6 +180,47 @@ impl ColumnDerive {
         }
     }
 
+    #[allow(irrefutable_let_patterns)]
+    pub(crate) fn apply_attributes(&mut self, attributes: &Vec<GeekAttribute>) {
+        for attr in attributes {
+            if let Some(key) = &attr.key {
+                match key {
+                    GeekAttributeKeys::ForeignKey => {
+                        if let Some(value) = &attr.value {
+                            if let GeekAttributeValue::String(name) = value {
+                                // TODO(geekmasher): Handle this better
+                                let (table, column) = name.split_once('.').unwrap_or_else(|| {
+                                    panic!("Invalid foreign key format (table.column): {}", name)
+                                });
+
+                                let tables = TableState::load_state_file();
+                                let table = tables.find_table(table).unwrap_or_else(|| {
+                                    panic!("ForeignKey Table '{}' not found", table)
+                                });
+
+                                if !table.is_valid_column(column) {
+                                    panic!(
+                                        "ForeignKey Column '{}' not found in Table '{}'",
+                                        column, table.name
+                                    )
+                                }
+
+                                self.coltype =
+                                    ColumnTypeDerive::ForeignKey(ColumnTypeOptionsDerive {
+                                        foreign_key: name.to_string(),
+                                        ..Default::default()
+                                    });
+                            }
+                        }
+                    }
+                    GeekAttributeKeys::Skip | GeekAttributeKeys::Rename => {}
+                }
+            } else {
+                // TODO(geekmasher): Handle this better
+            }
+        }
+    }
+
     /// Convert the column into a list of parameters for a function
     pub(crate) fn to_params(&self) -> Option<TokenStream> {
         let identifier = &self.identifier;
@@ -165,18 +231,17 @@ impl ColumnDerive {
                 match segment.ident.to_string().as_str() {
                     "Option" | "PrimaryKey" | "PrimaryKeyInteger" => return None,
                     "ForeignKey" => {
-                        // Get inner type of ForeignKey
-                        let inner_type = match path.segments.first().unwrap().arguments {
+                        // We want a user to pass in the actual type in the ForeignKey
+                        // so we need to extract the inner type
+                        let inner_type = match segment.arguments {
                             syn::PathArguments::AngleBracketed(ref args) => {
                                 args.args.first().unwrap()
                             }
-                            _ => panic!("Expected angle bracketed arguments"),
+                            _ => panic!("Unsupported ForeignKey type (to_params)"),
                         };
-
-                        // Make inner_type a reference
-
+                        // Return the inner type
                         return Some(quote! {
-                            #identifier: &#inner_type
+                            #identifier: impl Into< #inner_type >
                         });
                     }
                     _ => {}
@@ -209,10 +274,9 @@ impl ColumnDerive {
                     }
                     "ForeignKey" => {
                         // Generate a new foreign key
-                        todo!("RIP");
-                        // return quote! {
-                        //     #identifier: geekorm::ForeignKey::new(#identifier),
-                        // };
+                        return quote! {
+                            #identifier: geekorm::ForeignKey::from(#identifier.into())
+                        };
                     }
                     _ => {}
                 }
@@ -374,31 +438,9 @@ fn parse_path(typ: &Type, opts: ColumnTypeOptionsDerive) -> Result<ColumnTypeDer
                     auto_increment: true,
                 }),
                 "ForeignKey" => {
-                    // ForeignKey<Table> (get Table type)
-                    let inner_type = match path.path.segments.first().unwrap().arguments {
-                        syn::PathArguments::AngleBracketed(ref args) => args.args.first().unwrap(),
-                        _ => abort!(ident, "Unsupported ForeignKey type"),
-                    };
-                    // Table name
-                    let inner_type_name = match inner_type {
-                        GenericArgument::Type(Type::Path(TypePath { path, .. })) => {
-                            path.segments.first().unwrap().ident.to_string()
-                        }
-                        _ => panic!("Unsupported ForeignKey type"),
-                    };
-
-                    let tables = TableState::load_state_file();
-                    // TODO(geekmasher): What if the table hasn't been added yet?
-                    let table = tables
-                        .find_table(inner_type_name.as_str())
-                        .unwrap_or_else(|| panic!("Table {} not found", inner_type_name));
-
-                    // Get the primary key of the table or default to "id"
-                    let primary_key = table.get_primary_key();
-
                     let options = ColumnTypeOptionsDerive {
                         primary_key: false,
-                        foreign_key: format!("{}::{}", inner_type_name, primary_key),
+                        foreign_key: String::from("GeekOrmForeignKey"),
                         unique: false,
                         not_null: true,
                         auto_increment: false,
@@ -431,6 +473,7 @@ fn parse_path(typ: &Type, opts: ColumnTypeOptionsDerive) -> Result<ColumnTypeDer
                 "Uuid" => ColumnTypeDerive::Text(opts),
                 #[cfg(feature = "chrono")]
                 "DateTime" => ColumnTypeDerive::Text(opts),
+                // TODO(geekmasher): Remove this
                 _ => abort!(ident, "Unsupported column path type"),
             })
         }

@@ -9,6 +9,7 @@ extern crate syn;
 #[macro_use]
 mod macros;
 
+mod attr;
 mod derive;
 mod errors;
 mod internal;
@@ -122,7 +123,7 @@ use syn::{parse_macro_input, Data, DataStruct, DeriveInput, Fields};
 /// let user = User::select_by_occupation("Software Developer");
 /// # assert_eq!(user.query, String::from("SELECT * FROM User WHERE occupation = ?;"));
 /// ```
-#[proc_macro_derive(GeekTable)]
+#[proc_macro_derive(GeekTable, attributes(geekorm))]
 pub fn table_derive(input: TokenStream) -> TokenStream {
     let ast: DeriveInput = parse_macro_input!(input as DeriveInput);
 

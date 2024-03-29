@@ -5,12 +5,15 @@ use syn::{parse_macro_input, spanned::Spanned, Data, DataStruct, DeriveInput, Fi
 use geekorm_core::{Columns, Table};
 
 use crate::{
+    attr::GeekAttribute,
     derive::{ColumnDerive, ColumnTypeDerive, ColumnTypeOptionsDerive, ColumnsDerive, TableDerive},
     internal::TableState,
 };
 
 pub(crate) fn derive_parser(ast: &DeriveInput) -> Result<TokenStream, syn::Error> {
     let name = &ast.ident;
+
+    let attributes = GeekAttribute::parse_all(&ast.attrs)?;
 
     match ast.data {
         Data::Struct(DataStruct {
@@ -22,13 +25,20 @@ pub(crate) fn derive_parser(ast: &DeriveInput) -> Result<TokenStream, syn::Error
                 .iter()
                 .map(|f| {
                     // TODO(geekmasher): handle unwrap here better
-                    ColumnDerive::new(f.ident.as_ref().unwrap().clone(), f.ty.clone())
+                    let field_attrs = GeekAttribute::parse_all(&f.attrs).unwrap();
+                    let mut column =
+                        ColumnDerive::new(f.ident.as_ref().unwrap().clone(), f.ty.clone());
+                    column.apply_attributes(&field_attrs);
+
+                    column
                 })
                 .collect();
-            let table = TableDerive {
+
+            let mut table = TableDerive {
                 name: name.to_string(),
                 columns: ColumnsDerive::from(columns),
             };
+            table.apply_attributes(&attributes);
 
             TableState::add(table.clone().into());
 
