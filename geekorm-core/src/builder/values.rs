@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
-use crate::{builder::keys::primary::PrimaryKeyInteger, PrimaryKey};
+use crate::{
+    builder::keys::{foreign::ForeignKeyInteger, primary::PrimaryKeyInteger},
+    PrimaryKey,
+};
 
 /// List of Values
 #[derive(Debug, Clone, Default)]
@@ -85,6 +88,18 @@ impl From<&PrimaryKeyInteger> for Value {
     }
 }
 
+impl From<ForeignKeyInteger> for Value {
+    fn from(value: ForeignKeyInteger) -> Self {
+        Value::Integer(value.value)
+    }
+}
+
+impl From<&ForeignKeyInteger> for Value {
+    fn from(value: &ForeignKeyInteger) -> Self {
+        Value::Integer(value.value)
+    }
+}
+
 impl From<String> for Value {
     fn from(value: String) -> Self {
         Value::Text(value)
@@ -127,14 +142,19 @@ where
     }
 }
 
-impl<T> From<&Option<T>> for Value
-where
-    T: Into<Value>,
-    Value: for<'a> From<&'a T>,
-{
-    fn from(value: &Option<T>) -> Self {
+impl From<&Option<String>> for Value {
+    fn from(value: &Option<String>) -> Self {
         match value {
-            Some(value) => value.into(),
+            Some(value) => Value::Text(value.to_string()),
+            None => Value::Null,
+        }
+    }
+}
+
+impl From<&Option<i32>> for Value {
+    fn from(value: &Option<i32>) -> Self {
+        match value {
+            Some(value) => Value::Integer(value.clone()),
             None => Value::Null,
         }
     }

@@ -305,12 +305,15 @@ impl QueryBuilder {
             return Err(error.clone());
         }
         match self.query_type {
-            QueryType::Create => Ok(Query::new(
-                self.query_type.clone(),
-                self.table.on_create(),
-                Values::new(),
-                self.table.clone(),
-            )),
+            QueryType::Create => {
+                let query = self.table.on_create(self)?;
+                Ok(Query::new(
+                    self.query_type.clone(),
+                    query.clone(),
+                    Values::new(),
+                    self.table.clone(),
+                ))
+            }
             QueryType::Select => {
                 let query = self.table.on_select(self)?;
                 Ok(Query::new(
@@ -387,9 +390,9 @@ mod tests {
             query.query,
             "SELECT * FROM users WHERE username = ? OR email LIKE ?;"
         );
-        let first = query.values.get(0).unwrap();
+        let first = query.values.get(&String::from("username")).unwrap();
         assert_eq!(first, &Value::Text(String::from("geekmasher")));
-        let second = query.values.get(1).unwrap();
+        let second = query.values.get(&String::from("email")).unwrap();
         assert_eq!(second, &Value::Text(String::from("%geekmasher%")));
     }
 }

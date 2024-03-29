@@ -18,40 +18,40 @@ pub enum ColumnType {
 }
 
 impl ToSqlite for ColumnType {
-    fn on_create(&self) -> String {
-        match self {
+    fn on_create(&self, query: &crate::QueryBuilder) -> Result<String, crate::Error> {
+        Ok(match self {
             ColumnType::Identifier(opts) => {
-                format!("INTEGER {}", opts.on_create())
+                format!("INTEGER {}", opts.on_create(query)?)
             }
             ColumnType::ForeignKey(options) => {
-                let opts = options.on_create();
+                let opts = options.on_create(query)?;
                 if opts.is_empty() {
-                    return "TEXT".to_string();
+                    return Ok("TEXT".to_string());
                 }
                 format!("TEXT {}", opts)
             }
             ColumnType::Text(options) => {
-                let opts = options.on_create();
+                let opts = options.on_create(query)?;
                 if opts.is_empty() {
-                    return "TEXT".to_string();
+                    return Ok("TEXT".to_string());
                 }
-                format!("TEXT {}", options.on_create())
+                format!("TEXT {}", options.on_create(query)?)
             }
             ColumnType::Integer(options) => {
-                let opts = options.on_create();
+                let opts = options.on_create(query)?;
                 if opts.is_empty() {
-                    return "INTEGER".to_string();
+                    return Ok("INTEGER".to_string());
                 }
-                format!("INTEGER {}", options.on_create())
+                format!("INTEGER {}", options.on_create(query)?)
             }
             ColumnType::Boolean(options) => {
-                let opts = options.on_create();
+                let opts = options.on_create(query)?;
                 if opts.is_empty() {
-                    return "INTEGER".to_string();
+                    return Ok("INTEGER".to_string());
                 }
-                format!("INTEGER {}", options.on_create())
+                format!("INTEGER {}", options.on_create(query)?)
             }
-        }
+        })
     }
 }
 
@@ -127,7 +127,7 @@ impl ColumnTypeOptions {
 }
 
 impl ToSqlite for ColumnTypeOptions {
-    fn on_create(&self) -> String {
+    fn on_create(&self, _query: &crate::QueryBuilder) -> Result<String, crate::Error> {
         let mut sql = Vec::new();
         if self.not_null {
             sql.push("NOT NULL");
@@ -141,7 +141,7 @@ impl ToSqlite for ColumnTypeOptions {
         if self.auto_increment {
             sql.push("AUTOINCREMENT");
         }
-        sql.join(" ")
+        Ok(sql.join(" "))
     }
 }
 
@@ -149,37 +149,50 @@ impl ToSqlite for ColumnTypeOptions {
 mod tests {
     use super::*;
 
+    fn query() -> crate::QueryBuilder {
+        crate::QueryBuilder::default()
+    }
+
     #[test]
     fn test_column_type_boolean() {
         let column_type = ColumnType::Boolean(ColumnTypeOptions::default());
-        assert_eq!(column_type.on_create(), "INTEGER");
+        let query = query();
+        assert_eq!(column_type.on_create(&query).unwrap(), "INTEGER");
     }
 
     #[test]
     fn test_column_type_to_sql() {
+        let query = query();
         let column_type = ColumnType::Text(ColumnTypeOptions::default());
-        assert_eq!(column_type.on_create(), "TEXT");
+        assert_eq!(column_type.on_create(&query).unwrap(), "TEXT");
 
         let column_type = ColumnType::Integer(ColumnTypeOptions::default());
-        assert_eq!(column_type.on_create(), "INTEGER");
+        assert_eq!(column_type.on_create(&query).unwrap(), "INTEGER");
     }
 
     #[test]
     fn test_column_type_options_to_sql() {
+        let query = query();
         let column_type_options = ColumnTypeOptions::default();
-        assert_eq!(column_type_options.on_create(), "");
+        assert_eq!(column_type_options.on_create(&query).unwrap(), "");
 
         let column_type_options = ColumnTypeOptions {
             primary_key: true,
             ..Default::default()
         };
-        assert_eq!(column_type_options.on_create(), "PRIMARY KEY");
+        assert_eq!(
+            column_type_options.on_create(&query).unwrap(),
+            "PRIMARY KEY"
+        );
 
         let column_type_options = ColumnTypeOptions {
             primary_key: true,
             not_null: true,
             ..Default::default()
         };
-        assert_eq!(column_type_options.on_create(), "NOT NULL PRIMARY KEY");
+        assert_eq!(
+            column_type_options.on_create(&query).unwrap(),
+            "NOT NULL PRIMARY KEY"
+        );
     }
 }

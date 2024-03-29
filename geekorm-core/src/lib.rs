@@ -97,8 +97,9 @@ pub trait ToSqlite {
     }
 
     /// Convert to SQLite for creating a table
-    fn on_create(&self) -> String {
-        String::new()
+    #[allow(unused_variables)]
+    fn on_create(&self, query: &QueryBuilder) -> Result<String, Error> {
+        Ok(String::new())
     }
 
     /// Convert to SQLite for selecting a row

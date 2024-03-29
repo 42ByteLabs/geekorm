@@ -1,4 +1,5 @@
 use libsql::{de, params::IntoValue};
+use log::error;
 use serde::{de::DeserializeOwned, Serialize};
 
 use crate::{backends::GeekConnection, TableBuilder, Value};
@@ -28,7 +29,13 @@ where
     ) -> Result<Self::Rows, Self::Error> {
         // TODO(geekmasher): Use different patterns for different query types
 
-        let mut statement = connection.prepare(query.to_str()).await?;
+        let mut statement = match connection.prepare(query.to_str()).await {
+            Ok(statement) => statement,
+            Err(e) => {
+                error!("Error preparing query: `{}`", query.to_str());
+                return Err(e);
+            }
+        };
         // Convert the values to libsql::Value
         let mut parameters: Vec<libsql::Value> = Vec::new();
 
@@ -48,7 +55,13 @@ where
         }
 
         // Execute the query
-        let mut rows = statement.query(parameters).await?;
+        let mut rows = match statement.query(parameters).await {
+            Ok(rows) => rows,
+            Err(e) => {
+                error!("Error executing query: `{}`", query.to_str());
+                return Err(e);
+            }
+        };
         let mut results = Vec::new();
 
         while let Some(row) = rows.next().await? {

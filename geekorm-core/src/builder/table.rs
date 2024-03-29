@@ -29,12 +29,12 @@ impl Table {
 }
 
 impl ToSqlite for Table {
-    fn on_create(&self) -> String {
-        format!(
+    fn on_create(&self, query: &QueryBuilder) -> Result<String, crate::Error> {
+        Ok(format!(
             "CREATE TABLE IF NOT EXISTS {} ({})",
             self.name,
-            self.columns.on_create()
-        )
+            self.columns.on_create(query)?
+        ))
     }
 
     fn on_select(&self, qb: &QueryBuilder) -> Result<String, crate::Error> {
@@ -173,9 +173,11 @@ mod tests {
             .into(),
         };
 
+        let query = crate::QueryBuilder::default();
+
         assert_eq!(
-            table.on_create(),
-            "CREATE TABLE IF NOT EXISTS Test (id INTEGER NOT NULL PRIMARY KEY, name TEXT)"
+            table.on_create(&query).unwrap(),
+            "CREATE TABLE IF NOT EXISTS Test (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT)"
         );
     }
 }

@@ -25,10 +25,10 @@ use crate::ToSqlite;
 /// }
 ///
 /// let user = User {
-///     id: PrimaryKey::new(1),
+///     id: PrimaryKey::from(1),
 ///     username: String::from("JohnDoe")
 /// };
-/// # assert_eq!(user.id, PrimaryKey::new(1));
+/// # assert_eq!(user.id, PrimaryKey::from(1));
 /// # assert_eq!(user.username, String::from("JohnDoe"));
 /// ```
 ///
@@ -43,10 +43,10 @@ use crate::ToSqlite;
 /// }
 ///
 /// let user = User {
-///     id: PrimaryKey::new(String::from("1")),
+///     id: PrimaryKey::from("1"),
 ///     username: String::from("JohnDoe")
 /// };
-/// # assert_eq!(user.id, PrimaryKey::new(String::from("1")));
+/// # assert_eq!(user.id, PrimaryKey::from(String::from("1")));
 /// # assert_eq!(user.username, String::from("JohnDoe"));
 /// ```
 ///
@@ -63,7 +63,7 @@ use crate::ToSqlite;
 /// }
 ///
 /// let user = User {
-///     id: PrimaryKeyUuid::new(uuid::Uuid::new_v4()),
+///     id: PrimaryKeyUuid::from(uuid::Uuid::new_v4()),
 ///     username: String::from("JohnDoe")
 /// };
 /// # assert_eq!(user.username, String::from("JohnDoe"));
@@ -73,7 +73,7 @@ pub struct PrimaryKey<T>
 where
     T: Display + 'static,
 {
-    value: T,
+    pub(crate) value: T,
 }
 
 impl<T> Debug for PrimaryKey<T>
@@ -129,9 +129,16 @@ impl PrimaryKeyUuid {
     }
 }
 
+#[cfg(feature = "uuid")]
+impl From<Uuid> for PrimaryKeyUuid {
+    fn from(value: Uuid) -> Self {
+        PrimaryKeyUuid::new(value)
+    }
+}
+
 impl ToSqlite for PrimaryKey<String> {
-    fn on_create(&self) -> String {
-        String::from("PRIMARY KEY")
+    fn on_create(&self, _query: &crate::QueryBuilder) -> Result<String, crate::Error> {
+        Ok(String::from("PRIMARY KEY"))
     }
 }
 

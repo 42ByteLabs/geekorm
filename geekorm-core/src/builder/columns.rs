@@ -73,22 +73,30 @@ impl From<Vec<Column>> for Columns {
 }
 
 impl ToSqlite for Columns {
-    fn on_create(&self) -> String {
+    fn on_create(&self, query: &crate::QueryBuilder) -> Result<String, crate::Error> {
         let mut sql = Vec::new();
         for column in &self.columns {
-            sql.push(column.on_create());
+            sql.push(column.on_create(query)?);
         }
 
         for foreign_key in self.get_foreign_keys() {
+            let (ctable, ccolumn) = match &foreign_key.column_type {
+                ColumnType::ForeignKey(opts) => {
+                    let (ctable, ccolumn) = opts.foreign_key.split_once('.').unwrap();
+                    (ctable, ccolumn)
+                }
+                _ => unreachable!(),
+            };
+
             sql.push(format!(
                 "FOREIGN KEY ({parent}) REFERENCES {child} ({child_column})",
-                parent = "",
-                child = foreign_key.name,
-                child_column = ""
+                parent = foreign_key.name,
+                child = ctable,
+                child_column = ccolumn
             ));
         }
 
-        sql.join(", ")
+        Ok(sql.join(", "))
     }
 
     fn on_select(&self, query: &crate::QueryBuilder) -> Result<String, crate::Error> {
@@ -138,19 +146,12 @@ impl Column {
 }
 
 impl ToSqlite for Column {
-    fn on_create(&self) -> String {
-        match &self.column_type {
-            ColumnType::ForeignKey(opts) => {
-                let (ftable, fcolumn) = opts.foreign_key.split_once("::").unwrap();
-                format!(
-                    "FOREIGN KEY ({name}) REFERENCES {parent} ({parent_column})",
-                    name = self.name,
-                    parent = ftable,
-                    parent_column = fcolumn
-                )
-            }
-            _ => format!("{} {}", self.name, self.column_type.on_create()),
-        }
+    fn on_create(&self, query: &crate::QueryBuilder) -> Result<String, crate::Error> {
+        Ok(format!(
+            "{} {}",
+            self.name,
+            self.column_type.on_create(query)?
+        ))
     }
 }
 
@@ -159,34 +160,52 @@ mod tests {
     use super::*;
     use crate::ColumnTypeOptions;
 
+    fn create_table() -> crate::Table {
+        crate::Table {
+            name: String::from("users"),
+            columns: Columns::from(vec![
+                Column::new(
+                    String::from("user_id"),
+                    ColumnType::Integer(ColumnTypeOptions::default()),
+                ),
+                Column::new(
+                    String::from("name"),
+                    ColumnType::Text(ColumnTypeOptions::default()),
+                ),
+                Column::new(
+                    String::from("image_id"),
+                    ColumnType::ForeignKey(ColumnTypeOptions {
+                        foreign_key: String::from("images.id"),
+                        ..Default::default()
+                    }),
+                ),
+            ]),
+        }
+    }
+
     #[test]
     fn test_column_to_sql() {
         use super::*;
+        let query = crate::QueryBuilder::default();
         let column = Column::new(
             String::from("name"),
             ColumnType::Text(ColumnTypeOptions::default()),
         );
-        assert_eq!(column.on_create(), "name TEXT");
+        assert_eq!(column.on_create(&query).unwrap(), "name TEXT");
 
         let column = Column::new(
             String::from("age"),
             ColumnType::Integer(ColumnTypeOptions::default()),
         );
-        assert_eq!(column.on_create(), "age INTEGER");
+        assert_eq!(column.on_create(&query).unwrap(), "age INTEGER");
     }
 
     #[test]
     fn test_foreign_key_to_sql() {
-        let column = Column::new(
-            String::from("user_id"),
-            ColumnType::ForeignKey(ColumnTypeOptions {
-                foreign_key: String::from("users::user_id"),
-                ..Default::default()
-            }),
-        );
-        assert_eq!(
-            column.on_create(),
-            "FOREIGN KEY (user_id) REFERENCES users (user_id)"
-        );
+        let query = crate::QueryBuilder::new().table(create_table());
+
+        let columns = query.table.columns.on_create(&query).unwrap();
+
+        assert_eq!(columns, "user_id INTEGER, name TEXT, image_id TEXT, FOREIGN KEY (image_id) REFERENCES images (id)");
     }
 }
