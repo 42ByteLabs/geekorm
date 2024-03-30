@@ -55,11 +55,12 @@ impl Display for Query {
 ///
 /// # Example
 /// ```rust
-/// use geekorm::{GeekTable, QueryOrder};
+/// use geekorm::{GeekTable, QueryOrder, PrimaryKeyInteger};
 /// use geekorm::prelude::*;
 ///
 /// #[derive(Debug, Default, GeekTable)]
 /// pub struct User {
+///     pub id: PrimaryKeyInteger,
 ///     pub username: String,
 ///     pub age: i32,
 ///     pub postcode: Option<String>,

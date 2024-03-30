@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::{
     builder::keys::{foreign::ForeignKeyInteger, primary::PrimaryKeyInteger},
-    PrimaryKey,
+    PrimaryKey, TableBuilder, TablePrimaryKey,
 };
 
 /// List of Values
@@ -88,15 +88,23 @@ impl From<&PrimaryKeyInteger> for Value {
     }
 }
 
-impl From<ForeignKeyInteger> for Value {
-    fn from(value: ForeignKeyInteger) -> Self {
-        Value::Integer(value.value)
+// Where converting a ForeignKeyInteger to a Value,
+// we only care about the integer value
+impl<T> From<ForeignKeyInteger<T>> for Value
+where
+    T: TableBuilder + TablePrimaryKey,
+{
+    fn from(value: ForeignKeyInteger<T>) -> Self {
+        Value::Integer(value.key)
     }
 }
 
-impl From<&ForeignKeyInteger> for Value {
-    fn from(value: &ForeignKeyInteger) -> Self {
-        Value::Integer(value.value)
+impl<T> From<&ForeignKeyInteger<T>> for Value
+where
+    T: TableBuilder + TablePrimaryKey,
+{
+    fn from(value: &ForeignKeyInteger<T>) -> Self {
+        Value::Integer(value.key)
     }
 }
 

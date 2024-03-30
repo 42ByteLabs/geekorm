@@ -58,10 +58,7 @@ impl ToSqlite for Table {
             }
             // If the query is a count query, return the count query
             else if qb.count {
-                // TODO(geekmasher): Add support for single column count
-                // for now, we will just return the count of all columns which is not ideal
-                // and expensive
-                full_query = String::from("SELECT COUNT(*)");
+                full_query = String::from("SELECT COUNT(1)");
             } else {
                 // Defaults to SELECT all
                 full_query = String::from("SELECT *");

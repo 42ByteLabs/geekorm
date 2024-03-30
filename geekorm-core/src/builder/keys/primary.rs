@@ -68,7 +68,7 @@ use crate::ToSqlite;
 /// };
 /// # assert_eq!(user.username, String::from("JohnDoe"));
 /// ```
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Copy, Eq, PartialEq)]
 pub struct PrimaryKey<T>
 where
     T: Display + 'static,

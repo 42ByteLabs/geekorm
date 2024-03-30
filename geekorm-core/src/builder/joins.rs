@@ -116,6 +116,7 @@ mod tests {
                     column_type: crate::ColumnType::Identifier(
                         crate::ColumnTypeOptions::primary_key(),
                     ),
+                    ..Default::default()
                 }],
             },
         }

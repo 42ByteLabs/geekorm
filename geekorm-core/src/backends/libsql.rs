@@ -66,6 +66,7 @@ where
         let mut results = Vec::new();
 
         while let Some(row) = rows.next().await? {
+            println!("{:?}", row);
             results.push(de::from_row::<T>(&row).unwrap());
         }
 

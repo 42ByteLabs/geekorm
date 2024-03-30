@@ -44,7 +44,9 @@ impl Columns {
 
     /// Get a column by name
     pub fn get(&self, column: &str) -> Option<&Column> {
-        self.columns.iter().find(|col| col.name == column)
+        self.columns
+            .iter()
+            .find(|col| col.name == column || col.alias == column)
     }
 
     /// Get the length of the columns
@@ -131,12 +133,22 @@ pub struct Column {
     pub name: String,
     /// Type of the column (e.g. TEXT, INTEGER, etc)
     pub column_type: ColumnType,
+
+    /// Alias for the column
+    pub alias: String,
+    /// Metadata for the column
+    pub skip: bool,
 }
 
 impl Column {
     /// Create a new instance of Column
     pub fn new(name: String, column_type: ColumnType) -> Self {
-        Column { name, column_type }
+        Column {
+            name,
+            column_type,
+            alias: String::new(),
+            skip: false,
+        }
     }
 
     /// Check if the column is a primary key
@@ -145,13 +157,29 @@ impl Column {
     }
 }
 
+impl Default for Column {
+    fn default() -> Self {
+        Column {
+            name: String::new(),
+            column_type: ColumnType::Text(Default::default()),
+            alias: String::new(),
+            skip: false,
+        }
+    }
+}
+
 impl ToSqlite for Column {
     fn on_create(&self, query: &crate::QueryBuilder) -> Result<String, crate::Error> {
-        Ok(format!(
-            "{} {}",
-            self.name,
-            self.column_type.on_create(query)?
-        ))
+        if self.skip {
+            return Ok(String::new());
+        }
+
+        let name = if !&self.alias.is_empty() {
+            self.alias.clone()
+        } else {
+            self.name.clone()
+        };
+        Ok(format!("{} {}", name, self.column_type.on_create(query)?))
     }
 }
 
@@ -198,6 +226,15 @@ mod tests {
             ColumnType::Integer(ColumnTypeOptions::default()),
         );
         assert_eq!(column.on_create(&query).unwrap(), "age INTEGER");
+
+        // Test renaming the column
+        let column = Column {
+            name: String::from("id"),
+            column_type: ColumnType::Integer(ColumnTypeOptions::default()),
+            alias: String::from("user_id"),
+            ..Default::default()
+        };
+        assert_eq!(column.on_create(&query).unwrap(), "user_id INTEGER");
     }
 
     #[test]
