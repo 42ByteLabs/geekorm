@@ -17,9 +17,11 @@ pub(crate) struct GeekAttribute {
 
 #[derive(Debug, Clone)]
 pub(crate) enum GeekAttributeKeys {
-    ForeignKey,
-    Rename,
     Skip,
+    Rename,
+    Default,
+    AutoIncrement,
+    ForeignKey,
 }
 
 #[derive(Debug, Clone)]
@@ -52,9 +54,11 @@ impl Parse for GeekAttribute {
         let name_str = name.to_string();
 
         let key: Option<GeekAttributeKeys> = match name_str.as_str() {
-            "foreign_key" => Some(GeekAttributeKeys::ForeignKey),
-            "rename" => Some(GeekAttributeKeys::Rename),
             "skip" => Some(GeekAttributeKeys::Skip),
+            "rename" => Some(GeekAttributeKeys::Rename),
+            "default" => Some(GeekAttributeKeys::Default),
+            "auto_increment" => Some(GeekAttributeKeys::AutoIncrement),
+            "foreign_key" => Some(GeekAttributeKeys::ForeignKey),
             _ => None,
         };
 

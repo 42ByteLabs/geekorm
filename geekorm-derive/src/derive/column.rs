@@ -5,7 +5,7 @@ use std::{
     any::{Any, TypeId},
     fmt::Debug,
 };
-use syn::{GenericArgument, Ident, Type, TypePath};
+use syn::{parse::Parse, GenericArgument, Ident, Type, TypePath};
 
 use crate::{
     attr::{GeekAttribute, GeekAttributeKeys, GeekAttributeValue},
@@ -23,7 +23,7 @@ impl ColumnsDerive {
         self.columns
             .iter()
             .filter_map(|col| {
-                if let ColumnTypeDerive::Identifier(_) = &col.coltype {
+                if col.is_primary_key() {
                     Some(col.clone())
                 } else {
                     None
@@ -108,7 +108,7 @@ pub(crate) struct ColumnDerive {
     /// Name to be used in the database
     pub(crate) name: String,
     /// Alias to the original struct name
-    pub(crate) alias: Option<String>,
+    pub(crate) alias: String,
     pub(crate) coltype: ColumnTypeDerive,
     pub(crate) skip: bool,
 }
@@ -124,7 +124,7 @@ impl ColumnDerive {
             attributes,
             name,
             coltype,
-            alias: None,
+            alias: String::new(),
             skip: false,
         };
         col.apply_attributes();
@@ -140,6 +140,13 @@ impl ColumnDerive {
                 match key {
                     GeekAttributeKeys::Skip => {
                         self.skip = true;
+                    }
+                    GeekAttributeKeys::Rename => {
+                        if let Some(value) = &attr.value {
+                            if let GeekAttributeValue::String(name) = value {
+                                self.alias = name.to_string();
+                            }
+                        }
                     }
                     GeekAttributeKeys::ForeignKey => {
                         if let Some(value) = &attr.value {
@@ -160,7 +167,7 @@ impl ColumnDerive {
                                         column, table.name
                                     )
                                 }
-                                self.alias = Some(name.to_string());
+                                self.alias = name.to_string();
 
                                 self.coltype =
                                     ColumnTypeDerive::ForeignKey(ColumnTypeOptionsDerive {
@@ -170,7 +177,7 @@ impl ColumnDerive {
                             }
                         }
                     }
-                    GeekAttributeKeys::Skip | GeekAttributeKeys::Rename => {}
+                    _ => {}
                 }
             } else {
                 // TODO(geekmasher): Handle this better
@@ -178,8 +185,33 @@ impl ColumnDerive {
         }
     }
 
+    pub(crate) fn is_primary_key(&self) -> bool {
+        // Check the options for a primary key
+        match &self.coltype {
+            ColumnTypeDerive::Identifier(_) => true,
+            ColumnTypeDerive::Text(opts) => {
+                if opts.primary_key {
+                    return true;
+                }
+                false
+            }
+            ColumnTypeDerive::Integer(opts) => {
+                if opts.primary_key {
+                    return true;
+                }
+                false
+            }
+            _ => false,
+        }
+    }
+
     /// Convert the column into a list of parameters for a function
     pub(crate) fn to_params(&self) -> Option<TokenStream> {
+        // Skip the column if it's marked as such
+        if self.skip {
+            return None;
+        }
+
         let identifier = &self.identifier;
         let itype = &self.itype;
         // Ignore PrimaryKey / ForeignKey / Option<T>
@@ -188,18 +220,22 @@ impl ColumnDerive {
                 match segment.ident.to_string().as_str() {
                     "Option" | "PrimaryKey" | "PrimaryKeyInteger" => return None,
                     "ForeignKey" => {
-                        // We want a user to pass in the actual type in the ForeignKey
-                        // so we need to extract the inner type
-                        let inner_type = match segment.arguments {
-                            syn::PathArguments::AngleBracketed(ref args) => {
-                                args.args.first().unwrap()
-                            }
+                        // ForeignKey<T, D>
+
+                        let inner_key_type = match segment.arguments {
+                            syn::PathArguments::AngleBracketed(ref args) => args
+                                .args
+                                .first()
+                                .unwrap_or_else(|| panic!("No inner type found in ForeignKey")),
                             _ => panic!("Unsupported ForeignKey type (to_params)"),
                         };
-                        // Return the inner type
-                        return Some(quote! {
-                            #identifier: impl Into< #inner_type >
-                        });
+                        // TODO(geekmasher): Do we care about the inner table type?
+                        return Some(self.to_params_foreign_key_int(identifier, inner_key_type));
+                    }
+                    "ForeignKeyInteger" => {
+                        // GenericArgument of i32
+                        let inner_key_type = GenericArgument::Type(syn::parse_quote! { i32 });
+                        return Some(self.to_params_foreign_key_int(identifier, &inner_key_type));
                     }
                     _ => {}
                 }
@@ -210,9 +246,25 @@ impl ColumnDerive {
         })
     }
 
+    pub(crate) fn to_params_foreign_key_int(
+        &self,
+        identifier: &Ident,
+        inner_type: &GenericArgument,
+    ) -> TokenStream {
+        quote! {
+            #identifier: impl Into< #inner_type >
+        }
+    }
+
     /// Create a new instance of the struct and pass in the column
     pub(crate) fn to_self(&self) -> TokenStream {
         let identifier = &self.identifier;
+
+        // For Skipped columns, return the identifier
+        if self.skip {
+            return quote! { #identifier: Default::default() };
+        }
+
         if let Type::Path(TypePath { path, .. }) = &self.itype {
             if let Some(segment) = path.segments.first() {
                 match segment.ident.to_string().as_str() {
@@ -276,11 +328,16 @@ impl ToTokens for ColumnDerive {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let name = &self.name;
         let coltype = &self.coltype;
+        let alias = &self.alias;
+        let skip = &self.skip;
+
         tokens.extend(quote! {
-            geekorm::Column::new(
-                String::from(#name),
-                #coltype
-            )
+            geekorm::Column {
+                name: String::from(#name),
+                column_type: #coltype,
+                alias: String::from(#alias),
+                skip: #skip,
+            }
         });
     }
 }
@@ -290,6 +347,8 @@ impl From<ColumnDerive> for geekorm_core::Column {
         geekorm_core::Column {
             name: value.name,
             column_type: ColumnType::from(value.coltype),
+            alias: value.alias,
+            skip: value.skip,
         }
     }
 }

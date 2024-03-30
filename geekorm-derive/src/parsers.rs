@@ -25,15 +25,18 @@ pub(crate) fn derive_parser(ast: &DeriveInput) -> Result<TokenStream, syn::Error
             fields: Fields::Named(ref fields),
             ..
         }) => {
-            let columns: Vec<ColumnDerive> = fields
-                .named
-                .iter()
-                .map(|f| {
-                    // TODO(geekmasher): handle unwrap here better
-                    let field_attrs = GeekAttribute::parse_all(&f.attrs).unwrap();
-                    ColumnDerive::new(f.ident.as_ref().unwrap().clone(), f.ty.clone(), field_attrs)
-                })
-                .collect();
+            let mut columns: Vec<ColumnDerive> = Vec::new();
+
+            for field in fields.named.iter() {
+                // TODO(geekmasher): handle unwrap here better
+                let field_attrs = GeekAttribute::parse_all(&field.attrs).unwrap();
+                let col = ColumnDerive::new(
+                    field.ident.as_ref().unwrap().clone(),
+                    field.ty.clone(),
+                    field_attrs,
+                );
+                columns.push(col);
+            }
 
             let mut table = TableDerive {
                 name: name.to_string(),

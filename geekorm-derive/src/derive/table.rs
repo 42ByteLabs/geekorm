@@ -9,7 +9,7 @@ use syn::{GenericArgument, Ident, Type, TypePath};
 use crate::attr::{GeekAttribute, GeekAttributeKeys, GeekAttributeValue};
 use crate::derive::column::{ColumnDerive, ColumnsDerive};
 
-use geekorm_core::Table;
+use geekorm_core::{PrimaryKey, Table};
 
 #[derive(Debug, Clone)]
 pub(crate) struct TableDerive {
@@ -30,7 +30,7 @@ impl TableDerive {
                             }
                         }
                     }
-                    GeekAttributeKeys::Skip | GeekAttributeKeys::ForeignKey => {}
+                    _ => {}
                 }
             } else {
                 // TODO(geekmasher): Handle this better
