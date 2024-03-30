@@ -8,6 +8,8 @@ pub mod libsql;
 pub trait GeekConnection {
     /// The connection type
     type Connection;
+    /// The row
+    type Row;
     /// The rows to return type
     type Rows;
     /// The error type
@@ -20,4 +22,14 @@ pub trait GeekConnection {
     /// Query the database with an active Connection and Query
     #[allow(async_fn_in_trait)]
     async fn query(connection: &Self::Connection, query: Query) -> Result<Self::Rows, Self::Error>;
+
+    /// Query the database with an active Connection and Query and return the first row.
+    ///
+    /// Note: Make sure the query is limited to 1 row to avoid retrieving multiple rows
+    /// and only using the first one.
+    #[allow(async_fn_in_trait)]
+    async fn query_first(
+        connection: &Self::Connection,
+        query: Query,
+    ) -> Result<Self::Row, Self::Error>;
 }

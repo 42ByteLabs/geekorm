@@ -9,6 +9,7 @@ where
     T: TableBuilder + Serialize + DeserializeOwned,
 {
     type Connection = libsql::Connection;
+    type Row = T;
     type Rows = Vec<T>;
     type Error = libsql::Error;
 
@@ -69,6 +70,14 @@ where
         }
 
         Ok(results)
+    }
+
+    async fn query_first(
+        connection: &Self::Connection,
+        query: crate::Query,
+    ) -> Result<Self::Row, Self::Error> {
+        let rows = Self::query(connection, query).await?;
+        Ok(rows.into_iter().next().unwrap())
     }
 }
 
