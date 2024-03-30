@@ -13,9 +13,9 @@ mod attr;
 mod derive;
 mod errors;
 mod internal;
-mod parser;
+mod parsers;
 
-use parser::derive_parser;
+use parsers::derive_parser;
 use proc_macro::TokenStream;
 use quote::{quote, ToTokens};
 use syn::{parse_macro_input, Data, DataStruct, DeriveInput, Fields};
@@ -66,7 +66,7 @@ use syn::{parse_macro_input, Data, DataStruct, DeriveInput, Fields};
 ///
 /// let user = User::new(
 ///     String::from("geekmasher"),
-///     69,
+///     42,
 ///     String::from("Software Developer")
 /// );
 ///

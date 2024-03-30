@@ -162,29 +162,44 @@ impl From<Vec<ColumnDerive>> for ColumnsDerive {
 pub(crate) struct ColumnDerive {
     pub(crate) identifier: Ident,
     pub(crate) itype: Type,
+    pub(crate) attributes: Vec<GeekAttribute>,
 
+    /// Name to be used in the database
     pub(crate) name: String,
+    /// Alias to the original struct name
+    pub(crate) alias: Option<String>,
     pub(crate) coltype: ColumnTypeDerive,
+    pub(crate) skip: bool,
 }
 
 impl ColumnDerive {
     /// Create a new instance of Column
-    pub(crate) fn new(identifier: Ident, itype: Type) -> Self {
+    pub(crate) fn new(identifier: Ident, itype: Type, attributes: Vec<GeekAttribute>) -> Self {
         let name = identifier.to_string();
         let coltype = ColumnTypeDerive::try_from(&itype).unwrap();
-        ColumnDerive {
+        let mut col = ColumnDerive {
             identifier,
             itype,
+            attributes,
             name,
             coltype,
-        }
+            alias: None,
+            skip: false,
+        };
+        col.apply_attributes();
+        col
     }
 
     #[allow(irrefutable_let_patterns)]
-    pub(crate) fn apply_attributes(&mut self, attributes: &Vec<GeekAttribute>) {
+    pub(crate) fn apply_attributes(&mut self) {
+        let attributes = &self.attributes;
+
         for attr in attributes {
             if let Some(key) = &attr.key {
                 match key {
+                    GeekAttributeKeys::Skip => {
+                        self.skip = true;
+                    }
                     GeekAttributeKeys::ForeignKey => {
                         if let Some(value) = &attr.value {
                             if let GeekAttributeValue::String(name) = value {
@@ -204,6 +219,7 @@ impl ColumnDerive {
                                         column, table.name
                                     )
                                 }
+                                self.alias = Some(name.to_string());
 
                                 self.coltype =
                                     ColumnTypeDerive::ForeignKey(ColumnTypeOptionsDerive {
