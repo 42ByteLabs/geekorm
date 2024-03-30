@@ -68,7 +68,7 @@ pub use geekorm_core::builder::columns::{Column, Columns};
 pub use geekorm_core::builder::columntypes::{ColumnType, ColumnTypeOptions};
 pub use geekorm_core::builder::table::Table;
 // Keys Modules
-pub use geekorm_core::builder::keys::foreign::ForeignKey;
+pub use geekorm_core::builder::keys::foreign::{ForeignKey, ForeignKeyInteger};
 #[cfg(feature = "uuid")]
 pub use geekorm_core::builder::keys::primary::PrimaryKeyUuid;
 pub use geekorm_core::builder::keys::primary::{PrimaryKey, PrimaryKeyInteger};
