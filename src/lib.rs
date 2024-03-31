@@ -85,6 +85,15 @@ pub use geekorm_core::queries::QueryBuilder;
 /// GeekTable Derive Macro
 pub use geekorm_derive::GeekTable;
 
+/// GeekORM Version
+pub const GEEKORM_VERSION: &str = env!("CARGO_PKG_VERSION");
+/// GeekORM Banner
+pub const GEEKORM_BANNER: &str = r#"   ______          __   ____  ____  __  ___
+  / ____/__  ___  / /__/ __ \/ __ \/  |/  /
+ / / __/ _ \/ _ \/ //_/ / / / /_/ / /|_/ /
+/ /_/ /  __/  __/ ,< / /_/ / _, _/ /  / /
+\____/\___/\___/_/|_|\____/_/ |_/_/  /_/"#;
+
 pub mod prelude {
     //! GeekORM prelude
     //!
