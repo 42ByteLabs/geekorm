@@ -167,8 +167,6 @@ impl ColumnDerive {
                                         column, table.name
                                     )
                                 }
-                                self.alias = name.to_string();
-
                                 self.coltype =
                                     ColumnTypeDerive::ForeignKey(ColumnTypeOptionsDerive {
                                         foreign_key: name.to_string(),

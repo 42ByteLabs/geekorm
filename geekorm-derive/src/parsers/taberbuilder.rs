@@ -56,6 +56,7 @@ pub fn generate_table_builder(
                 geekorm::QueryBuilder::create()
                     .table(#ident::table())
             }
+
             fn select() -> geekorm::QueryBuilder {
                 geekorm::QueryBuilder::select()
                     .table(#ident::table())
@@ -67,6 +68,14 @@ pub fn generate_table_builder(
                     #insert_values
                     .build()
                     .expect("Failed to build insert query")
+            }
+
+            fn update(item: &Self) -> geekorm::Query {
+                geekorm::QueryBuilder::update()
+                    .table(#ident::table())
+                    #insert_values
+                    .build()
+                    .expect("Failed to build update query")
             }
 
             fn count() -> geekorm::QueryBuilder {
