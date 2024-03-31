@@ -63,7 +63,7 @@ impl ToSqlite for TableJoin {
         match self {
             TableJoin::InnerJoin(opts) => Ok(format!(
                 "INNER JOIN {} ON {}",
-                opts.parent.name,
+                opts.child.name,
                 opts.on_select(qb)?
             )),
         }
@@ -92,11 +92,12 @@ impl ToSqlite for TableJoinOptions {
     /// Generate the SQL for the join statement
     fn on_select(&self, _: &crate::QueryBuilder) -> Result<String, crate::Error> {
         Ok(format!(
-            "{ptable}.{pcolumn} = {ctable}.{ccolumn}",
-            ptable = self.parent.name,
-            pcolumn = self.parent.get_primary_key(),
+            "{ctable}.{ccolumn} = {ptable}.{pcolumn}",
             ctable = self.child.name,
-            ccolumn = self.child.get_primary_key()
+            // TODO(geekmasher): This should be dynamic based on the column type
+            ccolumn = self.child.get_primary_key(),
+            ptable = self.parent.name,
+            pcolumn = "image_id",
         ))
     }
 }
@@ -130,7 +131,10 @@ mod tests {
         });
 
         let select_query = join.on_select(&crate::QueryBuilder::select()).unwrap();
-        assert_eq!(select_query, "INNER JOIN Parent ON Parent.id = Child.id")
+        assert_eq!(
+            select_query,
+            "INNER JOIN Child ON Child.id = Parent.image_id"
+        )
     }
 
     #[test]
@@ -141,6 +145,6 @@ mod tests {
         };
 
         let select_query = join.on_select(&crate::QueryBuilder::select()).unwrap();
-        assert_eq!(select_query, "Parent.id = Child.id");
+        assert_eq!(select_query, "Child.id = Parent.image_id");
     }
 }

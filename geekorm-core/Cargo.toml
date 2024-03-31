@@ -26,3 +26,4 @@ log = { version = "0.4.21", features = ["std", "serde"] }
 
 [dev-dependencies]
 geekorm = { path = ".." }
+tokio = { version = "1.37.0", features = ["full"] }

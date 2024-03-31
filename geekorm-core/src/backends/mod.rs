@@ -1,4 +1,5 @@
-use crate::Query;
+use crate::{Query, Value};
+use std::collections::HashMap;
 
 /// This module contains the LibSQL backend
 #[cfg(feature = "libsql")]
@@ -15,9 +16,17 @@ pub trait GeekConnection {
     /// The error type
     type Error;
 
+    /// Create a table in the database
+    #[allow(async_fn_in_trait)]
+    async fn create_table(connection: &Self::Connection) -> Result<(), Self::Error>;
+
     /// Run a SELECT Count query on the database and return the number of rows
     #[allow(async_fn_in_trait)]
     async fn row_count(connection: &Self::Connection, query: Query) -> Result<i64, Self::Error>;
+
+    /// Execute a query on the database and do not return any rows
+    #[allow(async_fn_in_trait)]
+    async fn execute(connection: &Self::Connection, query: Query) -> Result<(), Self::Error>;
 
     /// Query the database with an active Connection and Query
     #[allow(async_fn_in_trait)]
@@ -32,4 +41,11 @@ pub trait GeekConnection {
         connection: &Self::Connection,
         query: Query,
     ) -> Result<Self::Row, Self::Error>;
+
+    /// Query the database with an active Connection and Query and return a list of GeekORM Values.
+    #[allow(async_fn_in_trait)]
+    async fn query_raw(
+        connection: &Self::Connection,
+        query: Query,
+    ) -> Result<Vec<HashMap<String, Value>>, Self::Error>;
 }

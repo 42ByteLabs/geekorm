@@ -24,8 +24,16 @@ use crate::{PrimaryKey, TableBuilder, TablePrimaryKey};
 ///     /// Foreign Key to the Users table
 ///     /// i32 as the key type, and Users as the data type
 ///     #[geekorm(foreign_key = "Users.id")]
-///     user_id: ForeignKey<i32, Users>,
+///     user: ForeignKey<i32, Users>,
 /// }
+///
+/// // Create the Posts table with the foreign key referencing the Users table (Users.id)
+/// let create_posts_query = Posts::create().build()
+///     .expect("Failed to build query");
+/// # assert_eq!(
+/// #     create_posts_query.to_str(),
+/// #     "CREATE TABLE IF NOT EXISTS Posts (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, user TEXT NOT NULL, FOREIGN KEY (user) REFERENCES Users (id));"
+/// # );
 ///
 /// // Use the foreign key to and join the tables together
 /// // to get the user posts

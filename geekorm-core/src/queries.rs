@@ -19,17 +19,31 @@ pub struct Query {
     pub query: String,
     /// The values to use in the query (where / insert / update)
     pub values: Values,
+    /// List of parameters for the query (update / insert)
+    pub parameters: Values,
+
+    /// The output columns for the query (used in raw queries)
+    pub columns: Vec<String>,
 
     pub(crate) table: Table,
 }
 
 impl Query {
     /// Create a new Query
-    pub fn new(query_type: QueryType, query: String, values: Values, table: Table) -> Self {
+    pub fn new(
+        query_type: QueryType,
+        query: String,
+        values: Values,
+        parameters: Values,
+        columns: Vec<String>,
+        table: Table,
+    ) -> Self {
         Query {
             query_type,
             query,
             values,
+            parameters,
+            columns,
             table,
         }
     }
@@ -134,10 +148,25 @@ impl QueryBuilder {
         }
     }
 
+    /// Build a "get all rows" query
+    pub fn all() -> Query {
+        QueryBuilder::select()
+            .build()
+            .expect("Failed to build query (all)")
+    }
+
     /// Build an insert query
     pub fn insert() -> QueryBuilder {
         QueryBuilder {
             query_type: QueryType::Insert,
+            ..Default::default()
+        }
+    }
+
+    /// Build an update query
+    pub fn update() -> QueryBuilder {
+        QueryBuilder {
+            query_type: QueryType::Update,
             ..Default::default()
         }
     }
@@ -312,6 +341,8 @@ impl QueryBuilder {
                     self.query_type.clone(),
                     query.clone(),
                     Values::new(),
+                    Values::new(),
+                    self.columns.clone(),
                     self.table.clone(),
                 ))
             }
@@ -321,15 +352,30 @@ impl QueryBuilder {
                     self.query_type.clone(),
                     query.clone(),
                     self.values.clone(),
+                    Values::new(),
+                    self.columns.clone(),
                     self.table.clone(),
                 ))
             }
             QueryType::Insert => {
-                let query = self.table.on_insert(self)?;
+                let (query, parameters) = self.table.on_insert(self)?;
                 Ok(Query::new(
                     self.query_type.clone(),
                     query.clone(),
                     self.values.clone(),
+                    parameters,
+                    self.columns.clone(),
+                    self.table.clone(),
+                ))
+            }
+            QueryType::Update => {
+                let (query, parameters) = self.table.on_update(self)?;
+                Ok(Query::new(
+                    self.query_type.clone(),
+                    query.clone(),
+                    self.values.clone(),
+                    parameters,
+                    self.columns.clone(),
                     self.table.clone(),
                 ))
             }

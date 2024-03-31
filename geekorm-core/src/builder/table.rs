@@ -1,4 +1,4 @@
-use crate::{Columns, QueryBuilder, ToSqlite};
+use crate::{Columns, QueryBuilder, ToSqlite, Values};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
@@ -31,7 +31,7 @@ impl Table {
 impl ToSqlite for Table {
     fn on_create(&self, query: &QueryBuilder) -> Result<String, crate::Error> {
         Ok(format!(
-            "CREATE TABLE IF NOT EXISTS {} ({})",
+            "CREATE TABLE IF NOT EXISTS {} ({});",
             self.name,
             self.columns.on_create(query)?
         ))
@@ -98,15 +98,23 @@ impl ToSqlite for Table {
         Ok(full_query)
     }
 
-    fn on_insert(&self, query: &QueryBuilder) -> Result<String, crate::Error> {
+    fn on_insert(&self, query: &QueryBuilder) -> Result<(String, Values), crate::Error> {
         let mut full_query = format!("INSERT INTO {} ", self.name);
 
         let mut columns: Vec<String> = Vec::new();
         let mut values: Vec<String> = Vec::new();
+        let mut parameters = Values::new();
 
-        for column_name in query.values.order.iter() {
-            let column = query.table.columns.get(column_name).unwrap();
-            let value = query.values.get(&column_name).unwrap();
+        for cname in query.values.order.iter() {
+            let column = query.table.columns.get(cname.as_str()).unwrap();
+
+            // Get the column (might be an alias)
+            let mut column_name = column.name.clone();
+            if !column.alias.is_empty() {
+                column_name = column.alias.to_string();
+            }
+
+            let value = query.values.get(&cname).unwrap();
 
             // Skip auto increment columns
             if column.column_type.is_auto_increment() {
@@ -121,6 +129,7 @@ impl ToSqlite for Table {
                     // Security: String values should never be directly inserted into the query
                     // This is to prevent SQL injection attacks
                     values.push(String::from("?"));
+                    parameters.push(column_name, value.clone());
                 }
                 crate::Value::Integer(value) => values.push(value.to_string()),
                 crate::Value::Boolean(value) => values.push(value.to_string()),
@@ -138,7 +147,59 @@ impl ToSqlite for Table {
         full_query.push_str(&values.join(", "));
         full_query.push(')');
 
-        Ok(full_query)
+        Ok((full_query, parameters))
+    }
+
+    fn on_update(&self, query: &QueryBuilder) -> Result<(String, Values), crate::Error> {
+        let mut full_query = format!("UPDATE {} SET ", self.name);
+
+        let mut columns: Vec<String> = Vec::new();
+        let mut parameters = Values::new();
+
+        for cname in query.values.order.iter() {
+            let column = query.table.columns.get(cname.as_str()).unwrap();
+
+            // Skip if primary key
+            if column.column_type.is_primary_key() || cname == "id" {
+                continue;
+            }
+            // Get the column (might be an alias)
+            let mut column_name = column.name.clone();
+            if !column.alias.is_empty() {
+                column_name = column.alias.to_string();
+            }
+
+            let value = query.values.get(&cname).unwrap();
+
+            // Add to Values
+            match value {
+                crate::Value::Identifier(_) | crate::Value::Text(_) => {
+                    // Security: String values should never be directly inserted into the query
+                    // This is to prevent SQL injection attacks
+                    columns.push(format!("{} = ?", column_name));
+                    parameters.push(column_name, value.clone());
+                }
+                crate::Value::Integer(value) => {
+                    columns.push(format!("{} = {}", column_name, value))
+                }
+                crate::Value::Boolean(value) => {
+                    columns.push(format!("{} = {}", column_name, value))
+                }
+                crate::Value::Null => columns.push(format!("{} = NULL", column_name)),
+            }
+        }
+
+        // Generate the column names
+        full_query.push_str(&columns.join(", "));
+
+        // WHERE
+        // TODO(geekmasher): We only support updating by primary key
+        let primary_key_name = query.table.get_primary_key();
+        let primary_key = query.values.get(&primary_key_name).unwrap();
+        let where_clause = format!(" WHERE {} = {}", primary_key_name, primary_key.to_string());
+        full_query.push_str(&where_clause);
+
+        Ok((full_query, parameters))
     }
 }
 
@@ -174,7 +235,7 @@ mod tests {
 
         assert_eq!(
             table.on_create(&query).unwrap(),
-            "CREATE TABLE IF NOT EXISTS Test (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT)"
+            "CREATE TABLE IF NOT EXISTS Test (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT);"
         );
     }
 }

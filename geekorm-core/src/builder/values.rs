@@ -1,4 +1,6 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Display};
+
+use serde::{Serialize, Serializer};
 
 use crate::{
     builder::keys::{foreign::ForeignKeyInteger, primary::PrimaryKeyInteger},
@@ -67,6 +69,18 @@ pub enum Value {
 impl Default for Value {
     fn default() -> Self {
         Value::Text(String::new())
+    }
+}
+
+impl Display for Value {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Value::Text(value) => write!(f, "{}", value),
+            Value::Integer(value) => write!(f, "{}", value),
+            Value::Boolean(value) => write!(f, "{}", value),
+            Value::Identifier(value) => write!(f, "{}", value),
+            Value::Null => write!(f, "NULL"),
+        }
     }
 }
 
@@ -189,5 +203,21 @@ impl From<i64> for Value {
 impl From<usize> for Value {
     fn from(value: usize) -> Self {
         Value::Integer(value as i32)
+    }
+}
+
+/// Serialize a Value
+impl Serialize for Value {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match self {
+            Value::Text(value) => serializer.serialize_str(value),
+            Value::Integer(value) => serializer.serialize_i32(*value),
+            Value::Boolean(value) => serializer.serialize_i32(*value),
+            Value::Identifier(value) => serializer.serialize_str(value),
+            Value::Null => serializer.serialize_none(),
+        }
     }
 }

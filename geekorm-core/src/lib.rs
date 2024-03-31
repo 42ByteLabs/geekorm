@@ -65,8 +65,24 @@ pub trait TableBuilder {
         QueryBuilder::select()
     }
 
+    /// Select all rows in the table
+    fn all() -> Query
+    where
+        Self: Sized,
+    {
+        Self::select()
+            .table(Self::table())
+            .build()
+            .expect("Failed to build SELECT ALL query")
+    }
+
     /// Insert a row into the table
     fn insert(item: &Self) -> Query
+    where
+        Self: Sized;
+
+    /// Update a row in the table
+    fn update(item: &Self) -> Query
     where
         Self: Sized;
 
@@ -111,10 +127,18 @@ pub trait ToSqlite {
     }
 
     /// Convert to SQLite for inserting a row
-    fn on_insert(&self, query: &QueryBuilder) -> Result<String, Error> {
+    fn on_insert(&self, query: &QueryBuilder) -> Result<(String, Values), Error> {
         Err(Error::QueryBuilderError(
             format!("on_insert not implemented for table: {}", query.table),
             String::from("on_insert"),
+        ))
+    }
+
+    /// Convert to SQLite for updating a row
+    fn on_update(&self, query: &QueryBuilder) -> Result<(String, Values), Error> {
+        Err(Error::QueryBuilderError(
+            format!("on_update not implemented for table: {}", query.table),
+            String::from("on_update"),
         ))
     }
 }
