@@ -1,0 +1,16 @@
+[package]
+name = "geekorm-example-turso-libsql"
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+keywords.workspace = true
+categories.workspace = true
+authors.workspace = true
+
+[dependencies]
+geekorm = { path = "../../", features = ["new", "helpers", "backends"] }
+serde = { version = "1", features = ["derive"] }
+libsql = "0.3"
+tokio = { version = "1.36.0", features = ["full"] }
+anyhow = "1"
