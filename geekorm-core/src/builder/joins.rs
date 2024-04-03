@@ -91,13 +91,24 @@ impl TableJoinOptions {
 impl ToSqlite for TableJoinOptions {
     /// Generate the SQL for the join statement
     fn on_select(&self, _: &crate::QueryBuilder) -> Result<String, crate::Error> {
+        // Get the parent column to join on
+        let pcolumn = self.parent.get_foreign_key(self.child.name.clone());
+        // Get the column name or alias
+        let pcolumn_name = if !pcolumn.alias.is_empty() {
+            pcolumn.alias.clone()
+        } else {
+            pcolumn.name.clone()
+        };
+        // Get the column to join on or use the primary key of the table
+        // TODO(geekmasher): Add support for dynamic column lookup
+        let ccolumn = self.child.get_primary_key();
+
         Ok(format!(
             "{ctable}.{ccolumn} = {ptable}.{pcolumn}",
             ctable = self.child.name,
-            // TODO(geekmasher): This should be dynamic based on the column type
-            ccolumn = self.child.get_primary_key(),
+            ccolumn = ccolumn,
             ptable = self.parent.name,
-            pcolumn = "image_id",
+            pcolumn = pcolumn_name,
         ))
     }
 }

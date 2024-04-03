@@ -107,8 +107,11 @@ where
                 return Err(e);
             }
         };
-        let mut rows = statement.query(params).await?;
 
+        debug!("Query :: {:?}", query.to_str());
+        debug!("Parameters :: {:?}", params);
+
+        let mut rows = statement.query(params).await?;
         let mut results: Vec<HashMap<String, Value>> = Vec::new();
 
         while let Some(row) = rows.next().await? {
@@ -158,6 +161,7 @@ impl IntoValue for Value {
             Value::Integer(value) => libsql::Value::Integer(value as i64),
             Value::Boolean(value) => libsql::Value::Text(value.to_string()),
             Value::Identifier(value) => libsql::Value::Text(value),
+            Value::Blob(value) => libsql::Value::Blob(value),
             Value::Null => libsql::Value::Null,
         })
     }
@@ -169,8 +173,9 @@ impl From<libsql::Value> for Value {
             libsql::Value::Text(value) => Value::Text(value),
             libsql::Value::Integer(value) => Value::Integer(value as i32),
             libsql::Value::Null => Value::Null,
-            libsql::Value::Real(_) | libsql::Value::Blob(_) => {
-                todo!("Real and Blob values are not supported yet")
+            libsql::Value::Blob(value) => Value::Blob(value),
+            libsql::Value::Real(_) => {
+                todo!("Real values are not supported yet")
             }
         }
     }

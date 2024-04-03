@@ -12,6 +12,7 @@ pub(crate) enum ColumnTypeDerive {
     Text(ColumnTypeOptionsDerive),
     Integer(ColumnTypeOptionsDerive),
     Boolean(ColumnTypeOptionsDerive),
+    Blob(ColumnTypeOptionsDerive),
     ForeignKey(ColumnTypeOptionsDerive),
 }
 
@@ -38,6 +39,11 @@ impl ToTokens for ColumnTypeDerive {
                     geekorm::ColumnType::Boolean(#options)
                 });
             }
+            ColumnTypeDerive::Blob(options) => {
+                tokens.extend(quote! {
+                    geekorm::ColumnType::Blob(#options)
+                });
+            }
             ColumnTypeDerive::ForeignKey(options) => tokens.extend(quote! {
                 geekorm::ColumnType::ForeignKey(#options)
             }),
@@ -54,6 +60,7 @@ impl From<ColumnTypeDerive> for geekorm_core::ColumnType {
             ColumnTypeDerive::Text(options) => geekorm_core::ColumnType::Text(options.into()),
             ColumnTypeDerive::Integer(options) => geekorm_core::ColumnType::Integer(options.into()),
             ColumnTypeDerive::Boolean(options) => geekorm_core::ColumnType::Boolean(options.into()),
+            ColumnTypeDerive::Blob(options) => geekorm_core::ColumnType::Blob(options.into()),
             ColumnTypeDerive::ForeignKey(options) => {
                 geekorm_core::ColumnType::ForeignKey(options.into())
             }
@@ -76,7 +83,9 @@ fn parse_path(typ: &Type, opts: ColumnTypeOptionsDerive) -> Result<ColumnTypeDer
         Type::Path(path) => {
             let ident = path.path.segments.first().unwrap().ident.clone();
 
-            Ok(match ident.to_string().as_str() {
+            let ident_name = ident.to_string();
+
+            Ok(match ident_name.as_str() {
                 // GeekORM types
                 "PrimaryKey" => {
                     let inner_type = match path.path.segments.first().unwrap().arguments {
@@ -138,12 +147,34 @@ fn parse_path(typ: &Type, opts: ColumnTypeOptionsDerive) -> Result<ColumnTypeDer
                         _ => panic!("Unsupported Option type :: {:?}", ident.to_string()),
                     }
                 }
+                "Vec" => {
+                    let new_opts = ColumnTypeOptionsDerive {
+                        not_null: false,
+                        ..opts
+                    };
+
+                    // Get the inner type of the Vec
+                    let inner_type = match path.path.segments.first().unwrap().arguments {
+                        syn::PathArguments::AngleBracketed(ref args) => args.args.first().unwrap(),
+                        _ => panic!("Unsupported Vec type :: {:?}", ident.to_string()),
+                    };
+
+                    // Parse the inner type
+                    match inner_type {
+                        GenericArgument::Type(typ) => parse_path(typ, new_opts)?,
+                        _ => panic!("Unsupported Vec type :: {:?}", ident.to_string()),
+                    }
+                }
                 #[cfg(feature = "uuid")]
                 "Uuid" => ColumnTypeDerive::Text(opts),
                 #[cfg(feature = "chrono")]
                 "DateTime" => ColumnTypeDerive::Text(opts),
                 // TODO(geekmasher): Remove this
-                _ => abort!(ident, "Unsupported column path type"),
+                _ => abort!(
+                    ident,
+                    "Unsupported column path type :: `{name}`",
+                    name = ident_name
+                ),
             })
         }
 

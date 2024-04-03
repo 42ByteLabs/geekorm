@@ -15,7 +15,7 @@
 //!
 //! ```rust
 //! use geekorm::prelude::*;
-//! use geekorm::{GeekTable, QueryOrder};
+//! use geekorm::{GeekTable, QueryOrder, PrimaryKeyInteger};
 //!
 //! #[derive(Debug, Clone, GeekTable)]
 //! struct User {

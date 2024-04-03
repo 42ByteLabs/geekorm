@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Display};
+use std::{collections::HashMap, fmt::Display, str};
 
 use serde::{Serialize, Serializer};
 
@@ -62,6 +62,8 @@ pub enum Value {
     Boolean(i32),
     /// Identifier Key type (Primary / Forigen Key) which is a UUID
     Identifier(String),
+    /// A binary blob value (vector of bytes)
+    Blob(Vec<u8>),
     /// A NULL value
     Null,
 }
@@ -79,6 +81,7 @@ impl Display for Value {
             Value::Integer(value) => write!(f, "{}", value),
             Value::Boolean(value) => write!(f, "{}", value),
             Value::Identifier(value) => write!(f, "{}", value),
+            Value::Blob(value) => write!(f, "{}", str::from_utf8(&value).unwrap_or("")),
             Value::Null => write!(f, "NULL"),
         }
     }
@@ -182,6 +185,15 @@ impl From<&Option<i32>> for Value {
     }
 }
 
+impl From<&Option<bool>> for Value {
+    fn from(value: &Option<bool>) -> Self {
+        match value {
+            Some(value) => Value::Boolean(if *value { 1 } else { 0 }),
+            None => Value::Null,
+        }
+    }
+}
+
 impl From<i32> for Value {
     fn from(value: i32) -> Self {
         Value::Integer(value)
@@ -206,6 +218,30 @@ impl From<usize> for Value {
     }
 }
 
+impl From<Vec<String>> for Value {
+    fn from(value: Vec<String>) -> Self {
+        Value::Blob(serde_json::to_vec(&value).unwrap())
+    }
+}
+
+impl From<&Vec<String>> for Value {
+    fn from(value: &Vec<String>) -> Self {
+        Value::Blob(serde_json::to_vec(value).unwrap())
+    }
+}
+
+impl From<Vec<u8>> for Value {
+    fn from(value: Vec<u8>) -> Self {
+        Value::Blob(value)
+    }
+}
+
+impl From<&Vec<u8>> for Value {
+    fn from(value: &Vec<u8>) -> Self {
+        Value::Blob(value.clone())
+    }
+}
+
 /// Serialize a Value
 impl Serialize for Value {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -217,6 +253,9 @@ impl Serialize for Value {
             Value::Integer(value) => serializer.serialize_i32(*value),
             Value::Boolean(value) => serializer.serialize_i32(*value),
             Value::Identifier(value) => serializer.serialize_str(value),
+            // TODO(geekmasher): This might not be the correct way to serialize a blob
+            Value::Blob(value) => serializer.serialize_bytes(value),
+
             Value::Null => serializer.serialize_none(),
         }
     }

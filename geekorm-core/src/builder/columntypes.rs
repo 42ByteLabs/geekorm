@@ -15,6 +15,8 @@ pub enum ColumnType {
     Integer(ColumnTypeOptions),
     /// Boolean column type with options
     Boolean(ColumnTypeOptions),
+    /// Blob / Vec / List column type with options
+    Blob(ColumnTypeOptions),
 }
 
 impl ToSqlite for ColumnType {
@@ -51,6 +53,13 @@ impl ToSqlite for ColumnType {
                 }
                 format!("INTEGER {}", options.on_create(query)?)
             }
+            ColumnType::Blob(options) => {
+                let opts = options.on_create(query)?;
+                if opts.is_empty() {
+                    return Ok("BLOB".to_string());
+                }
+                format!("BLOB {}", options.on_create(query)?)
+            }
         })
     }
 }
@@ -73,6 +82,16 @@ impl ColumnType {
     /// Check if the column type is a foreign key
     pub fn is_foreign_key(&self) -> bool {
         matches!(self, ColumnType::ForeignKey(_))
+    }
+    /// Get the foreign key table & column name
+    pub fn is_foreign_key_table(&self, table: &String) -> bool {
+        match self {
+            ColumnType::ForeignKey(opts) => {
+                let (t, _) = opts.foreign_key.split_once('.').unwrap();
+                t == table
+            }
+            _ => false,
+        }
     }
 }
 

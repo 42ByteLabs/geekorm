@@ -26,6 +26,17 @@ impl Table {
             .map(|col| col.name.clone())
             .unwrap_or_else(|| String::from("id"))
     }
+
+    /// Get the foreign key by table name
+    pub fn get_foreign_key(&self, table_name: String) -> &crate::Column {
+        println!("Table: {:?}", table_name);
+        for column in self.columns.get_foreign_keys() {
+            if column.column_type.is_foreign_key_table(&table_name) {
+                return column;
+            }
+        }
+        panic!("No foreign key found for column: {}", table_name);
+    }
 }
 
 impl ToSqlite for Table {
@@ -131,6 +142,11 @@ impl ToSqlite for Table {
                     values.push(String::from("?"));
                     parameters.push(column_name, value.clone());
                 }
+                crate::Value::Blob(value) => {
+                    // Security: Blods should never be directly inserted into the query
+                    values.push(String::from("?"));
+                    parameters.push(column_name, value.clone());
+                }
                 crate::Value::Integer(value) => values.push(value.to_string()),
                 crate::Value::Boolean(value) => values.push(value.to_string()),
                 crate::Value::Null => values.push("NULL".to_string()),
@@ -173,7 +189,7 @@ impl ToSqlite for Table {
 
             // Add to Values
             match value {
-                crate::Value::Identifier(_) | crate::Value::Text(_) => {
+                crate::Value::Identifier(_) | crate::Value::Text(_) | crate::Value::Blob(_) => {
                     // Security: String values should never be directly inserted into the query
                     // This is to prevent SQL injection attacks
                     columns.push(format!("{} = ?", column_name));
