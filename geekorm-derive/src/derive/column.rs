@@ -302,7 +302,7 @@ impl ColumnDerive {
         let func = Ident::new(&func_name, Span::call_site());
 
         quote! {
-            fn #func(value: impl Into<geekorm::Value>) -> geekorm::Query {
+            pub fn #func(value: impl Into<geekorm::Value>) -> geekorm::Query {
                 geekorm::QueryBuilder::select()
                     .table(#table_ident::table())
                     .where_eq(#name, value.into())
