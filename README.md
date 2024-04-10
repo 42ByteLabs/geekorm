@@ -4,8 +4,8 @@
 [![GitHub](https://img.shields.io/badge/github-%23121011.svg?style=for-the-badge&logo=github&logoColor=white)][github]
 [![Crates.io Version](https://img.shields.io/crates/v/geekorm?style=for-the-badge)][crates-io]
 [![Crates.io Downloads (recent)](https://img.shields.io/crates/dr/geekorm?style=for-the-badge)][crates-io]
-[![GitHub Stars](https://img.shields.io/github/stars/geekmasher/geekorm?style=for-the-badge)][github]
-[![GitHub Issues](https://img.shields.io/github/issues/geekmasher/geekorm?style=for-the-badge)][github-issues]
+[![GitHub Stars](https://img.shields.io/github/stars/42ByteLabs/geekorm?style=for-the-badge)][github]
+[![GitHub Issues](https://img.shields.io/github/issues/42ByteLabs/geekorm?style=for-the-badge)][github-issues]
 [![Licence](https://img.shields.io/github/license/Ileriayo/markdown-badges?style=for-the-badge)][license]
 
 </div>
@@ -18,7 +18,7 @@
 
 - Focus on simplicity
 - Focus on using Derive Macros
-- [Documentation][docs-orm]
+- [Documentation][docs]
 
 ## Usage
 
@@ -31,7 +31,7 @@ cargo add geekorm
 ### Manual - GitHub
 
 ```bash
-cargo install --git https://github.com/GeekMasher/geekorm
+cargo install --git https://github.com/42ByteLabs/geekorm
 ```
 
 ## Maintainers / Contributors
@@ -42,7 +42,7 @@ cargo install --git https://github.com/GeekMasher/geekorm
 
 Please create [GitHub Issues][github-issues] if there are bugs or feature requests.
 
-This project uses [Sematic Versioning (v2)][semver] and with major releases, breaking changes will occur.
+This project uses [Semantic Versioning (v2)][semver] and with major releases, breaking changes will occur.
 
 ## License
 
@@ -53,10 +53,10 @@ Please refer to [MIT][license] for the full terms.
 
 [license]: ./LICENSE
 [crates-io]: https://crates.io/crates/geekorm
-[docs]: https://docs.rs/geekorm/latest/geekorm/
+[docs]: https://docs.rs/geekorm/latest/geekorm
 [rust-lang]: https://www.rust-lang.org/
 [semver]: https://semver.org/
-[github]: https://github.com/geekmasher/geekorm
-[github-issues]: https://github.com/geekmasher/geekorm/issues
+[github]: https://github.com/42ByteLabs/geekorm
+[github-issues]: https://github.com/42ByteLabs/geekorm/issues
 [crates]: https://crates.io
 [docs-orm]: https://en.wikipedia.org/wiki/Object%E2%80%93relational_mapping
