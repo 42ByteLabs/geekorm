@@ -10,6 +10,8 @@
 
 </div>
 
+![geekorm log](./assets/geek-orm.png)
+
 ## Overview
 
 [GeekORM][docs-orm] is a simple [Object Relation Mapper][docs-orm] for empowering your [Rust][rust-lang] development.
