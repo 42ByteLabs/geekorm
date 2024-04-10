@@ -7,10 +7,11 @@ use crate::derive::TableDerive;
 ///
 /// ```rust
 /// use geekorm::prelude::*;
-/// use geekorm::GeekTable;
+/// use geekorm::PrimaryKeyInteger;
 ///
-/// #[derive(GeekTable)]
+/// #[derive(GeekTable, Clone)]
 /// struct User {
+///     id: PrimaryKeyInteger,
 ///     name: String,
 ///     age: i32,
 ///     occupation: Option<String>,
@@ -42,19 +43,23 @@ pub(crate) fn generate_new(
     })
 }
 
-#[allow(dead_code, unused_variables)]
-pub(crate) fn generate_backend(
-    ident: &syn::Ident,
-    generics: &syn::Generics,
-    table: &TableDerive,
-) -> Result<TokenStream, syn::Error> {
-    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
-
-    Ok(quote! {
-        impl #impl_generics geekorm::GeekConnector for #ident #ty_generics #where_clause {}
-    })
-}
-
+/// Generate helper functions for the struct that will be used to access the columns
+///
+/// ```rust
+/// use geekorm::prelude::*;
+/// use geekorm::PrimaryKeyInteger;
+///
+/// #[derive(GeekTable, Default, Clone)]
+/// struct User {
+///     id: PrimaryKeyInteger,
+///     name: String,
+///     age: i32,
+/// }
+///
+/// let user_id = User::select_by_id(1);
+/// let user_name = User::select_by_name("geekmasher");
+/// let user_age = User::select_by_age(42);
+/// ```
 #[allow(dead_code, unused_variables)]
 pub(crate) fn generate_helpers(
     ident: &syn::Ident,

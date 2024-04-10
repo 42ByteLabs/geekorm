@@ -14,7 +14,7 @@ new = []
 primary_key = []
 helpers = []
 
-backends = ["libsql"]
+# Backends
 libsql = ["geekorm-core/libsql"]
 
 [lib]

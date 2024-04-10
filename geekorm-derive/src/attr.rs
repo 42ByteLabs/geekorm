@@ -35,9 +35,12 @@ impl GeekAttribute {
         for attr in all_attrs {
             if attr.path().is_ident("geekorm") {
                 // Parse the attribute
-                let parsed_attr = attr
-                    .parse_args::<GeekAttribute>()
-                    .expect("Failed to parse attribute");
+                let parsed_attr = match attr.parse_args::<GeekAttribute>() {
+                    Ok(parsed_attr) => parsed_attr,
+                    Err(e) => return Err(e),
+                };
+
+                parsed_attr.validate()?;
 
                 parsed.push(parsed_attr);
             } else {
@@ -45,6 +48,39 @@ impl GeekAttribute {
             };
         }
         Ok(parsed)
+    }
+
+    #[allow(irrefutable_let_patterns)]
+    pub(crate) fn validate(&self) -> Result<(), syn::Error> {
+        match self.key {
+            // Validate the `foreign_key` attribute
+            Some(GeekAttributeKeys::ForeignKey) => {
+                if let Some(value) = &self.value {
+                    if let GeekAttributeValue::String(content) = value {
+                        if let Some((_, _)) = content.split_once('.') {
+                            // TODO(geekmasher): Lookup and validate the table.column
+                            Ok(())
+                        } else {
+                            Err(syn::Error::new(
+                                self.span.span(),
+                                "The `foreign_key` attribute requires a table.column value",
+                            ))
+                        }
+                    } else {
+                        Err(syn::Error::new(
+                            self.span.span(),
+                            "The `foreign_key` attribute requires a string value",
+                        ))
+                    }
+                } else {
+                    Err(syn::Error::new(
+                        self.span.span(),
+                        "The `foreign_key` attribute requires a value",
+                    ))
+                }
+            }
+            _ => Ok(()),
+        }
     }
 }
 

@@ -22,6 +22,13 @@ pub(crate) struct TableState {
 }
 
 impl TableState {
+    pub(crate) fn new() -> Self {
+        Self {
+            created_at: chrono::Utc::now(),
+            tables: Vec::new(),
+        }
+    }
+
     pub(crate) fn get_state_file() -> PathBuf {
         PathBuf::from(GEEKORM_STATE_FILE)
     }
@@ -37,14 +44,24 @@ impl TableState {
             Self::write(&state);
             return state;
         }
-        let state_json = std::fs::read_to_string(state_file).unwrap();
-        serde_json::from_str(&state_json).unwrap()
+        let state_json = std::fs::read_to_string(state_file)
+            .expect("[geekorm-internal] Failed to read state file");
+        // Some times the state file might be empty
+        match serde_json::from_str(&state_json) {
+            Ok(state) => state,
+            Err(e) => {
+                eprintln!("[geekorm-internal] Failed to deserialize state file: {}", e);
+                TableState::new()
+            }
+        }
     }
 
     pub(crate) fn write(state: &Self) {
         let state_file = Self::get_state_file();
-        let state_json = serde_json::to_string(state).unwrap();
-        std::fs::write(state_file, state_json).unwrap();
+        let state_json = serde_json::to_string(state)
+            .expect("[geekorm-internal] Failed to serialize state (write)");
+        std::fs::write(state_file, state_json)
+            .expect("[geekorm-internal] Failed to write state file");
     }
 
     pub(crate) fn add(table: Table) {

@@ -30,11 +30,12 @@ use syn::{parse_macro_input, Data, DataStruct, DeriveInput, Fields};
 /// This macro generates a number of methods for the struct, including `table` and `table_name` methods.
 ///
 /// ```rust
-/// use geekorm::GeekTable;
+/// use geekorm::{GeekTable, PrimaryKeyInteger};
 /// use geekorm::prelude::*;
 ///
 /// #[derive(GeekTable)]
 /// struct User {
+///     id: PrimaryKeyInteger,
 ///     name: String,
 ///     age: i32,
 ///     occupation: String,
@@ -53,11 +54,12 @@ use syn::{parse_macro_input, Data, DataStruct, DeriveInput, Fields};
 /// - `Option<T>` fields are not generated
 ///
 /// ```rust
-/// use geekorm::GeekTable;
+/// use geekorm::{GeekTable, PrimaryKeyInteger};
 /// use geekorm::prelude::*;
 ///
 /// #[derive(GeekTable)]
 /// struct User {
+///     id: PrimaryKeyInteger,
 ///     name: String,
 ///     age: i32,
 ///     occupation: String,
@@ -77,14 +79,15 @@ use syn::{parse_macro_input, Data, DataStruct, DeriveInput, Fields};
 /// The following methods are generated for the struct:
 ///
 /// ```rust
-/// use geekorm::GeekTable;
+/// use geekorm::{GeekTable, PrimaryKeyInteger};
 /// use geekorm::prelude::*;
 ///
 /// #[derive(GeekTable)]
 /// struct User {
-///    name: String,
-///    age: i32,
-///    occupation: String,
+///     id: PrimaryKeyInteger,
+///     name: String,
+///     age: i32,
+///     occupation: String,
 /// }
 ///
 /// // Create a new table query
@@ -105,11 +108,12 @@ use syn::{parse_macro_input, Data, DataStruct, DeriveInput, Fields};
 /// Note: This is a very experimental feature and might change in the future.
 ///
 /// ```rust
-/// use geekorm::GeekTable;
+/// use geekorm::{GeekTable, PrimaryKeyInteger};
 /// use geekorm::prelude::*;
 ///
 /// #[derive(GeekTable)]
 /// struct User {
+///     id: PrimaryKeyInteger,
 ///     name: String,
 ///     age: i32,
 ///     occupation: String,
@@ -117,11 +121,11 @@ use syn::{parse_macro_input, Data, DataStruct, DeriveInput, Fields};
 ///
 /// // Select by column helper function
 /// let user = User::select_by_name("geekmasher");
-/// # assert_eq!(user.query, String::from("SELECT * FROM User WHERE name = ?;"));
+/// # assert_eq!(user.query, String::from("SELECT id, name, age, occupation FROM User WHERE name = ?;"));
 /// let user = User::select_by_age(69);
-/// # assert_eq!(user.query, String::from("SELECT * FROM User WHERE age = ?;"));
+/// # assert_eq!(user.query, String::from("SELECT id, name, age, occupation FROM User WHERE age = ?;"));
 /// let user = User::select_by_occupation("Software Developer");
-/// # assert_eq!(user.query, String::from("SELECT * FROM User WHERE occupation = ?;"));
+/// # assert_eq!(user.query, String::from("SELECT id, name, age, occupation FROM User WHERE occupation = ?;"));
 /// ```
 #[proc_macro_derive(GeekTable, attributes(geekorm))]
 pub fn table_derive(input: TokenStream) -> TokenStream {

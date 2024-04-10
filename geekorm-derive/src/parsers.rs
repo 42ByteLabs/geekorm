@@ -1,19 +1,22 @@
 use proc_macro2::TokenStream;
-use quote::{quote, ToTokens};
-use syn::{parse_macro_input, spanned::Spanned, Data, DataStruct, DeriveInput, Fields};
+use quote::{quote, quote_spanned, ToTokens};
+use syn::{
+    parse::Parse, parse_macro_input, spanned::Spanned, Data, DataStruct, DeriveInput, Fields,
+};
 
 use geekorm_core::{Columns, Table};
 
 mod helpers;
-mod taberbuilder;
+mod tablebuilder;
 
 use crate::{
     attr::GeekAttribute,
     derive::{ColumnDerive, ColumnTypeDerive, ColumnTypeOptionsDerive, ColumnsDerive, TableDerive},
     internal::TableState,
+    parsers::tablebuilder::generate_query_builder,
 };
-use helpers::{generate_backend, generate_helpers, generate_new};
-use taberbuilder::{generate_table_builder, generate_table_primary_key};
+use helpers::{generate_helpers, generate_new};
+use tablebuilder::{generate_table_builder, generate_table_primary_key};
 
 pub(crate) fn derive_parser(ast: &DeriveInput) -> Result<TokenStream, syn::Error> {
     let name = &ast.ident;
@@ -25,17 +28,14 @@ pub(crate) fn derive_parser(ast: &DeriveInput) -> Result<TokenStream, syn::Error
             fields: Fields::Named(ref fields),
             ..
         }) => {
+            let mut errors: Vec<syn::Error> = Vec::new();
             let mut columns: Vec<ColumnDerive> = Vec::new();
 
             for field in fields.named.iter() {
-                // TODO(geekmasher): handle unwrap here better
-                let field_attrs = GeekAttribute::parse_all(&field.attrs).unwrap();
-                let col = ColumnDerive::new(
-                    field.ident.as_ref().unwrap().clone(),
-                    field.ty.clone(),
-                    field_attrs,
-                );
-                columns.push(col);
+                match ColumnDerive::try_from(field) {
+                    Ok(column) => columns.push(column),
+                    Err(err) => errors.push(err),
+                }
             }
 
             let mut table = TableDerive {
@@ -46,12 +46,19 @@ pub(crate) fn derive_parser(ast: &DeriveInput) -> Result<TokenStream, syn::Error
 
             TableState::add(table.clone().into());
 
-            generate_struct(name, &ast.generics, table)
+            let mut tokens = generate_struct(name, &ast.generics, table)?;
+            if !errors.is_empty() {
+                for error in errors {
+                    tokens.extend(error.to_compile_error());
+                }
+            }
+            Ok(tokens)
         }
-        _ => abort!(
-            ast,
-            "GeekTable can only be derived for structs with named fields"
-        ),
+        _ => Ok(syn::Error::new(
+            ast.span(),
+            "GeekTable only supported derived structs with named fields",
+        )
+        .to_compile_error()),
     }
 }
 
@@ -61,21 +68,21 @@ fn generate_struct(
     generics: &syn::Generics,
     table: TableDerive,
 ) -> Result<TokenStream, syn::Error> {
-    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
-
     let mut stream = TokenStream::new();
 
+    // Table
     stream.extend(generate_table_builder(ident, generics, &table)?);
+    // Query Builder
+    stream.extend(generate_query_builder(ident, generics, &table)?);
+    // Primary Key
     stream.extend(generate_table_primary_key(ident, generics, &table)?);
 
-    // TODO(geekmasher): Generate the Foreign Keys for the struct
-    // stream.extend(generate_foreign_key(ident, generics, &table)?);
+    // Backends
+    // #[cfg(feature = "libsql")]
+    // stream.extend(generate_backend_libsql(ident, generics, &table)?);
 
     #[cfg(feature = "new")]
     stream.extend(generate_new(ident, generics, &table));
-
-    #[cfg(feature = "backends")]
-    stream.extend(generate_backend(ident, generics, &table)?);
 
     #[cfg(feature = "helpers")]
     stream.extend(generate_helpers(ident, generics, &table)?);

@@ -5,7 +5,9 @@ use std::{
     any::{Any, TypeId},
     fmt::Debug,
 };
-use syn::{parse::Parse, GenericArgument, Ident, Type, TypePath};
+use syn::{
+    parse::Parse, spanned::Spanned, Attribute, Field, GenericArgument, Ident, Type, TypePath,
+};
 
 use crate::{
     attr::{GeekAttribute, GeekAttributeKeys, GeekAttributeValue},
@@ -32,6 +34,7 @@ impl ColumnsDerive {
             .next()
     }
 
+    #[allow(dead_code)]
     pub(crate) fn get_foreign_keys(&self) -> Vec<ColumnDerive> {
         self.columns
             .iter()
@@ -114,25 +117,8 @@ pub(crate) struct ColumnDerive {
 }
 
 impl ColumnDerive {
-    /// Create a new instance of Column
-    pub(crate) fn new(identifier: Ident, itype: Type, attributes: Vec<GeekAttribute>) -> Self {
-        let name = identifier.to_string();
-        let coltype = ColumnTypeDerive::try_from(&itype).unwrap();
-        let mut col = ColumnDerive {
-            identifier,
-            itype,
-            attributes,
-            name,
-            coltype,
-            alias: String::new(),
-            skip: false,
-        };
-        col.apply_attributes();
-        col
-    }
-
-    #[allow(irrefutable_let_patterns)]
-    pub(crate) fn apply_attributes(&mut self) {
+    #[allow(irrefutable_let_patterns, clippy::collapsible_match)]
+    pub(crate) fn apply_attributes(&mut self) -> Result<(), syn::Error> {
         let attributes = &self.attributes;
 
         for attr in attributes {
@@ -151,21 +137,32 @@ impl ColumnDerive {
                     GeekAttributeKeys::ForeignKey => {
                         if let Some(value) = &attr.value {
                             if let GeekAttributeValue::String(name) = value {
-                                // TODO(geekmasher): Handle this better
-                                let (table, column) = name.split_once('.').unwrap_or_else(|| {
-                                    panic!("Invalid foreign key format (table.column): {}", name)
-                                });
+                                let (table, column) = match name.split_once('.') {
+                                    Some((table, column)) => (table, column),
+                                    None => {
+                                        return Err(syn::Error::new(
+                                            attr.span.span(),
+                                            "Invalid foreign key format (table.column)",
+                                        ))
+                                    }
+                                };
 
                                 let tables = TableState::load_state_file();
-                                let table = tables.find_table(table).unwrap_or_else(|| {
-                                    panic!("ForeignKey Table '{}' not found", table)
-                                });
+                                let table = match tables.find_table(table) {
+                                    Some(table) => table,
+                                    None => {
+                                        return Err(syn::Error::new(
+                                            attr.span.span(),
+                                            "ForeignKey Table not found",
+                                        ))
+                                    }
+                                };
 
                                 if !table.is_valid_column(column) {
-                                    panic!(
-                                        "ForeignKey Column '{}' not found in Table '{}'",
-                                        column, table.name
-                                    )
+                                    return Err(syn::Error::new(
+                                        attr.span.span(),
+                                        "ForeignKey Column not found in Table",
+                                    ));
                                 }
                                 self.coltype =
                                     ColumnTypeDerive::ForeignKey(ColumnTypeOptionsDerive {
@@ -181,6 +178,7 @@ impl ColumnDerive {
                 // TODO(geekmasher): Handle this better
             }
         }
+        Ok(())
     }
 
     pub(crate) fn is_primary_key(&self) -> bool {
@@ -273,10 +271,10 @@ impl ColumnDerive {
                         };
                     }
                     // TODO(geekmasher): Add PrimaryKey<T> support
-                    "PrimaryKeyInteger" => {
+                    "PrimaryKey" | "PrimaryKeyInteger" | "PrimaryKeyString" | "PrimaryKeyUuid" => {
                         // Generate a new primary key
                         return quote! {
-                            #identifier: geekorm::PrimaryKeyInteger::new(0)
+                            #identifier: geekorm::PrimaryKey::default()
                         };
                     }
                     "ForeignKey" => {
@@ -309,6 +307,20 @@ impl ColumnDerive {
                     .build()
                     .expect("Failed to build query")
             }
+        }
+    }
+}
+
+impl Default for ColumnDerive {
+    fn default() -> Self {
+        ColumnDerive {
+            name: String::new(),
+            coltype: ColumnTypeDerive::Text(ColumnTypeOptionsDerive::default()),
+            alias: String::new(),
+            skip: false,
+            attributes: Vec::new(),
+            identifier: Ident::new("column", Span::call_site()),
+            itype: syn::parse_quote! { String },
         }
     }
 }
@@ -348,5 +360,90 @@ impl From<ColumnDerive> for geekorm_core::Column {
             alias: value.alias,
             skip: value.skip,
         }
+    }
+}
+
+impl TryFrom<&Field> for ColumnDerive {
+    type Error = syn::Error;
+
+    fn try_from(value: &Field) -> Result<Self, Self::Error> {
+        let name: Ident = match &value.ident {
+            Some(ident) => ident.clone(),
+            None => {
+                return Err(syn::Error::new(
+                    value.span(),
+                    "Column must have an identifier",
+                ))
+            }
+        };
+
+        let itype = value.ty.clone();
+        let attributes = match GeekAttribute::parse_all(&value.attrs) {
+            Ok(attributes) => attributes,
+            Err(e) => return Err(e),
+        };
+        let coltype = match ColumnTypeDerive::try_from(&itype) {
+            Ok(coltype) => coltype,
+            Err(e) => return Err(e),
+        };
+
+        let mut col = ColumnDerive {
+            name: name.to_string(),
+            identifier: name,
+            itype,
+            attributes,
+            coltype,
+            alias: String::from(""),
+            skip: false,
+        };
+        col.apply_attributes()?;
+        Ok(col)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_primary_key() {
+        let column = ColumnDerive {
+            name: "id".to_string(),
+            identifier: Ident::new("id", Span::call_site()),
+            itype: syn::parse_quote! { i32 },
+            attributes: vec![],
+            coltype: ColumnTypeDerive::Identifier(Default::default()),
+            alias: String::from(""),
+            skip: false,
+        };
+        assert!(column.is_primary_key());
+
+        let column = ColumnDerive {
+            name: "id".to_string(),
+            identifier: Ident::new("id", Span::call_site()),
+            itype: syn::parse_quote! { i32 },
+            attributes: vec![],
+            coltype: ColumnTypeDerive::Text(ColumnTypeOptionsDerive {
+                primary_key: true,
+                ..Default::default()
+            }),
+            alias: String::from(""),
+            skip: false,
+        };
+        assert!(column.is_primary_key());
+
+        let column = ColumnDerive {
+            name: "id".to_string(),
+            identifier: Ident::new("id", Span::call_site()),
+            itype: syn::parse_quote! { i32 },
+            attributes: vec![],
+            coltype: ColumnTypeDerive::Integer(ColumnTypeOptionsDerive {
+                primary_key: true,
+                ..Default::default()
+            }),
+            alias: String::from(""),
+            skip: false,
+        };
+        assert!(column.is_primary_key());
     }
 }

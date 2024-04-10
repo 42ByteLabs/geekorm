@@ -9,10 +9,11 @@ use crate::derive::TableDerive;
 ///
 /// ```rust
 /// use geekorm::prelude::*;
-/// use geekorm_derive::TableBuilder;
+/// use geekorm::{GeekTable, PrimaryKeyInteger};
 ///
-/// #[derive(GeekTable)]
+/// #[derive(GeekTable, Default, Clone)]
 /// struct User {
+///     id: PrimaryKeyInteger,
 ///     name: String,
 ///     age: i32,
 ///     occupation: String,
@@ -21,8 +22,69 @@ use crate::derive::TableDerive;
 /// let user_table = User::table();
 /// let user_table_name = User::table_name();
 ///
+/// let user = User::default();
+/// # let user_table2 = user.get_table();
 /// ```
 pub fn generate_table_builder(
+    ident: &syn::Ident,
+    generics: &syn::Generics,
+    table: &TableDerive,
+) -> Result<TokenStream, syn::Error> {
+    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
+
+    Ok(quote! {
+        impl #impl_generics geekorm::prelude::TableBuilder for #ident #ty_generics #where_clause {
+            fn table() -> geekorm::Table {
+                #table
+            }
+
+            fn get_table(&self) -> geekorm::Table {
+                #ident::table()
+            }
+
+            fn table_name() -> String {
+                stringify!(#ident).to_string()
+            }
+        }
+    })
+}
+
+/// Generate implementation of `QueryBuilderTrait` for the struct.
+/// This provides a number of methods for building queries.
+///
+/// ```rust
+/// use geekorm::prelude::*;
+/// use geekorm::{GeekTable, PrimaryKeyInteger};
+///
+/// #[derive(GeekTable, Default, Clone)]
+/// pub struct User {
+///     pub id: PrimaryKeyInteger,
+///     pub name: String,
+/// }
+///
+///
+/// # fn main() {
+/// let create = User::create().build()
+///     .expect("Failed to build CREATE TABLE query");
+/// # assert_eq!(create.to_str(), "CREATE TABLE IF NOT EXISTS User (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL);");
+///
+/// let select = User::select().build()
+///     .expect("Failed to build SELECT query");
+/// # assert_eq!(select.to_str(), "SELECT id, name FROM User;");
+///
+/// let user = User::default();
+/// let insert = User::insert(&user);
+/// # assert_eq!(insert.to_str(), "INSERT INTO User (name) VALUES (?);");
+///
+/// let update = User::update(&user);
+/// # assert_eq!(update.to_str(), "UPDATE User SET name = ? WHERE id = 0;");
+///
+/// let count = User::count().build()
+///     .expect("Failed to build COUNT query");
+/// # assert_eq!(count.to_str(), "SELECT COUNT(1) FROM User;");
+/// }
+/// ```
+pub fn generate_query_builder(
     ident: &syn::Ident,
     generics: &syn::Generics,
     table: &TableDerive,
@@ -39,19 +101,7 @@ pub fn generate_table_builder(
     }
 
     Ok(quote! {
-        impl #impl_generics geekorm::prelude::TableBuilder for #ident #ty_generics #where_clause {
-            fn table() -> geekorm::Table {
-                #table
-            }
-
-            fn get_table(&self) -> geekorm::Table {
-                #ident::table()
-            }
-
-            fn table_name() -> String {
-                stringify!(#ident).to_string()
-            }
-
+        impl #impl_generics geekorm::prelude::QueryBuilderTrait for #ident #ty_generics #where_clause {
             fn create() -> geekorm::QueryBuilder {
                 geekorm::QueryBuilder::create()
                     .table(#ident::table())
@@ -87,6 +137,26 @@ pub fn generate_table_builder(
     })
 }
 
+/// Generate implementation of `TablePrimaryKey` for the struct.
+///
+/// ```rust
+/// use geekorm::prelude::*;
+/// use geekorm::PrimaryKeyInteger;
+/// # use geekorm::Value;
+///
+/// #[derive(GeekTable, Default, Clone)]
+/// pub struct Users {
+///    pub id: PrimaryKeyInteger,
+///    pub name: String,
+///    pub age: i32,
+/// }
+///
+/// let user = Users::new(String::from("John Doe"), 30);
+///
+/// # assert_eq!(Users::primary_key(), "id");
+/// # assert_eq!(Users::primary_key_value(&user), Value::from(0));
+///
+/// ```
 pub fn generate_table_primary_key(
     ident: &syn::Ident,
     generics: &syn::Generics,
@@ -106,34 +176,14 @@ pub fn generate_table_primary_key(
                 }
 
                 fn primary_key_value(&self) -> geekorm::Value {
-                    geekorm::Value::from(self.#identifier)
+                    geekorm::Value::from(&self.#identifier)
                 }
             }
         })
     } else {
-        Ok(quote! {})
+        Err(syn::Error::new(
+            ident.span(),
+            "Table must have a primary key",
+        ))
     }
-}
-
-#[allow(dead_code, unused_variables)]
-pub fn generate_foreign_key(
-    ident: &syn::Ident,
-    generics: &syn::Generics,
-    table: &TableDerive,
-) -> Result<TokenStream, syn::Error> {
-    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
-
-    let keys = table.columns.get_foreign_keys();
-
-    let mut stream = TokenStream::new();
-    for key in keys {
-        stream.extend(quote! {
-            impl #impl_generics geekorm::ForeignKey for #ident #ty_generics #where_clause {
-                fn foreign_key() -> geekorm::ForeignKey {
-                    #table.foreign_key()
-                }
-            }
-        })
-    }
-    Ok(stream)
 }
