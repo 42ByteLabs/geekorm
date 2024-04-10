@@ -15,7 +15,7 @@
 //!
 //! ```rust
 //! use geekorm::prelude::*;
-//! use geekorm::{GeekTable, QueryOrder, PrimaryKeyInteger};
+//! use geekorm::{QueryOrder, PrimaryKeyInteger};
 //!
 //! #[derive(Debug, Clone, GeekTable)]
 //! struct User {
@@ -27,7 +27,8 @@
 //! }
 //!
 //! // Use the `create` method to build a CREATE TABLE query
-//! let create_table = User::create().build().expect("Failed to build query");
+//! let create_table = User::create().build()
+//!     .expect("Failed to build create table query");
 //! println!("Create Table Query: {}", create_table);
 //!
 //! // Use the `select` method to build a SELECT query along with different conditions
@@ -71,7 +72,7 @@ pub use geekorm_core::builder::table::Table;
 pub use geekorm_core::builder::keys::foreign::{ForeignKey, ForeignKeyInteger};
 #[cfg(feature = "uuid")]
 pub use geekorm_core::builder::keys::primary::PrimaryKeyUuid;
-pub use geekorm_core::builder::keys::primary::{PrimaryKey, PrimaryKeyInteger};
+pub use geekorm_core::builder::keys::primary::{PrimaryKey, PrimaryKeyInteger, PrimaryKeyString};
 
 // Query Builder Modules
 pub use geekorm_core::builder::models::{QueryCondition, QueryOrder, QueryType};
@@ -107,10 +108,19 @@ pub mod prelude {
     //! use geekorm::prelude::*;
     //! ```
 
+    /// GeekTable
     pub use crate::GeekTable;
+
     // Traits
-    pub use geekorm_core::backends::GeekConnection;
+
+    /// Query Builder Trait
+    pub use geekorm_core::QueryBuilderTrait;
+    /// Table Builder Trait
     pub use geekorm_core::TableBuilder;
+    /// Table Primary Key Trait
     pub use geekorm_core::TablePrimaryKey;
+    /// SQLite Trait
     pub use geekorm_core::ToSqlite;
+    // Backends Module
+    pub use geekorm_core::GeekConnector;
 }

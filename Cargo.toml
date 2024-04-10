@@ -1,15 +1,6 @@
 [workspace]
 resolver = "2"
-members = [
-    ".",
-    "geekorm-core",
-    "geekorm-derive",
-    "geekorm-cli",
-    "examples/users",
-    "examples/foreignkeys",
-    "examples/turso-libsql",
-    "examples/insert",
-]
+members = [".", "geekorm-core", "geekorm-derive", "geekorm-cli"]
 
 [workspace.package]
 version = "0.1.0"
@@ -32,9 +23,9 @@ license.workspace = true
 edition.workspace = true
 authors.workspace = true
 
-
 [package.metadata.release]
 shared-version = true
+tag-name = "v{{version}}"
 
 [features]
 default = ["uuid", "chrono"]
@@ -49,7 +40,6 @@ helpers = ["geekorm-derive/helpers"]
 # Generate primary key functions for Tables automatically
 primary_key = ["geekorm-derive/primary_key"]
 # Backends for the ORM
-backends = ["geekorm-core/backends"]
 libsql = ["geekorm-core/libsql"]
 
 [dependencies]
@@ -58,22 +48,26 @@ geekorm-derive = { version = "^0.1.0", path = "geekorm-derive" }
 
 [dev-dependencies]
 anyhow = "1"
-libsql = "0.3.2"
-serde = { version = "1.0.197", features = ["derive"] }
-tokio = { version = "1.36.0", features = ["full"] }
+env_logger = "0.11.3"
+libsql = "0.3"
+log = "0.4.21"
+serde = { version = "1", features = ["derive"] }
+tokio = { version = "1", features = ["full"] }
 
-[[test]]
+[profile.test]
+opt-level = 1
+
+[[example]]
 name = "geekorm-example-users"
 path = "./examples/users/src/main.rs"
+required-features = ["new"]
 
-[[test]]
-name = "geekorm-example-insert"
-path = "./examples/insert/src/main.rs"
-
-[[test]]
+[[example]]
 name = "geekorm-example-foreignkeys"
 path = "./examples/foreignkeys/src/main.rs"
+required-features = ["new", "helpers"]
 
-[[test]]
+[[example]]
 name = "geekorm-example-turso-libsql"
 path = "./examples/turso-libsql/src/main.rs"
+required-features = ["new", "helpers", "libsql"]
