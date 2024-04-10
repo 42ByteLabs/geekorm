@@ -38,7 +38,7 @@ libsql = ["geekorm-core/libsql"]
 proc-macro = true
 
 [dependencies]
-geekorm-core = { path = "../geekorm-core" }
+geekorm-core = { path = "../geekorm-core", version = "0.1" }
 thiserror = "1"
 # macro magic
 proc-macro2 = "1"
