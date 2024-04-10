@@ -25,8 +25,8 @@ tag-name = "v{{version}}"
 [features]
 default = []
 
-uuid = []
-chrono = []
+uuid = ["geekorm-core/uuid", "dep:uuid"]
+chrono = ["geekorm-core/chrono"]
 new = []
 primary_key = []
 helpers = []
@@ -39,6 +39,7 @@ proc-macro = true
 
 [dependencies]
 geekorm-core = { path = "../geekorm-core" }
+thiserror = "1"
 # macro magic
 proc-macro2 = "1"
 quote = "1"
@@ -47,9 +48,9 @@ syn = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 # uuid
-uuid = { version = "1", features = ["v4"] }
+uuid = { version = "1", features = ["v4"], optional = true }
 chrono = { version = "0.4", features = ["serde"] }
-thiserror = "1.0.58"
+
 
 [dev-dependencies]
 geekorm = { path = "..", features = ["new", "helpers"] }

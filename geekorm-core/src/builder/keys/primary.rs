@@ -2,6 +2,7 @@ use core::fmt;
 use std::fmt::{Debug, Display};
 
 use serde::{de::Visitor, Deserialize, Serialize, Serializer};
+#[cfg(feature = "uuid")]
 use uuid::Uuid;
 
 use crate::ToSqlite;
@@ -241,6 +242,7 @@ impl From<&str> for PrimaryKey<String> {
     }
 }
 
+#[cfg(feature = "uuid")]
 impl From<String> for PrimaryKeyUuid {
     fn from(value: String) -> Self {
         PrimaryKeyUuid {
@@ -249,6 +251,7 @@ impl From<String> for PrimaryKeyUuid {
     }
 }
 
+#[cfg(feature = "uuid")]
 impl From<&str> for PrimaryKeyUuid {
     fn from(value: &str) -> Self {
         PrimaryKeyUuid {

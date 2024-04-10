@@ -2,11 +2,10 @@ use std::{collections::HashMap, fmt::Display, str};
 
 use serde::{Serialize, Serializer};
 
+#[cfg(feature = "uuid")]
+use crate::builder::keys::primary::PrimaryKeyUuid;
 use crate::{
-    builder::keys::{
-        foreign::ForeignKeyInteger,
-        primary::{PrimaryKeyInteger, PrimaryKeyUuid},
-    },
+    builder::keys::{foreign::ForeignKeyInteger, primary::PrimaryKeyInteger},
     PrimaryKey, TableBuilder, TablePrimaryKey,
 };
 
@@ -114,12 +113,14 @@ impl From<&PrimaryKeyInteger> for Value {
     }
 }
 
+#[cfg(feature = "uuid")]
 impl From<PrimaryKeyUuid> for Value {
     fn from(value: PrimaryKeyUuid) -> Self {
         Value::Identifier(value.value.to_string())
     }
 }
 
+#[cfg(feature = "uuid")]
 impl From<&PrimaryKeyUuid> for Value {
     fn from(value: &PrimaryKeyUuid) -> Self {
         Value::Identifier(value.value.to_string())
