@@ -8,9 +8,9 @@
 [![GitHub Issues](https://img.shields.io/github/issues/42ByteLabs/geekorm?style=for-the-badge)][github-issues]
 [![Licence](https://img.shields.io/github/license/Ileriayo/markdown-badges?style=for-the-badge)][license]
 
-</div>
+<img src="./assets/geek-orm.png" width="450" title="GeekORM Logo">
 
-![geekorm log](./assets/geek-orm.png)
+</div>
 
 ## Overview
 
