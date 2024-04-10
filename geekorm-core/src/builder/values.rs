@@ -3,7 +3,10 @@ use std::{collections::HashMap, fmt::Display, str};
 use serde::{Serialize, Serializer};
 
 use crate::{
-    builder::keys::{foreign::ForeignKeyInteger, primary::PrimaryKeyInteger},
+    builder::keys::{
+        foreign::ForeignKeyInteger,
+        primary::{PrimaryKeyInteger, PrimaryKeyUuid},
+    },
     PrimaryKey, TableBuilder, TablePrimaryKey,
 };
 
@@ -93,6 +96,12 @@ impl From<PrimaryKey<String>> for Value {
     }
 }
 
+impl From<&PrimaryKey<String>> for Value {
+    fn from(value: &PrimaryKey<String>) -> Self {
+        Value::Identifier(value.clone().into())
+    }
+}
+
 impl From<PrimaryKeyInteger> for Value {
     fn from(value: PrimaryKeyInteger) -> Self {
         Value::Integer(value.into())
@@ -102,6 +111,18 @@ impl From<PrimaryKeyInteger> for Value {
 impl From<&PrimaryKeyInteger> for Value {
     fn from(value: &PrimaryKeyInteger) -> Self {
         Value::Integer(value.clone().into())
+    }
+}
+
+impl From<PrimaryKeyUuid> for Value {
+    fn from(value: PrimaryKeyUuid) -> Self {
+        Value::Identifier(value.value.to_string())
+    }
+}
+
+impl From<&PrimaryKeyUuid> for Value {
+    fn from(value: &PrimaryKeyUuid) -> Self {
+        Value::Identifier(value.value.to_string())
     }
 }
 

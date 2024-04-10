@@ -65,15 +65,31 @@ impl Display for Query {
     }
 }
 
-/// The QueryBuilder struct for building queries using the builder pattern
+/// The QueryBuilder is how you can build dynamically queries using the builder pattern.
+///
+/// # Features
+///
+/// There is a number a features that are supported by the QueryBuilder:
+///
+/// - All Major Query Types
+///   - Select: Build a select query
+///   - Insert: Build an insert query
+///   - Update: Build an update query
+///   - Delete: Build a delete query
+/// - Conditions: Build a query with conditions
+///   - Where: Build a query with where conditions
+///   - Order By: Build a query with order by conditions
+///   - Limit: Build a query with a limit
+/// - Joins: Build a query with joins 2 tables
+///   - Only Inner Joins are supported currently
 ///
 /// # Example
 /// ```rust
-/// use geekorm::{GeekTable, QueryOrder, PrimaryKeyInteger};
+/// use geekorm::{QueryOrder, PrimaryKeyInteger};
 /// use geekorm::prelude::*;
 ///
-/// #[derive(Debug, Default, GeekTable)]
-/// pub struct User {
+/// #[derive(Debug, Default, Clone, GeekTable)]
+/// pub struct Users {
 ///     pub id: PrimaryKeyInteger,
 ///     pub username: String,
 ///     pub age: i32,
@@ -82,19 +98,23 @@ impl Display for Query {
 ///
 /// # fn main() {
 /// // Build a query to create a new table
-/// let create_query = User::create().build().expect("Failed to build create query");
+/// let create_query = Users::create().build()
+///     .expect("Failed to build create query");
 /// println!("Create Query :: {}", create_query);
 ///
 /// // Build a query to select rows from the table
-/// let select_query = User::select()
+/// let select_query = Users::select()
 ///     .where_eq("username", "geekmaher")
 ///     .order_by("age", QueryOrder::Asc)
 ///     .build()
 ///     .expect("Failed to build select query");
 /// println!("Select Query :: {}", select_query);
 /// // Output:
-/// // SELECT * FROM User WHERE username = ? ORDER BY age ASC;
-/// # assert_eq!(select_query.query, "SELECT * FROM User WHERE username = ? ORDER BY age ASC;");
+/// // SELECT (...) FROM User WHERE username = ? ORDER BY age ASC;
+/// # assert_eq!(
+/// #     select_query.query,
+/// #     "SELECT id, username, age, postcode FROM Users WHERE username = ? ORDER BY age ASC;"
+/// # );
 /// # }
 /// ```
 #[derive(Debug, Clone, Default)]
@@ -396,7 +416,7 @@ mod tests {
             columns: crate::Columns::from(vec![
                 Column::new(
                     "id".to_string(),
-                    ColumnType::Integer(ColumnTypeOptions::primary_key()),
+                    ColumnType::Identifier(ColumnTypeOptions::primary_key()),
                 ),
                 Column::new(
                     "username".to_string(),
@@ -419,7 +439,7 @@ mod tests {
             .build()
             .expect("Failed to build query");
 
-        assert_eq!(query.query, "SELECT * FROM users;");
+        assert_eq!(query.query, "SELECT id, username, email FROM users;");
     }
 
     #[test]
@@ -435,7 +455,7 @@ mod tests {
 
         assert_eq!(
             query.query,
-            "SELECT * FROM users WHERE username = ? OR email LIKE ?;"
+            "SELECT id, username, email FROM users WHERE username = ? OR email LIKE ?;"
         );
         let first = query.values.get(&String::from("username")).unwrap();
         assert_eq!(first, &Value::Text(String::from("geekmasher")));

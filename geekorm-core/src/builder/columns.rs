@@ -78,27 +78,37 @@ impl ToSqlite for Columns {
     fn on_create(&self, query: &crate::QueryBuilder) -> Result<String, crate::Error> {
         let mut sql = Vec::new();
         for column in &self.columns {
-            sql.push(column.on_create(query)?);
+            match column.on_create(query) {
+                Ok(col) => sql.push(col),
+                Err(crate::Error::ColumnSkipped) => {
+                    // Skip the column
+                    continue;
+                }
+                Err(e) => return Err(e),
+            };
         }
 
         for foreign_key in self.get_foreign_keys() {
             let (ctable, ccolumn) = match &foreign_key.column_type {
                 ColumnType::ForeignKey(opts) => {
-                    let (ctable, ccolumn) = opts.foreign_key.split_once('.').unwrap();
+                    let (ctable, ccolumn) = opts
+                        .foreign_key
+                        .split_once('.')
+                        .expect("Invalid foreign key");
                     (ctable, ccolumn)
                 }
                 _ => unreachable!(),
             };
 
             sql.push(format!(
-                "FOREIGN KEY ({parent}) REFERENCES {child} ({child_column})",
+                "FOREIGN KEY ({parent}) REFERENCES {child}({child_column})",
                 parent = foreign_key.name,
                 child = ctable,
                 child_column = ccolumn
             ));
         }
 
-        Ok(sql.join(", "))
+        Ok(format!("({})", sql.join(", ")))
     }
 
     fn on_select(&self, query: &crate::QueryBuilder) -> Result<String, crate::Error> {
@@ -171,7 +181,7 @@ impl Default for Column {
 impl ToSqlite for Column {
     fn on_create(&self, query: &crate::QueryBuilder) -> Result<String, crate::Error> {
         if self.skip {
-            return Ok(String::new());
+            return Err(crate::Error::ColumnSkipped);
         }
 
         let name = if !&self.alias.is_empty() {
@@ -243,6 +253,6 @@ mod tests {
 
         let columns = query.table.columns.on_create(&query).unwrap();
 
-        assert_eq!(columns, "user_id INTEGER, name TEXT, image_id TEXT, FOREIGN KEY (image_id) REFERENCES images (id)");
+        assert_eq!(columns, "(user_id INTEGER, name TEXT, image_id TEXT, FOREIGN KEY (image_id) REFERENCES images(id))");
     }
 }

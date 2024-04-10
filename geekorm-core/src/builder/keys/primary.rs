@@ -17,9 +17,11 @@ use crate::ToSqlite;
 /// Here is an example of how to use the PrimaryKey struct with an integer
 ///
 /// ```rust
-/// use geekorm::PrimaryKey;
+/// use geekorm::{PrimaryKey};
+/// use geekorm::prelude::*;
 ///
-/// struct User {
+/// #[derive(Clone, GeekTable, Default)]
+/// pub struct User {
 ///    pub id: PrimaryKey<i32>,
 ///    pub username: String,
 /// }
@@ -28,16 +30,19 @@ use crate::ToSqlite;
 ///     id: PrimaryKey::from(1),
 ///     username: String::from("JohnDoe")
 /// };
-/// # assert_eq!(user.id, PrimaryKey::from(1));
-/// # assert_eq!(user.username, String::from("JohnDoe"));
+/// # assert_eq!(User::primary_key(), "id");
+/// # assert_eq!(user.id.clone(), PrimaryKey::from(1));
+/// # assert_eq!(user.username.clone(), String::from("JohnDoe"));
 /// ```
 ///
 /// Here is an example of how to use the PrimaryKey struct with a String
 ///
 /// ```rust
 /// use geekorm::PrimaryKey;
+/// use geekorm::prelude::*;
 ///
-/// struct User {
+/// #[derive(Clone, GeekTable, Default)]
+/// pub struct User {
 ///     pub id: PrimaryKey<String>,
 ///     pub username: String,
 /// }
@@ -46,28 +51,10 @@ use crate::ToSqlite;
 ///     id: PrimaryKey::from("1"),
 ///     username: String::from("JohnDoe")
 /// };
-/// # assert_eq!(user.id, PrimaryKey::from(String::from("1")));
-/// # assert_eq!(user.username, String::from("JohnDoe"));
+/// # assert_eq!(user.id.clone(), PrimaryKey::from("1"));
+/// # assert_eq!(user.username.clone(), String::from("JohnDoe"));
 /// ```
 ///
-/// Here is an example of how to use the PrimaryKey struct with a Uuid.
-///
-/// Note: This requires the `uuid` feature to be enabled.
-///
-/// ```rust
-/// use geekorm::PrimaryKeyUuid;
-///
-/// struct User {
-///     pub id: PrimaryKeyUuid,
-///     pub username: String,
-/// }
-///
-/// let user = User {
-///     id: PrimaryKeyUuid::from(uuid::Uuid::new_v4()),
-///     username: String::from("JohnDoe")
-/// };
-/// # assert_eq!(user.username, String::from("JohnDoe"));
-/// ```
 #[derive(Clone, Copy, Eq, PartialEq)]
 pub struct PrimaryKey<T>
 where
@@ -100,6 +87,24 @@ impl PrimaryKey<String> {
 }
 
 /// Primary Key as an Integer
+///
+/// ```rust
+/// use geekorm::prelude::*;
+/// use geekorm::PrimaryKeyInteger;
+///
+/// #[derive(Clone, GeekTable, Default)]
+/// pub struct User {
+///     pub id: PrimaryKeyInteger,
+///     pub username: String,
+/// }
+///
+/// let user = User {
+///     id: PrimaryKeyInteger::from(1),
+///     username: String::from("JohnDoe")
+/// };
+/// # assert_eq!(user.id.clone(), PrimaryKeyInteger::from(1));
+/// # assert_eq!(user.username.clone(), String::from("JohnDoe"));
+/// ```
 pub type PrimaryKeyInteger = PrimaryKey<i32>;
 
 impl Default for PrimaryKeyInteger {
@@ -108,7 +113,57 @@ impl Default for PrimaryKeyInteger {
     }
 }
 
-/// Primary Key as a Uuid
+/// PrimaryKeyString (alias) is a Primary Key as a String type
+///
+/// ```rust
+/// use geekorm::prelude::*;
+/// use geekorm::PrimaryKeyString;
+///
+/// #[derive(Clone, GeekTable, Default)]
+/// pub struct User {
+///     pub id: PrimaryKeyString,
+///     pub username: String,
+/// }
+///
+/// let user = User {
+///     id: PrimaryKeyString::from("1"),
+///     username: String::from("JohnDoe")
+/// };
+/// # assert_eq!(user.id.clone(), PrimaryKeyString::from("1"));
+/// # assert_eq!(user.username.clone(), String::from("JohnDoe"));
+/// ```
+pub type PrimaryKeyString = PrimaryKey<String>;
+
+impl Default for PrimaryKeyString {
+    fn default() -> Self {
+        PrimaryKey {
+            value: String::from(""),
+        }
+    }
+}
+
+/// PrimaryKeyUuid (alias) is a Primary Key as a Uuid type
+///
+/// Note: This requires the `uuid` feature to be enabled.
+///
+/// ```rust
+/// use geekorm::{GeekTable, PrimaryKeyUuid};
+/// use geekorm::prelude::*;
+///
+/// #[derive(Clone, GeekTable, Default)]
+/// pub struct User {
+///     pub id: PrimaryKeyUuid,
+///     pub username: String,
+/// }
+///
+/// let new_uuid = uuid::Uuid::new_v4();
+/// let user = User {
+///     id: PrimaryKeyUuid::from(new_uuid),
+///     username: String::from("JohnDoe")
+/// };
+/// # assert_eq!(user.username.clone(), String::from("JohnDoe"));
+/// # assert_eq!(user.id.clone(), PrimaryKeyUuid::from(new_uuid));
+/// ```
 #[cfg(feature = "uuid")]
 pub type PrimaryKeyUuid = PrimaryKey<Uuid>;
 
@@ -142,7 +197,7 @@ impl ToSqlite for PrimaryKey<String> {
     }
 }
 
-impl From<i32> for PrimaryKey<i32> {
+impl From<i32> for PrimaryKeyInteger {
     fn from(value: i32) -> Self {
         PrimaryKey { value }
     }
@@ -167,6 +222,14 @@ impl From<&str> for PrimaryKeyInteger {
 impl From<String> for PrimaryKey<String> {
     fn from(value: String) -> Self {
         PrimaryKey { value }
+    }
+}
+
+impl From<&String> for PrimaryKey<String> {
+    fn from(value: &String) -> Self {
+        PrimaryKey {
+            value: value.clone(),
+        }
     }
 }
 

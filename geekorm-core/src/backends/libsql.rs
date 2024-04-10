@@ -5,49 +5,74 @@ use libsql::{de, params::IntoValue};
 use log::{debug, error};
 use serde::{de::DeserializeOwned, Serialize};
 
-use crate::{backends::GeekConnection, builder::models::QueryType, TableBuilder, Value, Values};
+use crate::{
+    builder::models::QueryType, GeekConnector, QueryBuilderTrait, TableBuilder, Value, Values,
+};
 
-impl<T> GeekConnection for T
+impl<T> GeekConnector for T
 where
-    T: TableBuilder + Serialize + DeserializeOwned,
+    T: TableBuilder + QueryBuilderTrait + Serialize + DeserializeOwned,
 {
     type Connection = libsql::Connection;
     type Row = T;
     type Rows = Vec<T>;
-    type Error = libsql::Error;
 
-    async fn create_table(connection: &Self::Connection) -> Result<(), Self::Error> {
-        let query = T::create().build().unwrap();
-        connection.execute(query.to_str(), ()).await?;
+    async fn create_table(connection: &Self::Connection) -> Result<(), crate::Error> {
+        let query = T::create().build()?;
+        debug!("Create Table Query :: {:?}", query.to_str());
+        connection
+            .execute(query.to_str(), ())
+            .await
+            .map_err(|e| crate::Error::LibSQLError(e.to_string()))?;
         Ok(())
     }
 
     async fn row_count(
         connection: &Self::Connection,
         query: crate::Query,
-    ) -> Result<i64, Self::Error> {
-        let mut statement = connection.prepare(query.to_str()).await?;
-        let mut rows = statement.query(()).await?;
+    ) -> Result<i64, crate::Error> {
+        debug!("Row Count Query :: {:?}", query.to_str());
+        let mut statement = connection
+            .prepare(query.to_str())
+            .await
+            .map_err(|e| crate::Error::LibSQLError(format!("Error preparing query: `{}`", e)))?;
+        let mut rows = statement
+            .query(())
+            .await
+            .map_err(|e| crate::Error::LibSQLError(e.to_string()))?;
 
-        let row = rows.next().await?.unwrap();
+        let row = rows
+            .next()
+            .await
+            .map_err(|e| crate::Error::LibSQLError(e.to_string()))?
+            .unwrap();
+        // Get the first row
         Ok(row.get(0).unwrap())
     }
 
     async fn query(
         connection: &Self::Connection,
         query: crate::Query,
-    ) -> Result<Self::Rows, Self::Error> {
+    ) -> Result<Self::Rows, crate::Error> {
         // TODO(geekmasher): Use different patterns for different query types
 
         let mut statement = match connection.prepare(query.to_str()).await {
             Ok(statement) => statement,
             Err(e) => {
                 error!("Error preparing query: `{}`", query.to_str());
-                return Err(e);
+                error!("Parameters :: {:?}", query.parameters);
+                return Err(crate::Error::LibSQLError(e.to_string()));
             }
         };
         // Convert the values to libsql::Value
-        let parameters: Vec<libsql::Value> = convert_values(&query).unwrap();
+        let parameters: Vec<libsql::Value> = match convert_values(&query) {
+            Ok(parameters) => parameters,
+            Err(e) => {
+                error!("Error converting values: `{}`", e);
+                error!("Parameters :: {:?}", query.parameters);
+                return Err(crate::Error::LibSQLError(e.to_string()));
+            }
+        };
 
         debug!("Query :: {:?}", query.to_str());
         debug!("Parameters :: {:?}", parameters.clone());
@@ -57,12 +82,16 @@ where
             Ok(rows) => rows,
             Err(e) => {
                 error!("Error executing query: `{}`", query.to_str());
-                return Err(e);
+                return Err(crate::Error::LibSQLError(e.to_string()));
             }
         };
         let mut results = Vec::new();
 
-        while let Some(row) = rows.next().await? {
+        while let Some(row) = rows
+            .next()
+            .await
+            .map_err(|e| crate::Error::LibSQLError(e.to_string()))?
+        {
             results.push(de::from_row::<T>(&row).unwrap());
         }
 
@@ -72,49 +101,70 @@ where
     async fn query_first(
         connection: &Self::Connection,
         query: crate::Query,
-    ) -> Result<Self::Row, Self::Error> {
+    ) -> Result<Self::Row, crate::Error> {
         if query.query_type == QueryType::Update {
             error!("Query type is an `update`, use execute() instead as it does not return a row");
+            return Err(crate::Error::LibSQLError(
+                "Query type is an `update`".to_string(),
+            ));
         }
 
         let rows = Self::query(connection, query).await?;
         match rows.into_iter().next() {
             Some(row) => Ok(row),
-            None => Err(libsql::Error::NullValue),
+            None => Err(crate::Error::NoRowsFound),
         }
     }
 
     async fn execute(
         connection: &Self::Connection,
         query: crate::Query,
-    ) -> Result<(), Self::Error> {
+    ) -> Result<(), crate::Error> {
         // Convert the values to libsql::Value
-        let parameters: Vec<libsql::Value> = convert_values(&query).unwrap();
-        connection.execute(query.to_str(), parameters).await?;
+        let parameters: Vec<libsql::Value> = convert_values(&query).map_err(|e| {
+            error!("Error converting values: `{}`", e);
+            crate::Error::LibSQLError(e.to_string())
+        })?;
+        connection
+            .execute(query.to_str(), parameters)
+            .await
+            .map_err(|e| {
+                error!("Error executing query: `{}`", e);
+                crate::Error::LibSQLError(e.to_string())
+            })?;
         Ok(())
     }
 
     async fn query_raw(
         connection: &Self::Connection,
         query: crate::Query,
-    ) -> Result<Vec<HashMap<String, Value>>, Self::Error> {
-        let params = convert_values(&query).unwrap();
+    ) -> Result<Vec<HashMap<String, Value>>, crate::Error> {
+        let params = convert_values(&query).map_err(|e| {
+            error!("Error converting values: `{}`", e);
+            crate::Error::LibSQLError(e.to_string())
+        })?;
 
         let mut statement = match connection.prepare(query.to_str()).await {
             Ok(statement) => statement,
             Err(e) => {
                 error!("Error preparing query: `{}`", query.to_str());
-                return Err(e);
+                return Err(crate::Error::LibSQLError(e.to_string()));
             }
         };
 
         debug!("Query :: {:?}", query.to_str());
         debug!("Parameters :: {:?}", params);
 
-        let mut rows = statement.query(params).await?;
+        let mut rows = statement.query(params).await.map_err(|e| {
+            error!("Error executing query: `{}`", query.to_str());
+            crate::Error::LibSQLError(e.to_string())
+        })?;
         let mut results: Vec<HashMap<String, Value>> = Vec::new();
 
-        while let Some(row) = rows.next().await? {
+        while let Some(row) = rows.next().await.map_err(|e| {
+            error!("Error fetching row: `{}`", e);
+            crate::Error::LibSQLError(e.to_string())
+        })? {
             let mut values: HashMap<String, Value> = HashMap::new();
 
             for (index, column_name) in query.columns.iter().enumerate() {

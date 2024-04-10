@@ -3,21 +3,21 @@ use std::fmt::{Debug, Display};
 
 use serde::{de::Visitor, Deserialize, Serialize, Serializer};
 
-use crate::{PrimaryKey, TableBuilder, TablePrimaryKey};
+use crate::{PrimaryKey, TableBuilder};
 
 /// Foreign Key Type
 ///
 /// ```rust
-/// use geekorm::{GeekTable, ForeignKey, PrimaryKeyInteger};
 /// use geekorm::prelude::*;
+/// use geekorm::{ForeignKey, PrimaryKeyInteger};
 ///
-/// #[derive(GeekTable)]
+/// #[derive(Clone, Default, GeekTable)]
 /// struct Users {
 ///     id: PrimaryKeyInteger,
 ///     name: String,
 /// }
 ///
-/// #[derive(GeekTable)]
+/// #[derive(Default, Clone, GeekTable)]
 /// struct Posts {
 ///     id: PrimaryKeyInteger,
 ///     title: String,
@@ -32,7 +32,7 @@ use crate::{PrimaryKey, TableBuilder, TablePrimaryKey};
 ///     .expect("Failed to build query");
 /// # assert_eq!(
 /// #     create_posts_query.to_str(),
-/// #     "CREATE TABLE IF NOT EXISTS Posts (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, user TEXT NOT NULL, FOREIGN KEY (user) REFERENCES Users (id));"
+/// #     "CREATE TABLE IF NOT EXISTS Posts (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, user TEXT NOT NULL, FOREIGN KEY (user) REFERENCES Users(id));"
 /// # );
 ///
 /// // Use the foreign key to and join the tables together
@@ -49,7 +49,7 @@ use crate::{PrimaryKey, TableBuilder, TablePrimaryKey};
 pub struct ForeignKey<T, D>
 where
     T: Display + 'static,
-    D: TableBuilder + TablePrimaryKey,
+    D: TableBuilder,
 {
     /// Foreign Key Value
     pub key: T,
@@ -60,10 +60,17 @@ where
 /// Foreign Key as an Integer
 pub type ForeignKeyInteger<T> = ForeignKey<i32, T>;
 
+/// Foreign Key as a String
+pub type ForeignKeyString<T> = ForeignKey<String, T>;
+
+/// Foreign Key as an Uuid
+#[cfg(feature = "uuid")]
+pub type ForeignKeyUuid<T> = ForeignKey<uuid::Uuid, T>;
+
 impl<T, D> Debug for ForeignKey<T, D>
 where
     T: Debug + Display + 'static,
-    D: TableBuilder + TablePrimaryKey,
+    D: TableBuilder,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "ForeignKey({})", self.key)
@@ -73,7 +80,7 @@ where
 impl<T, D> Display for ForeignKey<T, D>
 where
     T: Display + 'static,
-    D: TableBuilder + TablePrimaryKey,
+    D: TableBuilder,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}({})", self.data.get_table().name, self.key)
@@ -82,7 +89,7 @@ where
 
 impl<D> Default for ForeignKey<i32, D>
 where
-    D: TableBuilder + TablePrimaryKey + Default,
+    D: TableBuilder + Default,
 {
     fn default() -> Self {
         Self {
@@ -94,7 +101,7 @@ where
 
 impl<D> Default for ForeignKey<String, D>
 where
-    D: TableBuilder + TablePrimaryKey + Default,
+    D: TableBuilder + Default,
 {
     fn default() -> Self {
         Self {
@@ -105,7 +112,7 @@ where
 }
 impl<D> ForeignKey<i32, D>
 where
-    D: TableBuilder + TablePrimaryKey + Default,
+    D: TableBuilder + Default,
 {
     /// Create a new foreign key with an integer
     pub fn new(value: i32) -> Self {
@@ -118,7 +125,7 @@ where
 
 impl<D> ForeignKey<String, D>
 where
-    D: TableBuilder + TablePrimaryKey + Default,
+    D: TableBuilder + Default,
 {
     /// Create a new foreign key with a String
     pub fn new(value: String) -> Self {
@@ -131,7 +138,7 @@ where
 
 impl<D> From<i32> for ForeignKey<i32, D>
 where
-    D: TableBuilder + TablePrimaryKey + Default,
+    D: TableBuilder + Default,
 {
     fn from(value: i32) -> Self {
         Self::new(value)
@@ -140,7 +147,7 @@ where
 
 impl<D> From<String> for ForeignKey<String, D>
 where
-    D: TableBuilder + TablePrimaryKey + Default,
+    D: TableBuilder + Default,
 {
     fn from(value: String) -> Self {
         Self::new(value)
@@ -149,7 +156,7 @@ where
 
 impl<D> From<&str> for ForeignKey<String, D>
 where
-    D: TableBuilder + TablePrimaryKey + Default,
+    D: TableBuilder + Default,
 {
     fn from(value: &str) -> Self {
         Self::new(value.to_string())
@@ -158,7 +165,7 @@ where
 
 impl<D> From<ForeignKey<i32, D>> for i32
 where
-    D: TableBuilder + TablePrimaryKey,
+    D: TableBuilder,
 {
     fn from(value: ForeignKey<i32, D>) -> Self {
         value.key
@@ -167,7 +174,7 @@ where
 
 impl<D> From<PrimaryKey<i32>> for ForeignKey<i32, D>
 where
-    D: TableBuilder + TablePrimaryKey + Default,
+    D: TableBuilder + Default,
 {
     fn from(value: PrimaryKey<i32>) -> Self {
         Self::new(value.value)
@@ -176,7 +183,7 @@ where
 
 impl<D> From<PrimaryKey<String>> for ForeignKey<String, D>
 where
-    D: TableBuilder + TablePrimaryKey + Default,
+    D: TableBuilder + Default,
 {
     fn from(value: PrimaryKey<String>) -> Self {
         Self::new(value.value)
@@ -185,7 +192,7 @@ where
 
 impl<D> Serialize for ForeignKeyInteger<D>
 where
-    D: TableBuilder + TablePrimaryKey + Default,
+    D: TableBuilder + Default,
 {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -197,7 +204,7 @@ where
 
 impl<'de, T> Deserialize<'de> for ForeignKeyInteger<T>
 where
-    T: TableBuilder + TablePrimaryKey + Default + Serialize + Deserialize<'de>,
+    T: TableBuilder + Default + Serialize + Deserialize<'de>,
 {
     fn deserialize<D>(deserializer: D) -> Result<ForeignKeyInteger<T>, D::Error>
     where

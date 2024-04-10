@@ -119,7 +119,31 @@ mod tests {
 
     use super::*;
 
-    fn get_simple_table(name: String) -> Table {
+    fn table_parent(name: String) -> Table {
+        Table {
+            name,
+            columns: Columns {
+                columns: vec![
+                    Column {
+                        name: String::from("id"),
+                        column_type: crate::ColumnType::Identifier(
+                            crate::ColumnTypeOptions::primary_key(),
+                        ),
+                        ..Default::default()
+                    },
+                    Column {
+                        name: String::from("image_id"),
+                        column_type: crate::ColumnType::ForeignKey(
+                            crate::ColumnTypeOptions::foreign_key(String::from("Child.id")),
+                        ),
+                        ..Default::default()
+                    },
+                ],
+            },
+        }
+    }
+
+    fn table_child(name: String) -> Table {
         Table {
             name,
             columns: Columns {
@@ -137,11 +161,13 @@ mod tests {
     #[test]
     fn test_table_join_on_select() {
         let join = TableJoin::InnerJoin(TableJoinOptions {
-            parent: get_simple_table(String::from("Parent")),
-            child: get_simple_table(String::from("Child")),
+            parent: table_parent(String::from("Parent")),
+            child: table_child(String::from("Child")),
         });
 
-        let select_query = join.on_select(&crate::QueryBuilder::select()).unwrap();
+        let select_query = join
+            .on_select(&crate::QueryBuilder::select())
+            .expect("Failed to generate select query");
         assert_eq!(
             select_query,
             "INNER JOIN Child ON Child.id = Parent.image_id"
@@ -151,8 +177,8 @@ mod tests {
     #[test]
     fn test_join_options() {
         let join = TableJoinOptions {
-            parent: get_simple_table(String::from("Parent")),
-            child: get_simple_table(String::from("Child")),
+            parent: table_parent(String::from("Parent")),
+            child: table_child(String::from("Child")),
         };
 
         let select_query = join.on_select(&crate::QueryBuilder::select()).unwrap();

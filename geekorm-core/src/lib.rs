@@ -1,18 +1,22 @@
 //! GeekORM is a simple ORM for SQLite databases.
 #![forbid(unsafe_code)]
 #![allow(dead_code)]
-#![warn(missing_docs)]
-
-/// Builder module
-pub mod builder;
-/// Query module
-pub mod queries;
+#![deny(missing_docs)]
 
 /// Backend module
 pub mod backends;
+/// Builder module
+pub mod builder;
+/// Error module
+pub mod error;
+/// Query module
+pub mod queries;
 
 #[cfg(feature = "libsql")]
 pub use backends::libsql;
+
+pub use crate::backends::GeekConnector;
+pub use crate::error::Error;
 
 pub use crate::builder::columns::{Column, Columns};
 pub use crate::builder::columntypes::{ColumnType, ColumnTypeOptions};
@@ -21,55 +25,36 @@ pub use crate::builder::table::Table;
 pub use crate::builder::values::{Value, Values};
 pub use crate::queries::{Query, QueryBuilder};
 
-use thiserror::Error;
-
-/// Error type for the crate
-#[derive(Error, Debug, Clone)]
-pub enum Error {
-    /// Query Builder Error
-    #[error("QueryBuilderError: {0} ({1})")]
-    QueryBuilderError(String, String),
-
-    /// Unknown / Generic Error
-    #[error("Unknown Error / Generic Error occurred")]
-    Unknown,
-}
-
 /// Trait for creating tables
-pub trait TableBuilder {
+pub trait TableBuilder
+where
+    Self: Sized,
+{
     /// Get the table struct
-    fn table() -> Table
-    where
-        Self: Sized;
+    fn table() -> Table;
 
     /// Get the table struct for the current instance
-    fn get_table(&self) -> Table
-    where
-        Self: Sized;
+    fn get_table(&self) -> Table;
 
     /// Get the name of the table
-    fn table_name() -> String
-    where
-        Self: Sized;
+    fn table_name() -> String;
+}
 
+/// Trait for Building Queries
+pub trait QueryBuilderTrait
+where
+    Self: TableBuilder + Sized,
+{
     /// Create a new table
-    fn create() -> QueryBuilder
-    where
-        Self: Sized;
+    fn create() -> QueryBuilder;
 
     /// Select rows in the table
-    fn select() -> QueryBuilder
-    where
-        Self: Sized,
-    {
+    fn select() -> QueryBuilder {
         QueryBuilder::select()
     }
 
     /// Select all rows in the table
-    fn all() -> Query
-    where
-        Self: Sized,
-    {
+    fn all() -> Query {
         Self::select()
             .table(Self::table())
             .build()
@@ -77,35 +62,40 @@ pub trait TableBuilder {
     }
 
     /// Insert a row into the table
-    fn insert(item: &Self) -> Query
-    where
-        Self: Sized;
+    fn insert(item: &Self) -> Query;
 
     /// Update a row in the table
-    fn update(item: &Self) -> Query
-    where
-        Self: Sized;
+    fn update(item: &Self) -> Query;
 
     /// Count the rows in the table
-    fn count() -> QueryBuilder
-    where
-        Self: Sized;
+    fn count() -> QueryBuilder;
 }
 
 /// Trait for Tables with a primary key
 ///
 pub trait TablePrimaryKey
 where
-    Self: TableBuilder,
+    Self: TableBuilder + QueryBuilderTrait + Sized,
 {
     /// Get the name of the primary key column
     fn primary_key() -> String;
 
     /// Get the primary key column name
     fn primary_key_value(&self) -> Value;
+
+    /// Select a row by the primary key
+    fn select_by_primary_key(&self) -> Query {
+        Self::select()
+            .table(Self::table())
+            .where_eq(&Self::primary_key(), self.primary_key_value())
+            .build()
+            .expect("Failed to build SELECT BY PRIMARY KEY query")
+    }
 }
 
 /// Trait for converting a struct to SQLite
+///
+/// This does not need to be implemented by the user and is used internally
 pub trait ToSqlite {
     /// Convert to generic SQLite (only use for some generic types)
     fn to_sqlite(&self) -> String {

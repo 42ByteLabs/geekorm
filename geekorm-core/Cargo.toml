@@ -10,8 +10,7 @@ default = ["uuid", "chrono"]
 uuid = []
 chrono = []
 
-# This feature is for testing
-backends = ["libsql"]
+# Backends
 libsql = ["dep:libsql"]
 
 [dependencies]

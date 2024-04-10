@@ -29,7 +29,6 @@ impl Table {
 
     /// Get the foreign key by table name
     pub fn get_foreign_key(&self, table_name: String) -> &crate::Column {
-        println!("Table: {:?}", table_name);
         for column in self.columns.get_foreign_keys() {
             if column.column_type.is_foreign_key_table(&table_name) {
                 return column;
@@ -37,12 +36,25 @@ impl Table {
         }
         panic!("No foreign key found for column: {}", table_name);
     }
+
+    /// Get the full name of a column (table.column)
+    pub fn get_fullname(&self, column: &str) -> Result<String, crate::Error> {
+        let column = self.columns.get(column).ok_or_else(|| {
+            crate::Error::ColumnNotFound(self.name.to_string(), column.to_string())
+        })?;
+        let name = if column.alias.is_empty() {
+            column.name.clone()
+        } else {
+            column.alias.clone()
+        };
+        Ok(format!("{}.{}", self.name, name))
+    }
 }
 
 impl ToSqlite for Table {
     fn on_create(&self, query: &QueryBuilder) -> Result<String, crate::Error> {
         Ok(format!(
-            "CREATE TABLE IF NOT EXISTS {} ({});",
+            "CREATE TABLE IF NOT EXISTS {} {};",
             self.name,
             self.columns.on_create(query)?
         ))
@@ -55,24 +67,41 @@ impl ToSqlite for Table {
         let columns = self.columns.on_select(qb);
 
         if let Ok(ref columns) = columns {
-            if !qb.columns.is_empty() {
-                let mut join_columns: Vec<String> = Vec::new();
-                for column in &qb.columns {
-                    // TODO(geekmasher):
-                    if column.contains('.') {
-                        join_columns.push(String::from(column));
-                    } else {
-                        todo!("Add support for column lookup");
-                    }
-                }
-                full_query = format!("SELECT {}", join_columns.join(", "));
-            }
-            // If the query is a count query, return the count query
-            else if qb.count {
+            if qb.count {
+                // If the query is a count query, return the count query
                 full_query = String::from("SELECT COUNT(1)");
             } else {
-                // Defaults to SELECT all
-                full_query = String::from("SELECT *");
+                // Select selective columns
+                let mut select_columns: Vec<String> = Vec::new();
+
+                let scolumns: Vec<String> = if !qb.columns.is_empty() {
+                    qb.columns.clone()
+                } else {
+                    self.columns
+                        .columns
+                        .iter()
+                        .map(|col| col.name.clone())
+                        .collect()
+                };
+
+                for column in scolumns {
+                    // TODO(geekmasher): Validate that the column exists in the table
+                    if qb.joins.is_empty() {
+                        // If the query does not join multiple tables, we can use the column name directly
+                        select_columns.push(column);
+                    } else {
+                        // We have to use the full column name
+                        if column.contains('.') {
+                            // Table.column
+                            select_columns.push(column);
+                        } else {
+                            // Lookup the column in the table
+                            let fullname = qb.table.get_fullname(&column)?;
+                            select_columns.push(fullname);
+                        }
+                    }
+                }
+                full_query = format!("SELECT {}", select_columns.join(", "));
             }
 
             // FROM {table}
@@ -162,6 +191,7 @@ impl ToSqlite for Table {
         full_query.push_str(" VALUES (");
         full_query.push_str(&values.join(", "));
         full_query.push(')');
+        full_query.push(';');
 
         Ok((full_query, parameters))
     }
@@ -185,7 +215,7 @@ impl ToSqlite for Table {
                 column_name = column.alias.to_string();
             }
 
-            let value = query.values.get(&cname).unwrap();
+            let value = query.values.get(cname).unwrap();
 
             // Add to Values
             match value {
@@ -212,8 +242,9 @@ impl ToSqlite for Table {
         // TODO(geekmasher): We only support updating by primary key
         let primary_key_name = query.table.get_primary_key();
         let primary_key = query.values.get(&primary_key_name).unwrap();
-        let where_clause = format!(" WHERE {} = {}", primary_key_name, primary_key.to_string());
+        let where_clause = format!(" WHERE {} = {}", primary_key_name, primary_key);
         full_query.push_str(&where_clause);
+        full_query.push(';');
 
         Ok((full_query, parameters))
     }
@@ -247,11 +278,23 @@ mod tests {
             .into(),
         };
 
-        let query = crate::QueryBuilder::default();
-
+        let query = crate::QueryBuilder::select().table(table.clone());
+        // Basic CREATE and SELECT
         assert_eq!(
             table.on_create(&query).unwrap(),
             "CREATE TABLE IF NOT EXISTS Test (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT);"
+        );
+        assert_eq!(
+            table.on_select(&query).unwrap(),
+            "SELECT id, name FROM Test;"
+        );
+
+        let query = crate::QueryBuilder::select()
+            .table(table.clone())
+            .where_eq("name", "this");
+        assert_eq!(
+            table.on_select(&query).unwrap(),
+            "SELECT id, name FROM Test WHERE name = ?;"
         );
     }
 }
