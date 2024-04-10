@@ -84,7 +84,7 @@ impl Display for Value {
             Value::Integer(value) => write!(f, "{}", value),
             Value::Boolean(value) => write!(f, "{}", value),
             Value::Identifier(value) => write!(f, "{}", value),
-            Value::Blob(value) => write!(f, "{}", str::from_utf8(&value).unwrap_or("")),
+            Value::Blob(value) => write!(f, "{}", str::from_utf8(value).unwrap_or("")),
             Value::Null => write!(f, "NULL"),
         }
     }
@@ -110,7 +110,7 @@ impl From<PrimaryKeyInteger> for Value {
 
 impl From<&PrimaryKeyInteger> for Value {
     fn from(value: &PrimaryKeyInteger) -> Self {
-        Value::Integer(value.clone().into())
+        Value::Integer((*value).into())
     }
 }
 
@@ -200,7 +200,7 @@ impl From<&Option<String>> for Value {
 impl From<&Option<i32>> for Value {
     fn from(value: &Option<i32>) -> Self {
         match value {
-            Some(value) => Value::Integer(value.clone()),
+            Some(value) => Value::Integer(*value),
             None => Value::Null,
         }
     }
@@ -223,7 +223,7 @@ impl From<i32> for Value {
 
 impl From<&i32> for Value {
     fn from(value: &i32) -> Self {
-        Value::Integer(value.clone())
+        Value::Integer(*value)
     }
 }
 

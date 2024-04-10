@@ -154,7 +154,7 @@ impl ToSqlite for Table {
                 column_name = column.alias.to_string();
             }
 
-            let value = query.values.get(&cname).unwrap();
+            let value = query.values.get(cname).unwrap();
 
             // Skip auto increment columns
             if column.column_type.is_auto_increment() {
