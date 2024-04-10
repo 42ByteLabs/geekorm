@@ -1,7 +1,20 @@
 [package]
 name = "geekorm-cli"
-version = "0.1.0"
-edition = "2021"
+description = "GeeKorm CLI"
+
+version.workspace = true
+categories.workspace = true
+keywords.workspace = true
+
+documentation.workspace = true
+repository.workspace = true
+
+license.workspace = true
+
+edition.workspace = true
+rust-version.workspace = true
+
+authors.workspace = true
 
 [dependencies]
 anyhow = "1.0.81"

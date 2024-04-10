@@ -1,12 +1,29 @@
 [package]
 name = "geekorm-derive"
-version = "0.1.0"
-edition = "2021"
+description = "GeeKorm derive macros library"
+
+version.workspace = true
+categories.workspace = true
+keywords.workspace = true
+
+documentation.workspace = true
+repository.workspace = true
+
+license.workspace = true
+
+edition.workspace = true
+rust-version.workspace = true
+
+authors.workspace = true
 
 build = "build.rs"
 
+[package.metadata.release]
+shared-version = true
+tag-name = "v{{version}}"
+
 [features]
-default = ["uuid", "chrono"]
+default = []
 
 uuid = []
 chrono = []

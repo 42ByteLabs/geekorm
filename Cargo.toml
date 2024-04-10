@@ -7,20 +7,29 @@ version = "0.1.0"
 license = "MIT"
 edition = "2021"
 rust-version = "1.74"
-keywords = ["database", "orm", "sqlite"]
-categories = ["database"]
-# repository = 
+keywords = ["database", "orm", "sql", "sqlite"]
+categories = ["database", "orm"]
+
+documentation = "https://docs.rs/geekorm"
+repository = "https://github.com/42ByteLabs/geekorm"
+
 authors = ["GeekMasher"]
 
 
 [package]
 name = "geekorm"
 readme = "README.md"
-documentation = "https://docs.rs/geekorm"
 description = "A simple and easy to use ORM for SQLite databases"
+
 version.workspace = true
+documentation.workspace = true
+repository.workspace = true
 license.workspace = true
 edition.workspace = true
+rust-version.workspace = true
+
+categories.workspace = true
+keywords.workspace = true
 authors.workspace = true
 
 [package.metadata.release]
@@ -28,7 +37,7 @@ shared-version = true
 tag-name = "v{{version}}"
 
 [features]
-default = ["uuid", "chrono"]
+default = []
 
 uuid = ["geekorm-derive/uuid"]
 chrono = ["geekorm-derive/chrono"]
