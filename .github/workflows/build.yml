@@ -21,11 +21,11 @@ jobs:
 
       - name: Build
         run: |
-          cargo build --verbose
+          cargo build
 
       - name: Run tests
         run: |
-          cargo test --verbose --workspace
+          cargo test --all-features --workspace
 
       - name: Run Analysis
         run: |
