@@ -8,4 +8,4 @@ categories.workspace = true
 authors.workspace = true
 
 [dependencies]
-geekorm = { path = "../.." }
+geekorm = { path = "../..", features = ["new", "helpers"] }

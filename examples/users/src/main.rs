@@ -1,9 +1,10 @@
-#![allow(dead_code)]
+#![allow(dead_code, unused_imports)]
 use geekorm::prelude::*;
-use geekorm::GeekTable;
+use geekorm::{GeekTable, PrimaryKeyInteger};
 
-#[derive(Debug, Clone, GeekTable)]
-struct User {
+#[derive(Debug, Clone, Default, GeekTable)]
+struct Users {
+    id: PrimaryKeyInteger,
     username: String,
     email: String,
     active: bool,
@@ -12,12 +13,12 @@ struct User {
 
 fn main() {
     // Build a CREATE TABLE query
-    let create_query = User::create().build().expect("Failed to build query");
+    let create_query = Users::create().build().expect("Failed to build query");
 
     println!("Create Query: {}", create_query);
 
     // Build a SELECT query with WHERE, OR and LIKE
-    let select_query = User::select()
+    let select_query = Users::select()
         .where_eq("username", "geekmasher")
         .or()
         .where_like("email", "%geekmasher%")

@@ -1,11 +1,9 @@
-#![allow(dead_code, unused_variables)]
+#![allow(dead_code, unused_variables, unused_imports)]
 use anyhow::Result;
-use serde::{Deserialize, Serialize};
 
-use geekorm::prelude::*;
-use geekorm::{GeekTable, PrimaryKeyInteger};
+use geekorm::{prelude::*, PrimaryKeyInteger};
 
-#[derive(Debug, Clone, Default, GeekTable, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, GeekTable, serde::Serialize, serde::Deserialize)]
 pub struct Projects {
     pub id: PrimaryKeyInteger,
     pub name: String,
@@ -22,6 +20,9 @@ async fn main() -> Result<()> {
         geekorm::GEEKORM_VERSION
     );
     println!("Turso LibSQL Example\n{:=<40}\n", "=");
+    env_logger::builder()
+        .filter_level(log::LevelFilter::Debug)
+        .init();
 
     let projects = vec![
         ("serde", "https://serde.rs/", "", true),
@@ -34,16 +35,19 @@ async fn main() -> Result<()> {
     ];
     // Initialize an in-memory database
     let db = libsql::Builder::new_local(":memory:").build().await?;
+    // let db = libsql::Builder::new_local("/tmp/turso-testing.sqlite").build().await?;
     let conn = db.connect()?;
 
     // Create a table
+    println!("Creating table 'projects'...");
     Projects::create_table(&conn).await?;
 
-    // Insert data into the table
+    println!("Inserting data into the table...");
     for (name, url, description, is_open_source) in projects {
         // Use the Projects::new() constructor to create a new project.
         // This is provided by the GeekTable derive macro when the `new` feature is enabled.
         let project = Projects::new(name.to_string(), url.to_string(), is_open_source);
+        println!("Project: {} - {}", project.name, project.url);
 
         // Insert the project into the database
         Projects::query(
@@ -60,12 +64,18 @@ async fn main() -> Result<()> {
     println!("Number of projects: {}\n", count);
 
     // Look for a project with the name "serde" (only one should exist)
+    println!("Querying for project with name 'serde'...");
+    let query = Projects::select()
+            .where_eq("name", "serde")
+            .limit(1)
+            .build()
+            .unwrap();
+    println!("Query: {}", query);
     let mut project_serde = Projects::query_first(
         &conn,
         // Create a SELECT query with a WHERE clause
         Projects::select()
             .where_eq("name", "serde")
-            .limit(1)
             .build()
             .unwrap(),
     )
