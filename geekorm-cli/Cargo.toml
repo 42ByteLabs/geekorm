@@ -18,4 +18,4 @@ authors.workspace = true
 
 [dependencies]
 anyhow = "1.0.81"
-geekorm = { path = "../" }
+geekorm = { path = "../", version = "^0.1" }
