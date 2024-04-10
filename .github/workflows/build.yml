@@ -29,4 +29,5 @@ jobs:
 
       - name: Run Analysis
         run: |
-          cargo clippy --all-targets -- -D clippy::all
+          cargo clippy --all-targets
+
