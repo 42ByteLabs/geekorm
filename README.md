@@ -8,7 +8,7 @@
 [![GitHub Issues](https://img.shields.io/github/issues/42ByteLabs/geekorm?style=for-the-badge)][github-issues]
 [![Licence](https://img.shields.io/github/license/Ileriayo/markdown-badges?style=for-the-badge)][license]
 
-<img src="./assets/geek-orm.png" width="450" title="GeekORM Logo">
+<img src="./assets/geekorm.png" width="450" title="GeekORM Logo">
 
 </div>
 
@@ -39,6 +39,7 @@ cargo install --git https://github.com/42ByteLabs/geekorm
 ## Maintainers / Contributors
 
 - [@GeekMasher](https://github.com/GeekMasher) - Author / Core Maintainer
+- [@MsGeekMasher](https://github.com/MsGeekMasher) - Asset Designer
 
 ## Support
 
