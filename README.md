@@ -45,6 +45,7 @@ cargo install --git https://github.com/42ByteLabs/geekorm
   <tbody>
     <tr>
       <td align="center" valign="top" width="14.28%"><a href="https://geekmasher.dev"><img src="https://avatars.githubusercontent.com/u/2772944?v=4?s=100" width="100px;" alt="Mathew Payne"/><br /><sub><b>Mathew Payne</b></sub></a><br /><a href="#code-GeekMasher" title="Code">💻</a> <a href="#review-GeekMasher" title="Reviewed Pull Requests">👀</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/MsGeekMasher"><img src="https://avatars.githubusercontent.com/u/93775622?v=4?s=100" width="100px;" alt="Cale"/><br /><sub><b>Cale</b></sub></a><br /><a href="#design-MsGeekMasher" title="Design">🎨</a></td>
     </tr>
   </tbody>
 </table>
