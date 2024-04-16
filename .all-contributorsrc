@@ -1,4 +1,22 @@
 {
   "projectName": "geekorm",
-  "projectOwner": "42ByteLabs"
+  "projectOwner": "42ByteLabs",
+  "files": [
+    "README.md"
+  ],
+  "commitType": "docs",
+  "commitConvention": "angular",
+  "contributorsPerLine": 7,
+  "contributors": [
+    {
+      "login": "GeekMasher",
+      "name": "Mathew Payne",
+      "avatar_url": "https://avatars.githubusercontent.com/u/2772944?v=4",
+      "profile": "https://geekmasher.dev",
+      "contributions": [
+        "code",
+        "review"
+      ]
+    }
+  ]
 }
