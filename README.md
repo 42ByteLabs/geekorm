@@ -38,8 +38,14 @@ cargo install --git https://github.com/42ByteLabs/geekorm
 
 ## Maintainers / Contributors
 
-- [@GeekMasher](https://github.com/GeekMasher) - Author / Core Maintainer
-- [@MsGeekMasher](https://github.com/MsGeekMasher) - Asset Designer
+<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
+<!-- prettier-ignore-start -->
+<!-- markdownlint-disable -->
+
+<!-- markdownlint-restore -->
+<!-- prettier-ignore-end -->
+
+<!-- ALL-CONTRIBUTORS-LIST:END -->
 
 ## Support
 
