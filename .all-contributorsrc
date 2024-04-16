@@ -1,20 +1,4 @@
 {
   "projectName": "geekorm",
-  "projectOwner": "42ByteLabs",
-  "files": [
-    "README.md"
-  ],
-  "imageSize": 100,
-  "contributors": [
-    {
-      "login": "geekmasher",
-      "name": "GeekMasher",
-      "avatar_url": "https://avatars.githubusercontent.com/u/2772944?v=4",
-      "profile": "https://geekmasher.dev",
-      "contributions": [
-        "maintenance",
-        "review",
-      ]
-    }
-  ]
+  "projectOwner": "42ByteLabs"
 }
