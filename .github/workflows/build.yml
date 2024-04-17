@@ -15,19 +15,36 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+    
+      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36
+        id: changes
+        with:
+          filters: |
+            src:
+              - '**/Cargo.*'
+              - 'rust-toolchain.toml'
+              - 'src/**'
+              - 'geekorm-*'
+              - 'examples/**'
+              - 'tests/**'
+
       - uses: dtolnay/rust-toolchain@nightly
+        if: steps.changes.outputs.src == 'true'
         with:
           components: clippy
 
       - name: Build
+        if: steps.changes.outputs.src == 'true'
         run: |
           cargo build
 
       - name: Run tests
+        if: steps.changes.outputs.src == 'true'
         run: |
           cargo test --all-features --workspace
 
       - name: Run Analysis
+        if: steps.changes.outputs.src == 'true'
         run: |
           cargo clippy --all-targets
 
