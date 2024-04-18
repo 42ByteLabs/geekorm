@@ -38,6 +38,11 @@ jobs:
         run: |
           cargo build
 
+      - name: Formatting Checks
+        if: steps.changes.outputs.src == 'true'
+        run: |
+          cargo fmt --check
+
       - name: Run tests
         if: steps.changes.outputs.src == 'true'
         run: |
@@ -50,4 +55,3 @@ jobs:
         if: steps.changes.outputs.src == 'true'
         run: |
           cargo clippy --all-targets
-
