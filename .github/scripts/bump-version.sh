@@ -18,6 +18,5 @@ sed -i "s/^version = \".*\"$/version = \"$new_version\"/" $LOCATION
 if [ -z "$CI" ]; then
     echo "⚡ Updated '$LOCATION' with new version '$new_version'"
 else
-    echo "version=$new_version" >> $GITHUB_STATE
+    echo "version=$new_version" >> $GITHUB_OUTPUT
 fi
-

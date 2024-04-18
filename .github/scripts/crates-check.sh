@@ -22,13 +22,14 @@ if [ $diff -gt 1209600 ]; then
     if [ -z "$CI" ]; then
         exit 1
     else
-        echo "changes=true" >> $GITHUB_STATE
+        echo "changes=true" >> $GITHUB_OUTPUT
     fi
 else
     echo "👍 The crate is up to date"
     if [ -z "$CI" ]; then
         exit 0
     else
-        echo "changes=false" >> $GITHUB_STATE
+        echo "changes=false" >> $GITHUB_OUTPUT
+
     fi
 fi
