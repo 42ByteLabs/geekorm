@@ -1,0 +1,36 @@
+name: "Release"
+
+on:
+  push:
+    branches:
+      - "main"
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: "Check up-stream version"
+        id: check
+        run: |
+          ./.github/scripts/crates-version.sh
+            
+      - uses: dtolnay/rust-toolchain@nightly
+        if: steps.check.outputs.outdated == 'true'
+        with:
+          components: clippy
+
+      - name: "Build / Validate"
+        if: steps.check.outputs.outdated == 'true'
+        run: |
+          cargo build -
+          cargo test -F all --workspace
+          
+      - name: "Publish"
+        if: steps.check.outputs.outdated == 'true'
+        run: |
+          cargo login ${{ secrets.CRATES_TOKEN }}
+          cargo publish
+
