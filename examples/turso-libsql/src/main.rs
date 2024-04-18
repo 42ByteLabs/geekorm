@@ -47,6 +47,7 @@ async fn main() -> Result<()> {
         // Use the Projects::new() constructor to create a new project.
         // This is provided by the GeekTable derive macro when the `new` feature is enabled.
         let project = Projects::new(name.to_string(), url.to_string(), is_open_source);
+
         println!("Project: {} - {}", project.name, project.url);
 
         // Insert the project into the database
@@ -66,10 +67,11 @@ async fn main() -> Result<()> {
     // Look for a project with the name "serde" (only one should exist)
     println!("Querying for project with name 'serde'...");
     let query = Projects::select()
-            .where_eq("name", "serde")
-            .limit(1)
-            .build()
-            .unwrap();
+        .where_eq("name", "serde")
+        .limit(1)
+        .build()
+        .unwrap();
+
     println!("Query: {}", query);
     let mut project_serde = Projects::query_first(
         &conn,

@@ -31,7 +31,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@nightly
         if: steps.changes.outputs.src == 'true'
         with:
-          components: clippy
+          components: clippy,rustfmt
 
       - name: Build
         if: steps.changes.outputs.src == 'true'
