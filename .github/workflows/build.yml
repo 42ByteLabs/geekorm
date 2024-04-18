@@ -46,7 +46,10 @@ jobs:
       - name: Run tests
         if: steps.changes.outputs.src == 'true'
         run: |
-          cargo test --all-features --workspace
+          cargo test -F all --workspace
+
+          # Test Backend Features
+          cargo test -F all,libsql --workspace
 
       - name: Run Analysis
         if: steps.changes.outputs.src == 'true'

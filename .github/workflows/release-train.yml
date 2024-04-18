@@ -1,0 +1,42 @@
+
+name: "Release Train"
+
+on:
+  # Manual
+  workflow_dispatch:
+  # every week on Wednesday at 14:00
+  schedule:
+    - '0 14 * * 3'
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v4
+
+      - name: "Check when was the last version released"
+        id: crates-check
+        run: |          
+          ./.github/scripts/crates-check.sh
+
+      - name: "Bump version"
+        id: version
+        if: steps.crates-check.outputs.changes == "true"
+        run: |
+          ./.github/scripts/bump-version.sh
+    
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@b1ddad2c994a25fbc81a28b3ec0e368bb2021c50 # v6.0.0
+        with:
+          token: ${{ github.token }}
+          commit-message: |
+            [chore] Train Release - ${{ steps.version.outputs.version }}
+          labels: version
+          assignees: GeekMasher
+          body: |
+            This PR was automatically created from the train release.
+
+            * `v${{ steps.version.outputs.version }}`
+
