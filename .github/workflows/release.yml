@@ -32,5 +32,8 @@ jobs:
         if: steps.check.outputs.outdated == 'true'
         run: |
           cargo login ${{ secrets.CRATES_TOKEN }}
+
+          cargo publish -p geekorm-core
+          cargo publish -p geekorm-derive
           cargo publish
 
