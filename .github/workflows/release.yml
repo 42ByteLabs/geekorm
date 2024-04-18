@@ -25,7 +25,7 @@ jobs:
       - name: "Build / Validate"
         if: steps.check.outputs.outdated == 'true'
         run: |
-          cargo build -
+          cargo build
           cargo test -F all --workspace
           
       - name: "Publish"
