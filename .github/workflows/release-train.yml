@@ -1,12 +1,11 @@
-
 name: "Release Train"
 
 on:
-  # Manual
-  workflow_dispatch:
   # every week on Wednesday at 14:00
   schedule:
     - '0 14 * * 3'
+  # Manual
+  workflow_dispatch:
 
 jobs:
   train:
