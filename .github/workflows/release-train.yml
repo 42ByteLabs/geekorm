@@ -3,7 +3,7 @@ name: "Release Train"
 on:
   # every week on Wednesday at 14:00
   schedule:
-    - '0 14 * * 3'
+    - cron: "0 14 * * 3"
   # Manual
   workflow_dispatch:
 
