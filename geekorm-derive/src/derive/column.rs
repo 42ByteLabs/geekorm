@@ -309,6 +309,20 @@ impl ColumnDerive {
             }
         }
     }
+
+    /// Generate a fetcher function for the column
+    pub(crate) fn get_fetcher(&self, table_ident: &Ident, foreign_ident: &Ident) -> TokenStream {
+        let identifier = &self.identifier; // `user`
+
+        let func_name = format!("fetch_{}", identifier);
+        let func = Ident::new(&func_name, Span::call_site());
+
+        quote! {
+            pub async fn #func(&mut self, connection: &impl geekorm::prelude::GeekConnection) -> Result<#foreign_ident, geekorm::Error> {
+                Err(geekorm::Error::NotImplemented)
+            }
+        }
+    }
 }
 
 impl Default for ColumnDerive {

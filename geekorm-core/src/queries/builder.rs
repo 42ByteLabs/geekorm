@@ -48,7 +48,7 @@ use crate::{
 ///
 /// // Build a query to select rows from the table
 /// let select_query = Users::select()
-///     .where_eq("username", "geekmaher")
+///     .where_eq("username", "geekmasher")
 ///     .order_by("age", QueryOrder::Asc)
 ///     .build()
 ///     .expect("Failed to build select query");

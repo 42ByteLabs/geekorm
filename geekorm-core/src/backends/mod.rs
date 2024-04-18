@@ -2,6 +2,15 @@ use std::collections::HashMap;
 
 use crate::{Query, QueryBuilderTrait, TableBuilder, Value};
 
+/// GeekConnection
+pub trait GeekConnection {
+    /// Native connection type
+    type Connection;
+
+    /// Connect to the database
+    fn connect() -> Self::Connection;
+}
+
 /// This module contains the LibSQL backend
 #[cfg(feature = "libsql")]
 pub mod libsql;

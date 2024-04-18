@@ -6,8 +6,17 @@ use log::{debug, error};
 use serde::{de::DeserializeOwned, Serialize};
 
 use crate::{
-    builder::models::QueryType, GeekConnector, QueryBuilderTrait, TableBuilder, Value, Values,
+    builder::models::QueryType, GeekConnection, GeekConnector, QueryBuilderTrait, TableBuilder,
+    Value, Values,
 };
+
+impl GeekConnection for libsql::Connection {
+    type Connection = libsql::Connection;
+
+    fn connect() -> Self::Connection {
+        libsql::Connection::connect()
+    }
+}
 
 impl<T> GeekConnector for T
 where

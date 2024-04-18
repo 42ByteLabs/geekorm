@@ -187,3 +187,25 @@ pub fn generate_table_primary_key(
         ))
     }
 }
+
+/// Generate fetch methods for the struct.
+pub fn generate_table_fetch(
+    ident: &syn::Ident,
+    foreign_ident: &syn::Ident,
+    generics: &syn::Generics,
+    table: &TableDerive,
+) -> Result<TokenStream, syn::Error> {
+    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
+
+    let mut stream = TokenStream::new();
+    // Generate the selectors for the columns
+    for column in table.columns.columns.iter() {
+        stream.extend(column.get_fetcher(ident, foreign_ident));
+    }
+
+    Ok(quote! {
+        impl #impl_generics #ident #ty_generics #where_clause {
+            #stream
+        }
+    })
+}

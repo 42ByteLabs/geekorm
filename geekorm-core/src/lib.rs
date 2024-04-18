@@ -15,7 +15,7 @@ pub mod queries;
 #[cfg(feature = "libsql")]
 pub use backends::libsql;
 
-pub use crate::backends::GeekConnector;
+pub use crate::backends::{GeekConnection, GeekConnector};
 pub use crate::error::Error;
 
 pub use crate::builder::columns::{Column, Columns};

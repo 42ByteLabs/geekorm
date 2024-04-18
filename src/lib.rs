@@ -5,9 +5,10 @@
 #![deny(missing_docs)]
 
 // Builder Modules
-	pub use geekorm_core::builder::columns::{Column, Columns};
+pub use geekorm_core::builder::columns::{Column, Columns};
 pub use geekorm_core::builder::columntypes::{ColumnType, ColumnTypeOptions};
 pub use geekorm_core::builder::table::Table;
+pub use geekorm_core::Error;
 // Keys Modules
 pub use geekorm_core::builder::keys::foreign::{ForeignKey, ForeignKeyInteger};
 #[cfg(feature = "uuid")]
@@ -62,5 +63,5 @@ pub mod prelude {
     /// SQLite Trait
     pub use geekorm_core::ToSqlite;
     // Backends Module
-    pub use geekorm_core::GeekConnector;
+    pub use geekorm_core::{GeekConnection, GeekConnector};
 }
