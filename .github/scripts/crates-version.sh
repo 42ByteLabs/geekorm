@@ -18,13 +18,13 @@ if [ "$current_version" != "$crates_remote" ]; then
     if [ -z "$CI" ]; then
         exit 1
     else
-        echo "outdated=true" >> $GITHUB_STATE
+        echo "outdated=true" >> $GITHUB_OUTPUT
     fi
 else
     echo "🍹 Crate is up to date. Lets sit back and relax..."
     if [ -z "$CI" ]; then
         exit 0
     else
-        echo "outdated=false" >> $GITHUB_STATE
+        echo "outdated=false" >> $GITHUB_OUTPUT
     fi
 fi
