@@ -48,7 +48,9 @@ pub(crate) fn derive_parser(ast: &DeriveInput) -> Result<TokenStream, syn::Error
 
             TableState::add(table.clone().into());
 
-            let mut tokens = generate_struct(name, &ast.generics, table)?;
+            // Generate for the whole table
+            let mut tokens = generate_struct(name, &fields, &ast.generics, table)?;
+
             if !errors.is_empty() {
                 for error in errors {
                     tokens.extend(error.to_compile_error());
@@ -67,6 +69,7 @@ pub(crate) fn derive_parser(ast: &DeriveInput) -> Result<TokenStream, syn::Error
 #[allow(unused_variables)]
 fn generate_struct(
     ident: &syn::Ident,
+    fields: &syn::FieldsNamed,
     generics: &syn::Generics,
     table: TableDerive,
 ) -> Result<TokenStream, syn::Error> {
@@ -80,7 +83,7 @@ fn generate_struct(
     stream.extend(generate_table_primary_key(ident, generics, &table)?);
 
     // Fetch methods
-    stream.extend(generate_table_fetch(ident, fident, generics, &table)?);
+    stream.extend(generate_table_fetch(ident, fields, generics, &table)?);
 
     #[cfg(feature = "new")]
     stream.extend(generate_new(ident, generics, &table));

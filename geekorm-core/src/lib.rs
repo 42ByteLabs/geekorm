@@ -84,10 +84,10 @@ where
     fn primary_key_value(&self) -> Value;
 
     /// Select a row by the primary key
-    fn select_by_primary_key(&self) -> Query {
+    fn select_by_primary_key(pk: impl Into<Value>) -> Query {
         Self::select()
             .table(Self::table())
-            .where_eq(&Self::primary_key(), self.primary_key_value())
+            .where_eq(&Self::primary_key(), pk)
             .build()
             .expect("Failed to build SELECT BY PRIMARY KEY query")
     }

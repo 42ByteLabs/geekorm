@@ -311,6 +311,7 @@ impl ColumnDerive {
     }
 
     /// Generate a fetcher function for the column
+    #[allow(unused_variables)]
     pub(crate) fn get_fetcher(&self, table_ident: &Ident, foreign_ident: &Ident) -> TokenStream {
         let identifier = &self.identifier; // `user`
 
@@ -319,7 +320,8 @@ impl ColumnDerive {
 
         quote! {
             pub async fn #func(&mut self, connection: &impl geekorm::prelude::GeekConnection) -> Result<#foreign_ident, geekorm::Error> {
-                Err(geekorm::Error::NotImplemented)
+                let q = #foreign_ident::select_by_primary_key(self.#identifier.key);
+                #foreign_ident::query_first(connection::conection(), q).await
             }
         }
     }

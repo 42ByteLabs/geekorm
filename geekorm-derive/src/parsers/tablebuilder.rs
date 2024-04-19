@@ -1,9 +1,14 @@
+use std::any::Any;
+
 #[allow(unused_imports)]
 use proc_macro2::TokenStream;
-use quote::quote;
-use syn::{parse_macro_input, spanned::Spanned, Data, DataStruct, DeriveInput, Fields};
+use quote::{quote, ToTokens};
+use syn::{
+    parse_macro_input, spanned::Spanned, Data, DataStruct, DeriveInput, Fields, FieldsNamed,
+    GenericArgument, Type, TypePath,
+};
 
-use crate::derive::TableDerive;
+use crate::{derive::TableDerive, internal::TableState};
 
 /// Generate implementation of `TableBuilder` trait for the struct.
 ///
@@ -191,7 +196,7 @@ pub fn generate_table_primary_key(
 /// Generate fetch methods for the struct.
 pub fn generate_table_fetch(
     ident: &syn::Ident,
-    foreign_ident: &syn::Ident,
+    fields: &FieldsNamed,
     generics: &syn::Generics,
     table: &TableDerive,
 ) -> Result<TokenStream, syn::Error> {
@@ -199,8 +204,47 @@ pub fn generate_table_fetch(
 
     let mut stream = TokenStream::new();
     // Generate the selectors for the columns
-    for column in table.columns.columns.iter() {
-        stream.extend(column.get_fetcher(ident, foreign_ident));
+    for column in table.columns.get_foreign_keys() {
+        let field = fields
+            .named
+            .iter()
+            .find(|f| f.ident.as_ref().unwrap() == &column.name)
+            .unwrap();
+
+        // Inner type of the field
+        // ForeignKey<i32, User>,
+        let field_type = match &field.ty {
+            syn::Type::Path(path) => path.path.segments.first().unwrap(),
+            _ => {
+                return Err(syn::Error::new(
+                    field.ty.span(),
+                    "Only path types are supported for foreign keys",
+                ))
+            }
+        };
+
+        let inner_type = match &field_type.arguments {
+            syn::PathArguments::AngleBracketed(args) => args.args.last().unwrap(),
+            _ => {
+                return Err(syn::Error::new(
+                    field.ty.span(),
+                    "Only angle bracketed arguments are supported for foreign keys",
+                ))
+            }
+        };
+
+        match inner_type {
+            syn::GenericArgument::Type(Type::Path(path)) => {
+                let fident = path.path.segments.first().unwrap().ident.clone();
+                stream.extend(column.get_fetcher(ident, &fident));
+            }
+            _ => {
+                return Err(syn::Error::new(
+                    field.ty.span(),
+                    "Only type arguments are supported for foreign keys",
+                ))
+            }
+        }
     }
 
     Ok(quote! {
