@@ -12,6 +12,7 @@ pub struct Users {
 pub struct Posts {
     pub id: PrimaryKeyInteger,
     pub title: String,
+
     #[geekorm(foreign_key = "Users.id")]
     pub author: ForeignKey<i32, Users>,
 }
