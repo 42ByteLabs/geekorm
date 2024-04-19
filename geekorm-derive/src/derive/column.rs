@@ -319,9 +319,12 @@ impl ColumnDerive {
         let func = Ident::new(&func_name, Span::call_site());
 
         quote! {
-            pub async fn #func(&mut self, connection: &impl geekorm::prelude::GeekConnection) -> Result<#foreign_ident, geekorm::Error> {
+            // #[cfg(feature = "libsql")]
+            pub async fn #func(&mut self, connection: &libsql::Connection) -> Result<#foreign_ident, geekorm::Error> {
                 let q = #foreign_ident::select_by_primary_key(self.#identifier.key);
-                #foreign_ident::query_first(connection::conection(), q).await
+                let r = #foreign_ident::query_first(connection, q).await?;
+                self.#identifier.data = r.clone();
+                Ok(r)
             }
         }
     }

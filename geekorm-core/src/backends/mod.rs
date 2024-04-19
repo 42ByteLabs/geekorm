@@ -3,12 +3,20 @@ use std::collections::HashMap;
 use crate::{Query, QueryBuilderTrait, TableBuilder, Value};
 
 /// GeekConnection
-pub trait GeekConnection {
+pub trait GeekConnection
+where
+    Self: Sized,
+{
     /// Native connection type
     type Connection;
+    /// Native error type
+    type Error;
+    /// Native statement
+    type Statement;
 
-    /// Connect to the database
-    fn connect() -> Self::Connection;
+    /// Execute a query on the database
+    #[allow(async_fn_in_trait, unused_variables)]
+    async fn prepare(&self, query: &str) -> Result<Self::Statement, Self::Error>;
 }
 
 /// This module contains the LibSQL backend
