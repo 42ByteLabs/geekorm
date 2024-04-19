@@ -1,15 +1,22 @@
 #![allow(dead_code, unused_variables, unused_imports)]
 use anyhow::Result;
 
-use geekorm::{prelude::*, PrimaryKeyInteger};
+use geekorm::{prelude::*, ForeignKey, PrimaryKeyInteger};
+
+#[derive(Debug, Clone, Default, GeekTable, serde::Serialize, serde::Deserialize)]
+pub struct Repository {
+    pub id: PrimaryKeyInteger,
+    pub url: String,
+}
 
 #[derive(Debug, Clone, Default, GeekTable, serde::Serialize, serde::Deserialize)]
 pub struct Projects {
     pub id: PrimaryKeyInteger,
     pub name: String,
     pub url: String,
-    pub description: Option<String>,
-    pub is_open_source: bool,
+
+    #[geekorm(foreign_key = "Repository.id")]
+    pub repository: ForeignKey<i32, Repository>,
 }
 
 #[tokio::main]
@@ -25,13 +32,41 @@ async fn main() -> Result<()> {
         .init();
 
     let projects = vec![
-        ("serde", "https://serde.rs/", "", true),
-        ("tokio", "https://tokio.rs/", "", true),
-        ("actix", "https://actix.rs/", "", true),
-        ("rocket", "https://rocket.rs/", "", true),
-        ("reqwest", "https://reqwest.rs/", "", true),
-        ("hyper", "https://hyper.rs/", "", true),
-        ("rust", "https://rust-lang.org/", "", true),
+        (
+            "serde",
+            "https://serde.rs/",
+            "https://github.com/serde-rs/serde",
+        ),
+        (
+            "tokio",
+            "https://tokio.rs/",
+            "https://github.com/tokio-rs/tokio",
+        ),
+        (
+            "actix",
+            "https://actix.rs/",
+            "https://github.com/actix/actix-web",
+        ),
+        (
+            "rocket",
+            "https://rocket.rs/",
+            "https://github.com/rwf2/Rocket",
+        ),
+        (
+            "reqwest",
+            "https://docs.rs/reqwest/latest/reqwest/",
+            "https://github.com/seanmonstar/reqwest",
+        ),
+        (
+            "hyper",
+            "https://hyper.rs/",
+            "https://github.com/hyperium/hyper",
+        ),
+        (
+            "rust",
+            "https://rust-lang.org/",
+            "https://github.com/rust-lang/rust/",
+        ),
     ];
     // Initialize an in-memory database
     let db = libsql::Builder::new_local(":memory:").build().await?;
@@ -40,13 +75,19 @@ async fn main() -> Result<()> {
 
     // Create a table
     println!("Creating table 'projects'...");
+    Repository::create_table(&conn).await?;
     Projects::create_table(&conn).await?;
 
     println!("Inserting data into the table...");
-    for (name, url, description, is_open_source) in projects {
+    for (name, url, repo) in projects {
+        // Use the Repository::new() constructor to create a new repository.
+        let repository = Repository::new(url.to_string());
+        println!("Repository: {}", repository.url);
+        Repository::query(&conn, Repository::insert(&repository)).await?;
+
         // Use the Projects::new() constructor to create a new project.
         // This is provided by the GeekTable derive macro when the `new` feature is enabled.
-        let project = Projects::new(name.to_string(), url.to_string(), is_open_source);
+        let project = Projects::new(name.to_string(), url.to_string(), repository.id);
 
         println!("Project: {} - {}", project.name, project.url);
 
@@ -101,7 +142,7 @@ async fn main() -> Result<()> {
     Projects::execute(&conn, Projects::update(&project_serde)).await?;
 
     // Select the updated project
-    let sproject = Projects::query_first(
+    let mut sproject = Projects::query_first(
         &conn,
         Projects::select()
             .where_eq("name", "SerDe")
@@ -110,6 +151,11 @@ async fn main() -> Result<()> {
             .expect("Failed to build SELECT query"),
     )
     .await?;
+
+    // Fetch the project repository by the foreign key
+    let project_repository = sproject.fetch_repository(&conn).await?;
+    println!("Project Repository: {}", project_repository.url);
+    assert_eq!(project_repository.url, String::from("https://github.com/serde-rs/serde"));
 
     println!("\n");
 
