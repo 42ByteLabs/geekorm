@@ -48,8 +48,8 @@ jobs:
         run: |
           cargo test -F all --workspace
 
-          # Test Backend Features
-          cargo test -F all,libsql --example geekorm-example-turso-libsql
+          # Run Examples Backend Features
+          cargo run -F all,libsql --example geekorm-example-turso-libsql
 
       - name: Run Analysis
         if: steps.changes.outputs.src == 'true'
