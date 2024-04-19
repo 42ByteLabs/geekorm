@@ -155,7 +155,10 @@ async fn main() -> Result<()> {
     // Fetch the project repository by the foreign key
     let project_repository = sproject.fetch_repository(&conn).await?;
     println!("Project Repository: {}", project_repository.url);
-    assert_eq!(project_repository.url, String::from("https://github.com/serde-rs/serde"));
+    assert_eq!(
+        project_repository.url,
+        String::from("https://github.com/serde-rs/serde")
+    );
 
     println!("\n");
 
