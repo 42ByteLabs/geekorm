@@ -117,7 +117,7 @@ fn parse_path(typ: &Type, opts: ColumnTypeOptionsDerive) -> Result<ColumnTypeDer
                         auto_increment: false,
                     }))
                 }
-                "PrimaryKeyInteger" => Ok(ColumnTypeDerive::Integer(ColumnTypeOptionsDerive {
+                "PrimaryKeyInteger" => Ok(ColumnTypeDerive::Identifier(ColumnTypeOptionsDerive {
                     primary_key: true,
                     foreign_key: String::new(),
                     unique: false,

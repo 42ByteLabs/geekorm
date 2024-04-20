@@ -21,15 +21,7 @@ pub struct Projects {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    println!(
-        "{}  - v{}\n",
-        geekorm::GEEKORM_BANNER,
-        geekorm::GEEKORM_VERSION
-    );
-    println!("Turso LibSQL Example\n{:=<40}\n", "=");
-    env_logger::builder()
-        .filter_level(log::LevelFilter::Debug)
-        .init();
+    init();
 
     let projects = vec![
         (
@@ -81,9 +73,15 @@ async fn main() -> Result<()> {
     println!("Inserting data into the table...");
     for (name, url, repo) in projects {
         // Use the Repository::new() constructor to create a new repository.
-        let repository = Repository::new(url.to_string());
+        let mut repository = Repository::new(repo.to_string());
         println!("Repository: {}", repository.url);
         Repository::query(&conn, Repository::insert(&repository)).await?;
+
+        repository = Repository::query_first(
+            &conn,
+            Repository::select().where_eq("url", repo).build().unwrap(),
+        )
+        .await?;
 
         // Use the Projects::new() constructor to create a new project.
         // This is provided by the GeekTable derive macro when the `new` feature is enabled.
@@ -154,11 +152,7 @@ async fn main() -> Result<()> {
 
     // Fetch the project repository by the foreign key
     let project_repository = sproject.fetch_repository(&conn).await?;
-    println!("Project Repository: {}", project_repository.url);
-    assert_eq!(
-        project_repository.url,
-        String::from("https://github.com/serde-rs/serde")
-    );
+    println!("\nProject Repository: {}", project_repository.url);
 
     println!("\n");
 
@@ -167,4 +161,21 @@ async fn main() -> Result<()> {
     assert_eq!(sproject.name, "SerDe");
 
     Ok(())
+}
+
+fn init() {
+    println!(
+        "{}  - v{}\n",
+        geekorm::GEEKORM_BANNER,
+        geekorm::GEEKORM_VERSION
+    );
+    println!("Turso LibSQL Example\n{:=<40}\n", "=");
+    let debug_env: bool = std::env::var("DEBUG").is_ok();
+    env_logger::builder()
+        .filter_level(if debug_env {
+            log::LevelFilter::Debug
+        } else {
+            log::LevelFilter::Info
+        })
+        .init();
 }
