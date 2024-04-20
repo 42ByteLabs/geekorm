@@ -26,11 +26,12 @@ impl ToSqlite for ColumnType {
                 format!("INTEGER {}", opts.on_create(query)?)
             }
             ColumnType::ForeignKey(options) => {
+                // TODO(geekmasher): What type is the foreign key?
                 let opts = options.on_create(query)?;
                 if opts.is_empty() {
-                    return Ok("TEXT".to_string());
+                    return Ok("INTEGER".to_string());
                 }
-                format!("TEXT {}", opts)
+                format!("INTEGER {}", opts)
             }
             ColumnType::Text(options) => {
                 let opts = options.on_create(query)?;

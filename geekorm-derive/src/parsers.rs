@@ -18,6 +18,8 @@ use crate::{
 use helpers::{generate_helpers, generate_new};
 use tablebuilder::{generate_table_builder, generate_table_primary_key};
 
+use self::tablebuilder::generate_table_fetch;
+
 pub(crate) fn derive_parser(ast: &DeriveInput) -> Result<TokenStream, syn::Error> {
     let name = &ast.ident;
 
@@ -46,7 +48,9 @@ pub(crate) fn derive_parser(ast: &DeriveInput) -> Result<TokenStream, syn::Error
 
             TableState::add(table.clone().into());
 
-            let mut tokens = generate_struct(name, &ast.generics, table)?;
+            // Generate for the whole table
+            let mut tokens = generate_struct(name, &fields, &ast.generics, table)?;
+
             if !errors.is_empty() {
                 for error in errors {
                     tokens.extend(error.to_compile_error());
@@ -65,6 +69,7 @@ pub(crate) fn derive_parser(ast: &DeriveInput) -> Result<TokenStream, syn::Error
 #[allow(unused_variables)]
 fn generate_struct(
     ident: &syn::Ident,
+    fields: &syn::FieldsNamed,
     generics: &syn::Generics,
     table: TableDerive,
 ) -> Result<TokenStream, syn::Error> {
@@ -77,9 +82,8 @@ fn generate_struct(
     // Primary Key
     stream.extend(generate_table_primary_key(ident, generics, &table)?);
 
-    // Backends
-    // #[cfg(feature = "libsql")]
-    // stream.extend(generate_backend_libsql(ident, generics, &table)?);
+    // Fetch methods
+    stream.extend(generate_table_fetch(ident, fields, generics, &table)?);
 
     #[cfg(feature = "new")]
     stream.extend(generate_new(ident, generics, &table));

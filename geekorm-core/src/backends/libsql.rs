@@ -6,8 +6,19 @@ use log::{debug, error};
 use serde::{de::DeserializeOwned, Serialize};
 
 use crate::{
-    builder::models::QueryType, GeekConnector, QueryBuilderTrait, TableBuilder, Value, Values,
+    builder::models::QueryType, GeekConnection, GeekConnector, QueryBuilderTrait, TableBuilder,
+    Value, Values,
 };
+
+impl GeekConnection for libsql::Connection {
+    type Connection = libsql::Connection;
+    type Error = libsql::Error;
+    type Statement = libsql::Statement;
+
+    async fn prepare(&self, query: &str) -> Result<Self::Statement, Self::Error> {
+        self.prepare(query).await
+    }
+}
 
 impl<T> GeekConnector for T
 where
