@@ -10,7 +10,7 @@ use crate::derive::TableDerive;
 /// use geekorm::PrimaryKeyInteger;
 ///
 /// #[derive(GeekTable, Clone)]
-/// struct User {
+/// struct Users {
 ///     id: PrimaryKeyInteger,
 ///     name: String,
 ///     age: i32,
@@ -18,7 +18,7 @@ use crate::derive::TableDerive;
 ///     country: Option<String>,
 /// }
 ///
-/// let user = User::new(
+/// let user = Users::new(
 ///     String::from("geekmasher"),
 ///     42,
 /// );
@@ -50,15 +50,15 @@ pub(crate) fn generate_new(
 /// use geekorm::PrimaryKeyInteger;
 ///
 /// #[derive(GeekTable, Default, Clone)]
-/// struct User {
+/// struct Users {
 ///     id: PrimaryKeyInteger,
 ///     name: String,
 ///     age: i32,
 /// }
 ///
-/// let user_id = User::select_by_id(1);
-/// let user_name = User::select_by_name("geekmasher");
-/// let user_age = User::select_by_age(42);
+/// let user_id = Users::select_by_id(1);
+/// let user_name = Users::select_by_name("geekmasher");
+/// let user_age = Users::select_by_age(42);
 /// ```
 #[allow(dead_code, unused_variables)]
 pub(crate) fn generate_helpers(

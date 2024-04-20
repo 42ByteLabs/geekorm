@@ -17,17 +17,17 @@ use crate::{derive::TableDerive, internal::TableState};
 /// use geekorm::{GeekTable, PrimaryKeyInteger};
 ///
 /// #[derive(GeekTable, Default, Clone)]
-/// struct User {
+/// struct Users {
 ///     id: PrimaryKeyInteger,
 ///     name: String,
 ///     age: i32,
 ///     occupation: String,
 /// }
 ///
-/// let user_table = User::table();
-/// let user_table_name = User::table_name();
+/// let user_table = Users::table();
+/// let user_table_name = Users::table_name();
 ///
-/// let user = User::default();
+/// let user = Users::default();
 /// # let user_table2 = user.get_table();
 /// ```
 pub fn generate_table_builder(
@@ -62,31 +62,31 @@ pub fn generate_table_builder(
 /// use geekorm::{GeekTable, PrimaryKeyInteger};
 ///
 /// #[derive(GeekTable, Default, Clone)]
-/// pub struct User {
+/// pub struct Users {
 ///     pub id: PrimaryKeyInteger,
 ///     pub name: String,
 /// }
 ///
 ///
 /// # fn main() {
-/// let create = User::create().build()
+/// let create = Users::create().build()
 ///     .expect("Failed to build CREATE TABLE query");
-/// # assert_eq!(create.to_str(), "CREATE TABLE IF NOT EXISTS User (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL);");
+/// # assert_eq!(create.to_str(), "CREATE TABLE IF NOT EXISTS Users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL);");
 ///
-/// let select = User::select().build()
+/// let select = Users::select().build()
 ///     .expect("Failed to build SELECT query");
-/// # assert_eq!(select.to_str(), "SELECT id, name FROM User;");
+/// # assert_eq!(select.to_str(), "SELECT id, name FROM Users;");
 ///
-/// let user = User::default();
-/// let insert = User::insert(&user);
-/// # assert_eq!(insert.to_str(), "INSERT INTO User (name) VALUES (?);");
+/// let user = Users::default();
+/// let insert = Users::insert(&user);
+/// # assert_eq!(insert.to_str(), "INSERT INTO Users (name) VALUES (?);");
 ///
-/// let update = User::update(&user);
-/// # assert_eq!(update.to_str(), "UPDATE User SET name = ? WHERE id = 0;");
+/// let update = Users::update(&user);
+/// # assert_eq!(update.to_str(), "UPDATE Users SET name = ? WHERE id = 0;");
 ///
-/// let count = User::count().build()
+/// let count = Users::count().build()
 ///     .expect("Failed to build COUNT query");
-/// # assert_eq!(count.to_str(), "SELECT COUNT(1) FROM User;");
+/// # assert_eq!(count.to_str(), "SELECT COUNT(1) FROM Users;");
 /// }
 /// ```
 pub fn generate_query_builder(
@@ -150,16 +150,16 @@ pub fn generate_query_builder(
 /// # use geekorm::Value;
 ///
 /// #[derive(GeekTable, Default, Clone)]
-/// pub struct Users {
+/// pub struct Userss {
 ///    pub id: PrimaryKeyInteger,
 ///    pub name: String,
 ///    pub age: i32,
 /// }
 ///
-/// let user = Users::new(String::from("John Doe"), 30);
+/// let user = Userss::new(String::from("John Doe"), 30);
 ///
-/// # assert_eq!(Users::primary_key(), "id");
-/// # assert_eq!(Users::primary_key_value(&user), Value::from(0));
+/// # assert_eq!(Userss::primary_key(), "id");
+/// # assert_eq!(Userss::primary_key_value(&user), Value::from(0));
 ///
 /// ```
 pub fn generate_table_primary_key(
@@ -212,7 +212,7 @@ pub fn generate_table_fetch(
             .unwrap();
 
         // Inner type of the field
-        // ForeignKey<i32, User>,
+        // ForeignKey<i32, Users>,
         let field_type = match &field.ty {
             syn::Type::Path(path) => path.path.segments.first().unwrap(),
             _ => {

@@ -141,34 +141,35 @@ impl ColumnDerive {
                                     Some((table, column)) => (table, column),
                                     None => {
                                         return Err(syn::Error::new(
-                                            attr.span.span(),
+                                            attr.value_span.unwrap_or(attr.span.span()),
                                             "Invalid foreign key format (table.column)",
                                         ))
                                     }
                                 };
 
-                                let tables = TableState::load_state_file();
+                                // TODO(geekmasher): These validation checks currently don't work
 
-                                let table = match tables.find_table(table) {
-                                    Some(table) => table,
-                                    None => {
-                                        // TODO(geekmasher): The crashing is happening here
-                                        return Err(syn::Error::new(
-                                            attr.value_span.unwrap_or(attr.span.span()),
-                                            "ForeignKey Table not found",
-                                        ));
-                                    }
-                                };
-
-                                if !table.is_valid_column(column) {
-                                    return Err(syn::Error::new(
-                                        attr.span.span(),
-                                        "ForeignKey Column not found in Table",
-                                    ));
-                                }
+                                // let tables = TableState::load_state_file();
+                                //
+                                // let table = match tables.find_table(table) {
+                                //     Some(table) => table,
+                                //     None => {
+                                //         return Err(syn::Error::new(
+                                //             attr.value_span.unwrap_or(attr.span.span()),
+                                //             "ForeignKey Table not found",
+                                //         ));
+                                //     }
+                                // };
+                                //
+                                // if !table.is_valid_column(column) {
+                                //     return Err(syn::Error::new(
+                                //         attr.span.span(),
+                                //         "ForeignKey Column not found in Table",
+                                //     ));
+                                // }
                                 self.coltype =
                                     ColumnTypeDerive::ForeignKey(ColumnTypeOptionsDerive {
-                                        foreign_key: name.to_string(),
+                                        foreign_key: format!("{}.{}", table, column),
                                         ..Default::default()
                                     });
                             }

@@ -1,6 +1,6 @@
 [package]
 name = "geekorm-cli"
-description = "GeeKorm CLI"
+description = "GeekORM Commmand Line Interface"
 
 version.workspace = true
 categories.workspace = true
