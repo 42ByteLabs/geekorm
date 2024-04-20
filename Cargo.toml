@@ -3,7 +3,7 @@ resolver = "2"
 members = [".", "geekorm-core", "geekorm-derive", "geekorm-cli"]
 
 [workspace.package]
-version = "0.1.1"
+version = "0.2.0"
 license = "MIT"
 edition = "2021"
 rust-version = "1.74"
@@ -54,8 +54,8 @@ primary_key = ["geekorm-derive/primary_key"]
 libsql = ["geekorm-core/libsql"]
 
 [dependencies]
-geekorm-core = { version = "^0.1.0", path = "geekorm-core" }
-geekorm-derive = { version = "^0.1.0", path = "geekorm-derive" }
+geekorm-core = { version = "^0.2.0", path = "geekorm-core" }
+geekorm-derive = { version = "^0.2.0", path = "geekorm-derive" }
 
 [dev-dependencies]
 anyhow = "1"
