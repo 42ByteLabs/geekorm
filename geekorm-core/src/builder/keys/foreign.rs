@@ -32,7 +32,7 @@ use crate::{PrimaryKey, TableBuilder};
 ///     .expect("Failed to build query");
 /// # assert_eq!(
 /// #     create_posts_query.to_str(),
-/// #     "CREATE TABLE IF NOT EXISTS Posts (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, user TEXT NOT NULL, FOREIGN KEY (user) REFERENCES Users(id));"
+/// #     "CREATE TABLE IF NOT EXISTS Posts (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, user INTEGER NOT NULL, FOREIGN KEY (user) REFERENCES Users(id));"
 /// # );
 ///
 /// // Use the foreign key to and join the tables together
