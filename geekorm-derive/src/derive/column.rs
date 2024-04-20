@@ -148,13 +148,15 @@ impl ColumnDerive {
                                 };
 
                                 let tables = TableState::load_state_file();
+
                                 let table = match tables.find_table(table) {
                                     Some(table) => table,
                                     None => {
+                                        // TODO(geekmasher): The crashing is happening here
                                         return Err(syn::Error::new(
-                                            attr.span.span(),
+                                            attr.value_span.unwrap_or(attr.span.span()),
                                             "ForeignKey Table not found",
-                                        ))
+                                        ));
                                     }
                                 };
 
