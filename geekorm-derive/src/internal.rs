@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 const GEEKORM_STATE_FILE: &str = env!("GEEKORM_STATE_FILE");
 
 /// The Table / Database state tracking macro
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct TableState {
     /// The time the state was created
     pub(crate) created_at: chrono::DateTime<chrono::Utc>,
@@ -23,10 +23,12 @@ pub(crate) struct TableState {
 
 impl TableState {
     pub(crate) fn new() -> Self {
-        Self {
+        let table = Self {
             created_at: chrono::Utc::now(),
             tables: Vec::new(),
-        }
+        };
+        Self::write(&table);
+        table
     }
 
     pub(crate) fn get_state_file() -> PathBuf {
@@ -37,12 +39,7 @@ impl TableState {
         let state_file = Self::get_state_file();
         // If the state file does not exist, create a new state file
         if !state_file.exists() {
-            let state = Self {
-                created_at: chrono::Utc::now(),
-                tables: Vec::new(),
-            };
-            Self::write(&state);
-            return state;
+            return Self::new();
         }
         let state_json = std::fs::read_to_string(state_file)
             .expect("[geekorm-internal] Failed to read state file");
@@ -74,7 +71,7 @@ impl TableState {
     }
 
     // Helper functions
-
+    #[allow(dead_code)]
     pub(crate) fn find_table(&self, name: &str) -> Option<Table> {
         self.tables.iter().find(|table| table.name == name).cloned()
     }

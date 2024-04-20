@@ -24,7 +24,7 @@ jobs:
               - '**/Cargo.*'
               - 'rust-toolchain.toml'
               - 'src/**'
-              - 'geekorm-*'
+              - 'geekorm-*/**'
               - 'examples/**'
               - 'tests/**'
 

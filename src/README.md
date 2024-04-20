@@ -25,7 +25,7 @@
  use geekorm::{QueryOrder, PrimaryKeyInteger};
 
  #[derive(Debug, Clone, GeekTable)]
- struct User {
+ struct Users {
     id: PrimaryKeyInteger,
     username: String,
     email: String,
@@ -34,13 +34,13 @@
  }
 
  // Use the `create` method to build a CREATE TABLE query
- let create_table = User::create().build()
+ let create_table = Users::create().build()
      .expect("Failed to build create table query");
  println!("Create Table Query: {}", create_table);
 
  // Use the `select` method to build a SELECT query along with different conditions
  // and ordering
- let select_user = User::select()
+ let select_user = Users::select()
      .where_eq("username", "geekmasher")
      .and()
      .where_gt("age", 20)
@@ -48,11 +48,11 @@
      .limit(10)
      .build()
      .expect("Failed to build query");
- println!("Select User Query: {}", select_user);
+ println!("Select Users Query: {}", select_user);
 
  // Print the values that will be used in the query
  // This is useful for passing values to a database driver or connection in the correct order
- println!("Select User Values: {:?}", select_user.values);
+ println!("Select Users Values: {:?}", select_user.values);
  ```
 
 ### Unsupported Features

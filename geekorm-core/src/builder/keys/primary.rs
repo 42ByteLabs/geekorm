@@ -22,16 +22,16 @@ use crate::ToSqlite;
 /// use geekorm::prelude::*;
 ///
 /// #[derive(Clone, GeekTable, Default)]
-/// pub struct User {
+/// pub struct Users {
 ///    pub id: PrimaryKey<i32>,
 ///    pub username: String,
 /// }
 ///
-/// let user = User {
+/// let user = Users {
 ///     id: PrimaryKey::from(1),
 ///     username: String::from("JohnDoe")
 /// };
-/// # assert_eq!(User::primary_key(), "id");
+/// # assert_eq!(Users::primary_key(), "id");
 /// # assert_eq!(user.id.clone(), PrimaryKey::from(1));
 /// # assert_eq!(user.username.clone(), String::from("JohnDoe"));
 /// ```
@@ -43,12 +43,12 @@ use crate::ToSqlite;
 /// use geekorm::prelude::*;
 ///
 /// #[derive(Clone, GeekTable, Default)]
-/// pub struct User {
+/// pub struct Users {
 ///     pub id: PrimaryKey<String>,
 ///     pub username: String,
 /// }
 ///
-/// let user = User {
+/// let user = Users {
 ///     id: PrimaryKey::from("1"),
 ///     username: String::from("JohnDoe")
 /// };
@@ -94,12 +94,12 @@ impl PrimaryKey<String> {
 /// use geekorm::PrimaryKeyInteger;
 ///
 /// #[derive(Clone, GeekTable, Default)]
-/// pub struct User {
+/// pub struct Users {
 ///     pub id: PrimaryKeyInteger,
 ///     pub username: String,
 /// }
 ///
-/// let user = User {
+/// let user = Users {
 ///     id: PrimaryKeyInteger::from(1),
 ///     username: String::from("JohnDoe")
 /// };
@@ -121,12 +121,12 @@ impl Default for PrimaryKeyInteger {
 /// use geekorm::PrimaryKeyString;
 ///
 /// #[derive(Clone, GeekTable, Default)]
-/// pub struct User {
+/// pub struct Users {
 ///     pub id: PrimaryKeyString,
 ///     pub username: String,
 /// }
 ///
-/// let user = User {
+/// let user = Users {
 ///     id: PrimaryKeyString::from("1"),
 ///     username: String::from("JohnDoe")
 /// };
@@ -152,13 +152,13 @@ impl Default for PrimaryKeyString {
 /// use geekorm::prelude::*;
 ///
 /// #[derive(Clone, GeekTable, Default)]
-/// pub struct User {
+/// pub struct Users {
 ///     pub id: PrimaryKeyUuid,
 ///     pub username: String,
 /// }
 ///
 /// let new_uuid = uuid::Uuid::new_v4();
-/// let user = User {
+/// let user = Users {
 ///     id: PrimaryKeyUuid::from(new_uuid),
 ///     username: String::from("JohnDoe")
 /// };

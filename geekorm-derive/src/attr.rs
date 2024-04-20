@@ -1,3 +1,4 @@
+use proc_macro2::Span;
 use proc_macro2::TokenStream;
 use quote::quote;
 use quote::ToTokens;
@@ -13,6 +14,7 @@ pub(crate) struct GeekAttribute {
     pub(crate) span: Ident,
     pub(crate) key: Option<GeekAttributeKeys>,
     pub(crate) value: Option<GeekAttributeValue>,
+    pub(crate) value_span: Option<Span>,
 }
 
 #[derive(Debug, Clone)]
@@ -98,11 +100,15 @@ impl Parse for GeekAttribute {
             _ => None,
         };
 
+        let mut value_span: Option<Span> = None;
+
         let value = if input.peek(Token![=]) {
             // `name = value` attributes.
             let _assign_token = input.parse::<Token![=]>()?; // skip '='
             if input.peek(LitStr) {
                 let lit: LitStr = input.parse()?;
+                value_span = Some(lit.span());
+
                 Some(GeekAttributeValue::String(lit.value()))
             } else {
                 None
@@ -115,6 +121,7 @@ impl Parse for GeekAttribute {
             span: name,
             key,
             value,
+            value_span,
         })
     }
 }
