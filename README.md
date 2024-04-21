@@ -1,3 +1,4 @@
+<!-- markdownlint-disable -->
 <div align="center">
 <h1>GeekORM</h1>
 
@@ -11,6 +12,7 @@
 <img src="./assets/geekorm.png" width="450" title="GeekORM Logo">
 
 </div>
+<!-- markdownlint-restore -->
 
 ## Overview
 
