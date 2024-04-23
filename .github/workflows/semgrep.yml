@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: "Run Semgrep"
-        run: semgrep . --sarif --output semgrep.sarif
+        run: semgrep . --sarif --metrics=off --output semgrep.sarif
         env:
           SEMGREP_RULES: p/default
 
