@@ -21,10 +21,18 @@
 ## ✨ Features
 
 - Focus on simplicity
-- Focus on using Derive Macros
+- Rely on Derive Macros to generate code for your structs
+  - Using `GeekTable`
+- Dynamically build queries
+  - `Select`, `Create`, `Update`, and `Insert` queries
+- Generate helper functions
+  - Select `select_by_primary_key()` & `select_by_{field}()`
+  - New instance `new`
+- Support for Backends
+  - [`libsql`][lib-libsql] ([Turso][web-turso])
 - [Documentation][docs]
 
-## Usage
+## 📦 Usage
 
 You can install the library from [crates.io][crates]:
 
@@ -38,7 +46,7 @@ cargo add geekorm
 cargo install --git https://github.com/42ByteLabs/geekorm
 ```
 
-## Maintainers / Contributors
+## 🧑‍🤝‍🧑 Maintainers / Contributors
 
 <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
 <!-- prettier-ignore-start -->
@@ -57,13 +65,13 @@ cargo install --git https://github.com/42ByteLabs/geekorm
 
 <!-- ALL-CONTRIBUTORS-LIST:END -->
 
-## Support
+## 🦸 Support
 
 Please create [GitHub Issues][github-issues] if there are bugs or feature requests.
 
 This project uses [Semantic Versioning (v2)][semver] and with major releases, breaking changes will occur.
 
-## License
+## 📓 License
 
 This project is licensed under the terms of the MIT open source license.
 Please refer to [MIT][license] for the full terms.
@@ -79,3 +87,6 @@ Please refer to [MIT][license] for the full terms.
 [github-issues]: https://github.com/42ByteLabs/geekorm/issues
 [crates]: https://crates.io
 [docs-orm]: https://en.wikipedia.org/wiki/Object%E2%80%93relational_mapping
+
+[lib-libsql]: https://github.com/tursodatabase/libsql
+[web-turso]: https://turso.tech/
