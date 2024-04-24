@@ -136,29 +136,22 @@ async fn main() -> Result<()> {
     // Update the Serde project struct (name and url)
     project_serde.name = "SerDe".to_string();
     project_serde.url = "https://www.youtube.com/watch?v=BI_bHCGRgMY".to_string();
-    // Now lets update the project in the database
-    Projects::execute(&conn, Projects::update(&project_serde)).await?;
 
-    // Select the updated project
-    let mut sproject = Projects::query_first(
-        &conn,
-        Projects::select()
-            .where_eq("name", "SerDe")
-            .limit(1)
-            .build()
-            .expect("Failed to build SELECT query"),
-    )
-    .await?;
+    // Now lets update the project in the database
+    project_serde.execute_update(&conn).await?;
 
     // Fetch the project repository by the foreign key
-    let project_repository = sproject.fetch_repository(&conn).await?;
+    let project_repository = project_serde.fetch_repository(&conn).await?;
     println!("\nProject Repository: {}", project_repository.url);
 
     println!("\n");
 
     // Print the updated project
-    println!("Updated Project: {} - {}\n", sproject.name, sproject.url);
-    assert_eq!(sproject.name, "SerDe");
+    println!(
+        "Updated Project: {} - {}\n",
+        project_serde.name, project_serde.url
+    );
+    assert_eq!(project_serde.name, "SerDe");
 
     Ok(())
 }

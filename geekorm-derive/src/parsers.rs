@@ -16,9 +16,10 @@ use crate::{
     parsers::tablebuilder::generate_query_builder,
 };
 use helpers::{generate_helpers, generate_new};
-use tablebuilder::{generate_table_builder, generate_table_primary_key};
-
-use self::tablebuilder::generate_table_fetch;
+use tablebuilder::{
+    generate_table_builder, generate_table_execute, generate_table_fetch,
+    generate_table_primary_key,
+};
 
 pub(crate) fn derive_parser(ast: &DeriveInput) -> Result<TokenStream, syn::Error> {
     let name = &ast.ident;
@@ -81,6 +82,10 @@ fn generate_struct(
     stream.extend(generate_query_builder(ident, generics, &table)?);
     // Primary Key
     stream.extend(generate_table_primary_key(ident, generics, &table)?);
+
+    // Execute methods
+    #[cfg(feature = "libsql")]
+    stream.extend(generate_table_execute(ident, generics, &table)?);
 
     // Fetch methods
     stream.extend(generate_table_fetch(ident, fields, generics, &table)?);

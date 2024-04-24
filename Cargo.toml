@@ -50,8 +50,9 @@ new = ["geekorm-derive/new"]
 helpers = ["geekorm-derive/helpers"]
 # Generate primary key functions for Tables automatically
 primary_key = ["geekorm-derive/primary_key"]
+
 # Backends for the ORM
-libsql = ["geekorm-core/libsql"]
+libsql = ["geekorm-derive/libsql", "geekorm-core/libsql"]
 
 [dependencies]
 geekorm-core = { version = "^0.2.0", path = "geekorm-core" }
