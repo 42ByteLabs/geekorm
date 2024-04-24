@@ -193,6 +193,27 @@ pub fn generate_table_primary_key(
     }
 }
 
+/// Generate `execute` helper functions for the struct.
+///
+/// - `execute_update()`
+#[allow(dead_code)]
+pub fn generate_table_execute(
+    ident: &syn::Ident,
+    generics: &syn::Generics,
+    _table: &TableDerive,
+) -> Result<TokenStream, syn::Error> {
+    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
+
+    Ok(quote! {
+        impl #impl_generics #ident #ty_generics #where_clause {
+            /// Execute an update query for the struct.
+            pub async fn execute_update(&self, connection: &libsql::Connection) -> Result<(), geekorm::Error> {
+                #ident::execute(&connection, #ident::update(self)).await
+            }
+        }
+    })
+}
+
 /// Generate fetch methods for the struct.
 pub fn generate_table_fetch(
     ident: &syn::Ident,
