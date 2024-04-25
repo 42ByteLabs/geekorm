@@ -11,6 +11,8 @@ pub mod builder;
 pub mod error;
 /// Query module
 pub mod queries;
+/// Utils module
+pub mod utils;
 
 #[cfg(feature = "libsql")]
 pub use backends::libsql;

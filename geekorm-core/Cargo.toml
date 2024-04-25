@@ -25,6 +25,7 @@ default = []
 
 uuid = ["dep:uuid"]
 chrono = ["dep:chrono"]
+rand = ["dep:rand"]
 
 # Backends
 libsql = ["dep:libsql"]
@@ -38,6 +39,7 @@ log = { version = "0.4", features = ["std"] }
 
 uuid = { version = "1.8", features = ["v4"], optional = true }
 chrono = { version = "0.4", optional = true }
+rand = { version = "0.8", optional = true }
 libsql = { version = "0.3", optional = true }
 sqlite = { version = "0.35", optional = true }
 
