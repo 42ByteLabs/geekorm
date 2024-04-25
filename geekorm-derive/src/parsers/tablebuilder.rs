@@ -224,19 +224,17 @@ pub fn generate_table_execute(
 
             /// Execute an update query for the struct.
             pub async fn execute_insert(&mut self, connection: &libsql::Connection) -> Result<(), geekorm::Error> {
-                let mut insert_query = #ident::insert(self);
+                #ident::execute(&connection, #ident::insert(self)).await?;
                 let select_query = #ident::select()
                     .order_by(#ident::primary_key().as_str(), geekorm::QueryOrder::Desc)
                     .limit(1)
                     .build()?;
-                insert_query.query.push_str(" ");
-                insert_query.query.push_str(select_query.to_str());
 
-                log::debug!("Insert query: {}", insert_query.to_str());
-                let item: #ident = #ident::query_first(connection, insert_query).await?;
+                log::debug!("Insert query: {}", select_query.to_str());
+                let item: #ident = #ident::query_first(connection, select_query).await?;
 
                 #insert_values
-                Err(geekorm::Error::NotImplemented)
+                Ok(())
             }
         }
     })
