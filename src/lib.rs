@@ -23,6 +23,11 @@ pub use geekorm_core::builder::values::{Value, Values};
 pub use geekorm_core::queries::Query;
 pub use geekorm_core::queries::QueryBuilder;
 
+/// Utils
+pub mod utils {
+    pub use geekorm_core::utils::*;
+}
+
 // Derive Crate
 /// GeekTable Derive Macro
 pub use geekorm_derive::GeekTable;

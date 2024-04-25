@@ -43,6 +43,7 @@ all = ["uuid", "chrono", "new", "helpers"]
 
 uuid = ["geekorm-core/uuid"]
 chrono = ["geekorm-derive/chrono"]
+rand = ["geekorm-derive/rand", "geekorm-core/rand"]
 
 # Generate new functions for Tables
 new = ["geekorm-derive/new"]
