@@ -200,15 +200,43 @@ pub fn generate_table_primary_key(
 pub fn generate_table_execute(
     ident: &syn::Ident,
     generics: &syn::Generics,
-    _table: &TableDerive,
+    table: &TableDerive,
 ) -> Result<TokenStream, syn::Error> {
     let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
 
+    let mut insert_values = TokenStream::new();
+    for column in table.columns.columns.iter() {
+        let name = &column.name;
+        let ident = syn::Ident::new(name.as_str(), name.span());
+
+        // TODO(geekmasher): This clone isn't ideal, but it's the only way to get this to work.
+        insert_values.extend(quote! {
+            self.#ident = item.#ident.clone();
+        });
+    }
+
+    // TODO(geekmasher): The execute_insert method might have an issue as we don't have a lock and
+    // the last inserted item might not be the one we inserted.
     Ok(quote! {
         impl #impl_generics #ident #ty_generics #where_clause {
             /// Execute an update query for the struct.
             pub async fn execute_update(&self, connection: &libsql::Connection) -> Result<(), geekorm::Error> {
                 #ident::execute(&connection, #ident::update(self)).await
+            }
+
+            /// Execute an update query for the struct.
+            pub async fn execute_insert(&mut self, connection: &libsql::Connection) -> Result<(), geekorm::Error> {
+                #ident::execute(&connection, #ident::insert(self)).await?;
+                let select_query = #ident::select()
+                    .order_by(#ident::primary_key().as_str(), geekorm::QueryOrder::Desc)
+                    .limit(1)
+                    .build()?;
+
+                log::debug!("Insert query: {}", select_query.to_str());
+                let item: #ident = #ident::query_first(connection, select_query).await?;
+
+                #insert_values
+                Ok(())
             }
         }
     })
