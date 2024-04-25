@@ -103,8 +103,15 @@ impl Parse for GeekAttribute {
             "auto_increment" => Some(GeekAttributeKeys::AutoIncrement),
             "foreign_key" => Some(GeekAttributeKeys::ForeignKey),
             // Random value feature
-            #[cfg(feature = "rand")]
-            "rand" => Some(GeekAttributeKeys::Rand),
+            "rand" => match cfg!(feature = "rand") {
+                true => Some(GeekAttributeKeys::Rand),
+                false => {
+                    return Err(syn::Error::new(
+                        name.span(),
+                        "The `rand` attribute requires the `rand` feature to be enabled",
+                    ))
+                }
+            },
             _ => None,
         };
 
