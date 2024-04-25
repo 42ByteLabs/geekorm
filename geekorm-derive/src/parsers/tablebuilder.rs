@@ -215,6 +215,8 @@ pub fn generate_table_execute(
         });
     }
 
+    // TODO(geekmasher): The execute_insert method might have an issue as we don't have a lock and
+    // the last inserted item might not be the one we inserted.
     Ok(quote! {
         impl #impl_generics #ident #ty_generics #where_clause {
             /// Execute an update query for the struct.
