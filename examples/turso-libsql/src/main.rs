@@ -72,7 +72,7 @@ async fn main() -> Result<()> {
 
     println!("Inserting data into the table...");
     for (name, url, repo) in projects {
-        // Use the Repository::new() constructor to create a new repository and 
+        // Use the Repository::new() constructor to create a new repository and
         // insert it into the database.
         let mut repository = Repository::new(repo.to_string());
         repository.execute_insert(&conn).await?;
@@ -82,7 +82,10 @@ async fn main() -> Result<()> {
         let mut project = Projects::new(name.to_string(), url.to_string(), repository.id);
         project.execute_insert(&conn).await?;
 
-        println!("Project: {} - {} (repo: {})", project.name, project.url, repository.url);
+        println!(
+            "Project: {} - {} (repo: {})",
+            project.name, project.url, repository.url
+        );
     }
 
     // Count the number of projects in the table
