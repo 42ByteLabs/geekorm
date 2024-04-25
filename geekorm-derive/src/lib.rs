@@ -127,6 +127,24 @@ use syn::{parse_macro_input, Data, DataStruct, DeriveInput, Fields};
 /// let user = Users::select_by_occupation("Software Developer");
 /// # assert_eq!(user.query, String::from("SELECT id, name, age, occupation FROM Users WHERE occupation = ?;"));
 /// ```
+///
+/// # Generate Random Data for Column
+///
+/// ```rust
+/// use geekorm::prelude::*;
+/// use geekorm::{GeekTable, PrimaryKeyInteger};
+///
+/// #[derive(GeekTable, Debug)]
+/// pub struct Users {
+///     id: PrimaryKeyInteger,
+///     name: String,
+///     #[geekorm(rand)]
+///     token: String
+/// }
+///
+/// let user = Users::new(String::from("geekmasher"));
+///
+/// ```
 #[proc_macro_derive(GeekTable, attributes(geekorm))]
 pub fn table_derive(input: TokenStream) -> TokenStream {
     let ast: DeriveInput = parse_macro_input!(input as DeriveInput);

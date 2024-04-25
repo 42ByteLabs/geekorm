@@ -2,6 +2,7 @@ use proc_macro2::Span;
 use proc_macro2::TokenStream;
 use quote::quote;
 use quote::ToTokens;
+use syn::LitInt;
 use syn::{
     parse::{Parse, ParseStream},
     spanned::Spanned,
@@ -24,11 +25,15 @@ pub(crate) enum GeekAttributeKeys {
     Default,
     AutoIncrement,
     ForeignKey,
+    // Random value
+    Rand,
 }
 
 #[derive(Debug, Clone)]
 pub(crate) enum GeekAttributeValue {
     String(String),
+    #[allow(dead_code)]
+    Int(i64),
 }
 
 impl GeekAttribute {
@@ -97,6 +102,16 @@ impl Parse for GeekAttribute {
             "default" => Some(GeekAttributeKeys::Default),
             "auto_increment" => Some(GeekAttributeKeys::AutoIncrement),
             "foreign_key" => Some(GeekAttributeKeys::ForeignKey),
+            // Random value feature
+            "rand" => match cfg!(feature = "rand") {
+                true => Some(GeekAttributeKeys::Rand),
+                false => {
+                    return Err(syn::Error::new(
+                        name.span(),
+                        "The `rand` attribute requires the `rand` feature to be enabled",
+                    ))
+                }
+            },
             _ => None,
         };
 
@@ -110,6 +125,11 @@ impl Parse for GeekAttribute {
                 value_span = Some(lit.span());
 
                 Some(GeekAttributeValue::String(lit.value()))
+            } else if input.peek(LitInt) {
+                let lit: LitInt = input.parse()?;
+                value_span = Some(lit.span());
+
+                Some(GeekAttributeValue::Int(lit.base10_parse().unwrap()))
             } else {
                 None
             }

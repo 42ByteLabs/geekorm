@@ -102,6 +102,11 @@ impl From<Vec<ColumnDerive>> for ColumnsDerive {
     }
 }
 
+#[derive(Debug, Clone)]
+pub(crate) enum ColumnMode {
+    Rand(usize),
+}
+
 #[derive(Clone)]
 pub(crate) struct ColumnDerive {
     pub(crate) identifier: Ident,
@@ -114,6 +119,8 @@ pub(crate) struct ColumnDerive {
     pub(crate) alias: String,
     pub(crate) coltype: ColumnTypeDerive,
     pub(crate) skip: bool,
+
+    pub(crate) mode: Option<ColumnMode>,
 }
 
 impl ColumnDerive {
@@ -175,6 +182,11 @@ impl ColumnDerive {
                             }
                         }
                     }
+                    GeekAttributeKeys::Rand => {
+                        // TODO(geekmasher): RandLen
+
+                        self.mode = Some(ColumnMode::Rand(32));
+                    }
                     _ => {}
                 }
             } else {
@@ -208,6 +220,10 @@ impl ColumnDerive {
     pub(crate) fn to_params(&self) -> Option<TokenStream> {
         // Skip the column if it's marked as such
         if self.skip {
+            return None;
+        }
+        // Modes
+        if let Some(ColumnMode::Rand(_)) = &self.mode {
             return None;
         }
 
@@ -262,6 +278,13 @@ impl ColumnDerive {
         // For Skipped columns, return the identifier
         if self.skip {
             return quote! { #identifier: Default::default() };
+        }
+
+        // Random
+        if let Some(ColumnMode::Rand(len)) = &self.mode {
+            return quote! {
+                #identifier: geekorm::utils::generate_random_string(#len)
+            };
         }
 
         if let Type::Path(TypePath { path, .. }) = &self.itype {
@@ -343,6 +366,7 @@ impl Default for ColumnDerive {
             attributes: Vec::new(),
             identifier: Ident::new("column", Span::call_site()),
             itype: syn::parse_quote! { String },
+            mode: None,
         }
     }
 }
@@ -417,6 +441,7 @@ impl TryFrom<&Field> for ColumnDerive {
             coltype,
             alias: String::from(""),
             skip: false,
+            mode: None,
         };
         col.apply_attributes()?;
         Ok(col)
@@ -437,6 +462,7 @@ mod tests {
             coltype: ColumnTypeDerive::Identifier(Default::default()),
             alias: String::from(""),
             skip: false,
+            mode: None,
         };
         assert!(column.is_primary_key());
 
@@ -451,6 +477,7 @@ mod tests {
             }),
             alias: String::from(""),
             skip: false,
+            mode: None,
         };
         assert!(column.is_primary_key());
 
@@ -465,6 +492,7 @@ mod tests {
             }),
             alias: String::from(""),
             skip: false,
+            mode: None,
         };
         assert!(column.is_primary_key());
     }
