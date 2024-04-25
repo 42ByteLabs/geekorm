@@ -72,31 +72,17 @@ async fn main() -> Result<()> {
 
     println!("Inserting data into the table...");
     for (name, url, repo) in projects {
-        // Use the Repository::new() constructor to create a new repository.
+        // Use the Repository::new() constructor to create a new repository and 
+        // insert it into the database.
         let mut repository = Repository::new(repo.to_string());
-        println!("Repository: {}", repository.url);
-        Repository::query(&conn, Repository::insert(&repository)).await?;
-
-        repository = Repository::query_first(
-            &conn,
-            Repository::select().where_eq("url", repo).build().unwrap(),
-        )
-        .await?;
+        repository.execute_insert(&conn).await?;
 
         // Use the Projects::new() constructor to create a new project.
         // This is provided by the GeekTable derive macro when the `new` feature is enabled.
-        let project = Projects::new(name.to_string(), url.to_string(), repository.id);
+        let mut project = Projects::new(name.to_string(), url.to_string(), repository.id);
+        project.execute_insert(&conn).await?;
 
-        println!("Project: {} - {}", project.name, project.url);
-
-        // Insert the project into the database
-        Projects::query(
-            // Pass in the connection
-            &conn,
-            // Build an INSERT query with the data
-            Projects::insert(&project),
-        )
-        .await?;
+        println!("Project: {} - {} (repo: {})", project.name, project.url, repository.url);
     }
 
     // Count the number of projects in the table
