@@ -30,7 +30,7 @@ chrono = ["geekorm-core/chrono"]
 new = []
 primary_key = []
 rand = ["geekorm-core/rand", "dep:rand"]
-hash = ["geekorm-core/hash", "dep:pbkdf2"]
+hash = ["geekorm-core/hash"]
 helpers = []
 
 # Backends
@@ -53,7 +53,7 @@ serde_json = "1.0"
 uuid = { version = "1.8", features = ["v4"], optional = true }
 chrono = { version = "0.4", features = ["serde"] }
 rand = { version = "0.8", optional = true }
-pbkdf2 = { version = "0.12", optional = true }
+
 
 [dev-dependencies]
 geekorm = { path = "..", features = ["new", "helpers"] }
