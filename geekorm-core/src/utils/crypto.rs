@@ -8,7 +8,6 @@ use pbkdf2::{
     password_hash::{rand_core::OsRng, PasswordHasher, SaltString},
     Pbkdf2,
 };
-#[cfg(feature = "hash")]
 
 /// Character set for generating random strings
 pub const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ\
