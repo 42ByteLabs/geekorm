@@ -295,7 +295,7 @@ impl ColumnDerive {
                 #identifier: geekorm::utils::generate_hash(
                     #identifier,
                     geekorm::utils::crypto::HashingAlgorithm::from(#hash)
-                )
+                ).unwrap()
             };
         }
 

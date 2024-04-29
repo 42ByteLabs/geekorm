@@ -26,6 +26,10 @@ pub enum Error {
     #[error("Not Implemented")]
     NotImplemented,
 
+    /// Error Hashing Password
+    #[error("Error Hashing Password: {0}")]
+    HashingError(String),
+
     /// Unknown / Generic Error
     #[error("Unknown Error / Generic Error occurred")]
     Unknown,

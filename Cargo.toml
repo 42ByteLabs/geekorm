@@ -37,7 +37,7 @@ shared-version = true
 tag-name = "v{{version}}"
 
 [features]
-default = []
+default = ["hash"]
 # All features (minus backends)
 all = ["uuid", "chrono", "new", "helpers", "rand", "hash"]
 

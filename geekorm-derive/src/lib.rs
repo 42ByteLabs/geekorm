@@ -162,7 +162,7 @@ use syn::{parse_macro_input, Data, DataStruct, DeriveInput, Fields};
 /// }
 ///
 /// let user = Users::new(String::from("geekmasher"), String::from("password"));
-/// # assert_eq!(user.password.len(), 20);
+/// # assert_eq!(user.password.len(), 95);
 /// ```
 #[proc_macro_derive(GeekTable, attributes(geekorm))]
 pub fn table_derive(input: TokenStream) -> TokenStream {
