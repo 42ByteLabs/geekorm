@@ -27,6 +27,8 @@ pub(crate) enum GeekAttributeKeys {
     ForeignKey,
     // Random value
     Rand,
+    // Hash / Password
+    Hash,
 }
 
 #[derive(Debug, Clone)]
@@ -111,6 +113,13 @@ impl Parse for GeekAttribute {
                         "The `rand` attribute requires the `rand` feature to be enabled",
                     ))
                 }
+            },
+            "hash" | "password" => match cfg!(feature = "hash") {
+                true => Some(GeekAttributeKeys::Hash),
+                false => return Err(syn::Error::new(
+                    name.span(),
+                    "The `hash` or `password` attribute requires the `hash` feature to be enabled",
+                )),
             },
             _ => None,
         };

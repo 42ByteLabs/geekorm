@@ -145,6 +145,25 @@ use syn::{parse_macro_input, Data, DataStruct, DeriveInput, Fields};
 /// let user = Users::new(String::from("geekmasher"));
 ///
 /// ```
+///
+/// # Generate Hash for storing passwords
+///
+/// ```rust
+/// use geekorm::prelude::*;
+/// use geekorm::{GeekTable, PrimaryKeyInteger};
+///
+/// #[derive(GeekTable, Debug)]
+/// pub struct Users {
+///     id: PrimaryKeyInteger,
+///     username: String,
+///
+///     #[geekorm(password)]
+///     password: String,
+/// }
+///
+/// let user = Users::new(String::from("geekmasher"), String::from("password"));
+/// # assert_eq!(user.password.len(), 20);
+/// ```
 #[proc_macro_derive(GeekTable, attributes(geekorm))]
 pub fn table_derive(input: TokenStream) -> TokenStream {
     let ast: DeriveInput = parse_macro_input!(input as DeriveInput);
