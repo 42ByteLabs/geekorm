@@ -30,6 +30,7 @@ chrono = ["geekorm-core/chrono"]
 new = []
 primary_key = []
 rand = ["geekorm-core/rand", "dep:rand"]
+hash = ["geekorm-core/hash"]
 helpers = []
 
 # Backends

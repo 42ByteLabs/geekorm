@@ -1,4 +1,4 @@
-use geekorm_core::ColumnType;
+use geekorm_core::{utils::crypto::HashingAlgorithm, ColumnType};
 use proc_macro2::{Span, TokenStream};
 use quote::{quote, ToTokens};
 use std::{
@@ -105,6 +105,7 @@ impl From<Vec<ColumnDerive>> for ColumnsDerive {
 #[derive(Debug, Clone)]
 pub(crate) enum ColumnMode {
     Rand(usize),
+    Hash(HashingAlgorithm),
 }
 
 #[derive(Clone)]
@@ -186,6 +187,9 @@ impl ColumnDerive {
                         // TODO(geekmasher): RandLen
 
                         self.mode = Some(ColumnMode::Rand(32));
+                    }
+                    GeekAttributeKeys::Hash => {
+                        self.mode = Some(ColumnMode::Hash(HashingAlgorithm::Pbkdf2));
                     }
                     _ => {}
                 }
@@ -284,6 +288,14 @@ impl ColumnDerive {
         if let Some(ColumnMode::Rand(len)) = &self.mode {
             return quote! {
                 #identifier: geekorm::utils::generate_random_string(#len)
+            };
+        } else if let Some(ColumnMode::Hash(alg)) = &self.mode {
+            let hash = alg.to_str();
+            return quote! {
+                #identifier: geekorm::utils::generate_hash(
+                    #identifier,
+                    geekorm::utils::crypto::HashingAlgorithm::from(#hash)
+                ).unwrap()
             };
         }
 

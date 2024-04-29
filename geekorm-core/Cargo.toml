@@ -26,6 +26,7 @@ default = []
 uuid = ["dep:uuid"]
 chrono = ["dep:chrono"]
 rand = ["dep:rand"]
+hash = ["dep:pbkdf2", "dep:rand_core"]
 
 # Backends
 libsql = ["dep:libsql"]
@@ -39,7 +40,12 @@ log = { version = "0.4", features = ["std"] }
 
 uuid = { version = "1.8", features = ["v4"], optional = true }
 chrono = { version = "0.4", optional = true }
+# Random number generation
 rand = { version = "0.8", optional = true }
+rand_core = { version = "0.6", features = ["std"], optional = true }
+# For hashing data
+pbkdf2 = { version = "0.12", features = ["simple"], optional = true }
+
 libsql = { version = "0.3", optional = true }
 sqlite = { version = "0.35", optional = true }
 
