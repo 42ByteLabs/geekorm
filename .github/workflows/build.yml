@@ -36,6 +36,7 @@ jobs:
       - name: Build
         if: steps.changes.outputs.src == 'true'
         run: |
+          cargo build --workspace
           cargo build -F all --workspace
 
       - name: Formatting Checks
