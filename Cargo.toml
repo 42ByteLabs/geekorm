@@ -39,11 +39,12 @@ tag-name = "v{{version}}"
 [features]
 default = []
 # All features (minus backends)
-all = ["uuid", "chrono", "new", "helpers", "rand"]
+all = ["uuid", "chrono", "new", "helpers", "rand", "hash"]
 
 uuid = ["geekorm-core/uuid"]
 chrono = ["geekorm-derive/chrono"]
 rand = ["geekorm-derive/rand", "geekorm-core/rand"]
+hash = ["geekorm-derive/hash", "geekorm-core/hash"]
 
 # Generate new functions for Tables
 new = ["geekorm-derive/new"]
