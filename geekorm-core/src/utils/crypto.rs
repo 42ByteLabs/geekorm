@@ -71,6 +71,7 @@ pub fn generate_hash(data: String, alg: HashingAlgorithm) -> Result<String, crat
 /// let data = "password".to_string();
 /// let hash = generate_hash(data, HashingAlgorithm::Pbkdf2);
 /// ```
+#[cfg(feature = "hash")]
 pub(crate) fn generate_hash_pdkdf2(data: String) -> Result<String, crate::Error> {
     // Salt
     let salt = SaltString::generate(&mut OsRng);
