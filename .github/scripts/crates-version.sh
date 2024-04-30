@@ -18,6 +18,7 @@ if [ "$current_version" != "$crates_remote" ]; then
     if [ -z "$CI" ]; then
         exit 1
     else
+        echo "version=$current_version" >> $GITHUB_OUTPUT
         echo "outdated=true" >> $GITHUB_OUTPUT
     fi
 else
