@@ -6,7 +6,8 @@ use std::{
     fmt::Debug,
 };
 use syn::{
-    parse::Parse, spanned::Spanned, Attribute, Field, GenericArgument, Ident, Type, TypePath,
+    parse::Parse, spanned::Spanned, token::Pub, Attribute, Field, GenericArgument, Ident, Type,
+    TypePath, Visibility,
 };
 
 use crate::{
@@ -500,6 +501,16 @@ impl TryFrom<&Field> for ColumnDerive {
             mode: None,
         };
         col.apply_attributes()?;
+
+        // TODO(geekmasher): Check if the column is public
+        // if let Some(ref mode) = col.mode {
+        //     if let ColumnMode::Hash(_) = mode {
+        //         if let Visibility::Public(Pub { .. }) = value.vis {
+        //             todo!("")
+        //         }
+        //     }
+        // }
+
         Ok(col)
     }
 }
