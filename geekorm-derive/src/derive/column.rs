@@ -383,18 +383,30 @@ impl ColumnDerive {
     pub(crate) fn get_hash_helpers(&self) -> TokenStream {
         let identifier = &self.identifier;
 
-        let func_name = format!("hash_{}", identifier);
-        let func = Ident::new(&func_name, Span::call_site());
+        let hash_func_name = format!("hash_{}", identifier);
+        let hash_func = Ident::new(&hash_func_name, Span::call_site());
+
+        let check_func_name = format!("check_{}", identifier);
+        let check_func = Ident::new(&check_func_name, Span::call_site());
 
         quote! {
             /// Hash the data for the column
-            pub fn #func(&mut self, data: impl Into<String>) -> Result<(), geekorm::Error> {
+            pub fn #hash_func(&mut self, data: impl Into<String>) -> Result<(), geekorm::Error> {
                 self.#identifier = geekorm::utils::generate_hash(
                     data.into(),
                     geekorm::utils::crypto::HashingAlgorithm::Pbkdf2
                 )?;
 
                 Ok(())
+            }
+
+            /// Check / Verify the hash for the column
+            pub fn #check_func(&self, data: impl Into<String>) -> Result<bool, geekorm::Error> {
+                geekorm::utils::verify_hash(
+                    data.into(),
+                    self.#identifier.clone(),
+                    geekorm::utils::crypto::HashingAlgorithm::Pbkdf2
+                )
             }
         }
     }
