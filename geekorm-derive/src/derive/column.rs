@@ -6,7 +6,8 @@ use std::{
     fmt::Debug,
 };
 use syn::{
-    parse::Parse, spanned::Spanned, Attribute, Field, GenericArgument, Ident, Type, TypePath,
+    parse::Parse, spanned::Spanned, token::Pub, Attribute, Field, GenericArgument, Ident, Type,
+    TypePath, Visibility,
 };
 
 use crate::{
@@ -44,6 +45,18 @@ impl ColumnsDerive {
                 } else {
                     None
                 }
+            })
+            .collect()
+    }
+
+    /// Get the columns that are marked as a hash
+    #[allow(dead_code)]
+    pub(crate) fn get_hash_columns(&self) -> Vec<ColumnDerive> {
+        self.columns
+            .iter()
+            .filter_map(|c| match c.mode {
+                Some(ColumnMode::Hash { .. }) => Some(c.clone()),
+                _ => None,
             })
             .collect()
     }
@@ -366,6 +379,38 @@ impl ColumnDerive {
             }
         }
     }
+
+    /// Generate a hash helper functions for the column
+    pub(crate) fn get_hash_helpers(&self) -> TokenStream {
+        let identifier = &self.identifier;
+
+        let hash_func_name = format!("hash_{}", identifier);
+        let hash_func = Ident::new(&hash_func_name, Span::call_site());
+
+        let check_func_name = format!("check_{}", identifier);
+        let check_func = Ident::new(&check_func_name, Span::call_site());
+
+        quote! {
+            /// Hash the data for the column
+            pub fn #hash_func(&mut self, data: impl Into<String>) -> Result<(), geekorm::Error> {
+                self.#identifier = geekorm::utils::generate_hash(
+                    data.into(),
+                    geekorm::utils::crypto::HashingAlgorithm::Pbkdf2
+                )?;
+
+                Ok(())
+            }
+
+            /// Check / Verify the hash for the column
+            pub fn #check_func(&self, data: impl Into<String>) -> Result<bool, geekorm::Error> {
+                geekorm::utils::verify_hash(
+                    data.into(),
+                    self.#identifier.clone(),
+                    geekorm::utils::crypto::HashingAlgorithm::Pbkdf2
+                )
+            }
+        }
+    }
 }
 
 impl Default for ColumnDerive {
@@ -456,6 +501,16 @@ impl TryFrom<&Field> for ColumnDerive {
             mode: None,
         };
         col.apply_attributes()?;
+
+        // TODO(geekmasher): Check if the column is public
+        // if let Some(ref mode) = col.mode {
+        //     if let ColumnMode::Hash(_) = mode {
+        //         if let Visibility::Public(Pub { .. }) = value.vis {
+        //             todo!("")
+        //         }
+        //     }
+        // }
+
         Ok(col)
     }
 }

@@ -5,7 +5,7 @@ use rand::Rng;
 
 #[cfg(feature = "hash")]
 use pbkdf2::{
-    password_hash::{rand_core::OsRng, PasswordHasher, SaltString},
+    password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
     Pbkdf2,
 };
 
@@ -63,6 +63,18 @@ pub fn generate_hash(data: String, alg: HashingAlgorithm) -> Result<String, crat
     }
 }
 
+/// Verify a hash for a given string
+#[cfg(feature = "hash")]
+pub fn verify_hash(
+    data: String,
+    hash: String,
+    alg: HashingAlgorithm,
+) -> Result<bool, crate::Error> {
+    match alg {
+        HashingAlgorithm::Pbkdf2 => verify_hash_pbkdf2(data, hash),
+    }
+}
+
 /// Generate a hash using PBKDF2
 ///
 /// ```rust
@@ -82,6 +94,24 @@ pub(crate) fn generate_hash_pdkdf2(data: String) -> Result<String, crate::Error>
             "Error hashing password: {}",
             e
         ))),
+    }
+}
+
+#[cfg(feature = "hash")]
+pub(crate) fn verify_hash_pbkdf2(data: String, hash: String) -> Result<bool, crate::Error> {
+    let parsed_hash = match PasswordHash::new(&hash) {
+        Ok(h) => h,
+        Err(e) => {
+            return Err(crate::Error::HashingError(format!(
+                "Error parsing password hash: {}",
+                e
+            )))
+        }
+    };
+
+    match Pbkdf2.verify_password(data.as_bytes(), &parsed_hash) {
+        Ok(_) => Ok(true),
+        Err(_) => Ok(false),
     }
 }
 

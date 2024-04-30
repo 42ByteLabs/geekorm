@@ -161,8 +161,22 @@ use syn::{parse_macro_input, Data, DataStruct, DeriveInput, Fields};
 ///     password: String,
 /// }
 ///
-/// let user = Users::new(String::from("geekmasher"), String::from("password"));
+/// # fn main() -> Result<(), geekorm::Error> {
+/// let mut user = Users::new(String::from("geekmasher"), String::from("password"));
 /// # assert_eq!(user.password.len(), 95);
+///
+/// // Update password
+/// user.hash_password("newpassword");
+///
+/// // Verify password
+/// if user.check_password("newpassword")? {
+///    println!("Password is correct");
+/// } else {
+///    println!("Password is incorrect");
+/// }
+///
+/// # Ok(())
+/// # }
 /// ```
 #[proc_macro_derive(GeekTable, attributes(geekorm))]
 pub fn table_derive(input: TokenStream) -> TokenStream {
