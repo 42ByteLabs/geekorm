@@ -48,6 +48,18 @@ impl ColumnsDerive {
             .collect()
     }
 
+    /// Get the columns that are marked as a hash
+    #[allow(dead_code)]
+    pub(crate) fn get_hash_columns(&self) -> Vec<ColumnDerive> {
+        self.columns
+            .iter()
+            .filter_map(|c| match c.mode {
+                Some(ColumnMode::Hash { .. }) => Some(c.clone()),
+                _ => None,
+            })
+            .collect()
+    }
+
     /// Convert the columns into a list of parameters for a function
     pub(crate) fn to_params(&self) -> TokenStream {
         let columns = self.columns.iter().map(|c| c.to_params()).filter_map(|c| c);
@@ -363,6 +375,26 @@ impl ColumnDerive {
                 let r = #foreign_ident::query_first(connection, q).await?;
                 self.#identifier.data = r.clone();
                 Ok(r)
+            }
+        }
+    }
+
+    /// Generate a hash helper functions for the column
+    pub(crate) fn get_hash_helpers(&self) -> TokenStream {
+        let identifier = &self.identifier;
+
+        let func_name = format!("hash_{}", identifier);
+        let func = Ident::new(&func_name, Span::call_site());
+
+        quote! {
+            /// Hash the data for the column
+            pub fn #func(&mut self, data: impl Into<String>) -> Result<(), geekorm::Error> {
+                self.#identifier = geekorm::utils::generate_hash(
+                    data.into(),
+                    geekorm::utils::crypto::HashingAlgorithm::Pbkdf2
+                )?;
+
+                Ok(())
             }
         }
     }

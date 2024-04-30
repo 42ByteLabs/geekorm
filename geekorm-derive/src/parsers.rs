@@ -21,6 +21,8 @@ use tablebuilder::{
     generate_table_primary_key,
 };
 
+use self::helpers::generate_hash_helpers;
+
 pub(crate) fn derive_parser(ast: &DeriveInput) -> Result<TokenStream, syn::Error> {
     let name = &ast.ident;
 
@@ -95,6 +97,9 @@ fn generate_struct(
 
     #[cfg(feature = "helpers")]
     stream.extend(generate_helpers(ident, generics, &table)?);
+
+    #[cfg(feature = "hash")]
+    stream.extend(generate_hash_helpers(ident, generics, &table)?);
 
     Ok(stream)
 }
