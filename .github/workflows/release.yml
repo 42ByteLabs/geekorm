@@ -39,3 +39,17 @@ jobs:
 
           # CLI
           cargo publish -p geekorm-cli
+
+      - name: "GitHub Release"
+        if: steps.check.outputs.outdated == 'true'
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+
+          git tag "v${{ steps.check.outputs.version }}" --force
+          git push origin ${{ github.ref_name }}
+          git push origin --tags --force
+
+          gh release create --latest --generate-notes \
+            --title "${{ steps.check.outputs.version }}"
+
