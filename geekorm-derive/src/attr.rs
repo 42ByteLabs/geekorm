@@ -29,6 +29,8 @@ pub(crate) enum GeekAttributeKeys {
     // Random value
     Rand,
     RandLength,
+    RandPrefix,
+    RandEnv,
     // Hash / Password
     Hash,
 }
@@ -120,6 +122,24 @@ impl Parse for GeekAttribute {
                     return Err(syn::Error::new(
                         name.span(),
                         "The `rand_length` attribute requires the `rand` feature to be enabled",
+                    ))
+                }
+            },
+            "rand_prefix" => match cfg!(feature = "rand") {
+                true => Some(GeekAttributeKeys::RandPrefix),
+                false => {
+                    return Err(syn::Error::new(
+                        name.span(),
+                        "The `rand_prefix` attribute requires the `rand` feature to be enabled",
+                    ))
+                }
+            },
+            "rand_env" => match cfg!(feature = "rand") {
+                true => Some(GeekAttributeKeys::RandEnv),
+                false => {
+                    return Err(syn::Error::new(
+                        name.span(),
+                        "The `rand_env` attribute requires the `rand` feature to be enabled",
                     ))
                 }
             },

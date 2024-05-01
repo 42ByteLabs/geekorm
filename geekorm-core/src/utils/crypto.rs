@@ -16,7 +16,7 @@ pub const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ\
 
 /// Generate a random string of a given length
 #[cfg(feature = "rand")]
-pub fn generate_random_string(length: usize) -> String {
+pub fn generate_random_string(length: usize, prefix: impl Into<String>) -> String {
     let mut rng = rand::thread_rng();
     let mut random_string = String::new();
     // Generate a random string of the given length using uppercase, lowercase and numbers
@@ -24,7 +24,7 @@ pub fn generate_random_string(length: usize) -> String {
         let random_char = CHARSET[rng.gen_range(0..CHARSET.len())] as char;
         random_string.push(random_char);
     }
-    random_string
+    prefix.into() + &random_string
 }
 
 /// Hashing algorithms
@@ -122,7 +122,7 @@ mod tests {
     #[test]
     #[cfg(feature = "rand")]
     fn test_generate_random_string() {
-        let random_string = generate_random_string(10);
+        let random_string = generate_random_string(10, "");
         assert_eq!(random_string.len(), 10);
     }
 }

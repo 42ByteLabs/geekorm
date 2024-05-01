@@ -118,7 +118,11 @@ impl From<Vec<ColumnDerive>> for ColumnsDerive {
 
 #[derive(Debug, Clone)]
 pub(crate) enum ColumnMode {
-    Rand(usize),
+    Rand {
+        len: usize,
+        prefix: Option<String>,
+        env: Option<String>,
+    },
     Hash(HashingAlgorithm),
 }
 
@@ -214,7 +218,39 @@ impl ColumnDerive {
                             })
                             .unwrap_or(32);
 
-                        self.mode = Some(ColumnMode::Rand(len));
+                        let prefix: Option<String> = attributes
+                            .iter()
+                            .find(|a| a.key == Some(GeekAttributeKeys::RandPrefix))
+                            .map(|a| {
+                                if let Some(value) = &a.value {
+                                    if let GeekAttributeValue::String(prefix) = value {
+                                        Some(prefix.clone())
+                                    } else {
+                                        None
+                                    }
+                                } else {
+                                    None
+                                }
+                            })
+                            .flatten();
+
+                        let env = attributes
+                            .iter()
+                            .find(|a| a.key == Some(GeekAttributeKeys::RandEnv))
+                            .map(|a| {
+                                if let Some(value) = &a.value {
+                                    if let GeekAttributeValue::String(env) = value {
+                                        Some(env.clone())
+                                    } else {
+                                        None
+                                    }
+                                } else {
+                                    None
+                                }
+                            })
+                            .flatten();
+
+                        self.mode = Some(ColumnMode::Rand { len, prefix, env });
                     }
                     GeekAttributeKeys::Hash => {
                         self.mode = Some(ColumnMode::Hash(HashingAlgorithm::Pbkdf2));
@@ -255,7 +291,7 @@ impl ColumnDerive {
             return None;
         }
         // Modes
-        if let Some(ColumnMode::Rand(_)) = &self.mode {
+        if let Some(ColumnMode::Rand { .. }) = &self.mode {
             return None;
         }
 
@@ -313,9 +349,20 @@ impl ColumnDerive {
         }
 
         // Random
-        if let Some(ColumnMode::Rand(len)) = &self.mode {
+        if let Some(ColumnMode::Rand { len, prefix, env }) = &self.mode {
+            let mut pre = String::new();
+            if let Some(prefix) = prefix {
+                pre.push_str(prefix.as_str());
+                println!("Prefix: {}", prefix);
+                pre.push('_');
+            }
+            if let Some(env) = env {
+                pre.push_str(env.as_str());
+                pre.push('_');
+            }
+
             return quote! {
-                #identifier: geekorm::utils::generate_random_string(#len)
+                #identifier: geekorm::utils::generate_random_string(#len, #pre)
             };
         } else if let Some(ColumnMode::Hash(alg)) = &self.mode {
             let hash = alg.to_str();
