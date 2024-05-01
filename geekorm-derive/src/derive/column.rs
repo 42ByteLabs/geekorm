@@ -4,6 +4,7 @@ use quote::{quote, ToTokens};
 use std::{
     any::{Any, TypeId},
     fmt::Debug,
+    usize,
 };
 use syn::{
     parse::Parse, spanned::Spanned, token::Pub, Attribute, Field, GenericArgument, Ident, Type,
@@ -197,9 +198,23 @@ impl ColumnDerive {
                         }
                     }
                     GeekAttributeKeys::Rand => {
-                        // TODO(geekmasher): RandLen
+                        let len: usize = attributes
+                            .iter()
+                            .find(|a| a.key == Some(GeekAttributeKeys::RandLength))
+                            .map(|a| {
+                                if let Some(value) = &a.value {
+                                    if let GeekAttributeValue::Int(len) = value {
+                                        len.clone() as usize
+                                    } else {
+                                        32
+                                    }
+                                } else {
+                                    32
+                                }
+                            })
+                            .unwrap_or(32);
 
-                        self.mode = Some(ColumnMode::Rand(32));
+                        self.mode = Some(ColumnMode::Rand(len));
                     }
                     GeekAttributeKeys::Hash => {
                         self.mode = Some(ColumnMode::Hash(HashingAlgorithm::Pbkdf2));
