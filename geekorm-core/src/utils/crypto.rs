@@ -44,12 +44,25 @@ impl HashingAlgorithm {
     }
 }
 
-impl From<&str> for HashingAlgorithm {
-    fn from(s: &str) -> Self {
-        match s {
-            "Pbkdf2" => HashingAlgorithm::Pbkdf2,
-            _ => HashingAlgorithm::Pbkdf2,
+impl TryFrom<&str> for HashingAlgorithm {
+    type Error = crate::Error;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        match value.to_lowercase().as_str() {
+            "pbkdf2" => Ok(HashingAlgorithm::Pbkdf2),
+            _ => Err(crate::Error::HashingError(format!(
+                "Invalid hashing algorithm: {}",
+                value
+            ))),
         }
+    }
+}
+
+impl TryFrom<&String> for HashingAlgorithm {
+    type Error = crate::Error;
+
+    fn try_from(value: &String) -> Result<Self, Self::Error> {
+        Self::try_from(value.as_str())
     }
 }
 

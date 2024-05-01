@@ -33,6 +33,7 @@ pub(crate) enum GeekAttributeKeys {
     RandEnv,
     // Hash / Password
     Hash,
+    HashAlgorithm,
 }
 
 #[derive(Debug, Clone)]
@@ -90,6 +91,33 @@ impl GeekAttribute {
                     ))
                 }
             }
+            Some(GeekAttributeKeys::HashAlgorithm) => {
+                if let Some(value) = &self.value {
+                    if let GeekAttributeValue::String(content) = value {
+                        if let Ok(_) =
+                            geekorm_core::utils::crypto::HashingAlgorithm::try_from(content)
+                        {
+                            Ok(())
+                        } else {
+                            Err(syn::Error::new(
+                                self.value_span.unwrap_or_else(|| self.span.span()),
+                                "The `hash_algorithm` attribute requires a supported hashing algorithm",
+                            ))
+                        }
+                    } else {
+                        Err(syn::Error::new(
+                            self.span.span(),
+                            "The `hash_algorithm` attribute requires a string value",
+                        ))
+                    }
+                } else {
+                    Err(syn::Error::new(
+                        self.span.span(),
+                        "The `hash_algorithm` attribute requires a value",
+                    ))
+                }
+            }
+
             _ => Ok(()),
         }
     }
@@ -150,6 +178,15 @@ impl Parse for GeekAttribute {
                     "The `hash` or `password` attribute requires the `hash` feature to be enabled",
                 )),
             },
+            "hash_algorithm" => {
+                match cfg!(feature = "hash") {
+                    true => Some(GeekAttributeKeys::HashAlgorithm),
+                    false => return Err(syn::Error::new(
+                        name.span(),
+                        "The `hash_algorithm` attribute requires the `hash` feature to be enabled",
+                    )),
+                }
+            }
             _ => None,
         };
 

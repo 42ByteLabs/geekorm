@@ -353,7 +353,6 @@ impl ColumnDerive {
             let mut pre = String::new();
             if let Some(prefix) = prefix {
                 pre.push_str(prefix.as_str());
-                println!("Prefix: {}", prefix);
                 pre.push('_');
             }
             if let Some(env) = env {
@@ -369,7 +368,7 @@ impl ColumnDerive {
             return quote! {
                 #identifier: geekorm::utils::generate_hash(
                     #identifier,
-                    geekorm::utils::crypto::HashingAlgorithm::from(#hash)
+                    geekorm::utils::crypto::HashingAlgorithm::try_from(#hash).unwrap_or_default()
                 ).unwrap()
             };
         }
