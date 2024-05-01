@@ -424,6 +424,27 @@ impl ColumnDerive {
 
     /// Generate a fetcher function for the column
     #[allow(unused_variables)]
+    pub(crate) fn get_fetcher_pk(&self, ident: &Ident) -> TokenStream {
+        let identifier = &self.identifier; // `user`
+
+        match cfg!(feature = "libsql") {
+            true => {
+                quote! {
+                    pub async fn fetch_primary_key(
+                        connection: &libsql::Connection,
+                        pk: impl Into<geekorm::Value>
+                    ) -> Result<#ident, geekorm::Error> {
+                        let q = #ident::select_by_primary_key(pk.into());
+                        #ident::query_first(connection, q).await
+                    }
+                }
+            }
+            false => quote! {},
+        }
+    }
+
+    /// Generate a fetcher function for the column
+    #[allow(unused_variables)]
     pub(crate) fn get_fetcher(&self, table_ident: &Ident, foreign_ident: &Ident) -> TokenStream {
         let identifier = &self.identifier; // `user`
 
