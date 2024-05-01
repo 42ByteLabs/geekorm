@@ -430,14 +430,18 @@ impl ColumnDerive {
         let func_name = format!("fetch_{}", identifier);
         let func = Ident::new(&func_name, Span::call_site());
 
-        quote! {
-            #[cfg(feature = "libsql")]
-            pub async fn #func(&mut self, connection: &libsql::Connection) -> Result<#foreign_ident, geekorm::Error> {
-                let q = #foreign_ident::select_by_primary_key(self.#identifier.key);
-                let r = #foreign_ident::query_first(connection, q).await?;
-                self.#identifier.data = r.clone();
-                Ok(r)
+        match cfg!(feature = "libsql") {
+            true => {
+                quote! {
+                    pub async fn #func(&mut self, connection: &libsql::Connection) -> Result<#foreign_ident, geekorm::Error> {
+                        let q = #foreign_ident::select_by_primary_key(self.#identifier.key);
+                        let r = #foreign_ident::query_first(connection, q).await?;
+                        self.#identifier.data = r.clone();
+                        Ok(r)
+                    }
+                }
             }
+            false => quote! {},
         }
     }
 
