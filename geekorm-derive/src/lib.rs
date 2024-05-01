@@ -138,7 +138,7 @@ use syn::{parse_macro_input, Data, DataStruct, DeriveInput, Fields};
 /// pub struct Users {
 ///     id: PrimaryKeyInteger,
 ///     name: String,
-///     #[geekorm(rand)]
+///     #[geekorm(rand, rand_length = 42)]
 ///     token: String
 /// }
 ///

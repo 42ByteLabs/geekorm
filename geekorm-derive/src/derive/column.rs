@@ -4,6 +4,7 @@ use quote::{quote, ToTokens};
 use std::{
     any::{Any, TypeId},
     fmt::Debug,
+    usize,
 };
 use syn::{
     parse::Parse, spanned::Spanned, token::Pub, Attribute, Field, GenericArgument, Ident, Type,
@@ -117,7 +118,11 @@ impl From<Vec<ColumnDerive>> for ColumnsDerive {
 
 #[derive(Debug, Clone)]
 pub(crate) enum ColumnMode {
-    Rand(usize),
+    Rand {
+        len: usize,
+        prefix: Option<String>,
+        env: Option<String>,
+    },
     Hash(HashingAlgorithm),
 }
 
@@ -197,9 +202,55 @@ impl ColumnDerive {
                         }
                     }
                     GeekAttributeKeys::Rand => {
-                        // TODO(geekmasher): RandLen
+                        let len: usize = attributes
+                            .iter()
+                            .find(|a| a.key == Some(GeekAttributeKeys::RandLength))
+                            .map(|a| {
+                                if let Some(value) = &a.value {
+                                    if let GeekAttributeValue::Int(len) = value {
+                                        len.clone() as usize
+                                    } else {
+                                        32
+                                    }
+                                } else {
+                                    32
+                                }
+                            })
+                            .unwrap_or(32);
 
-                        self.mode = Some(ColumnMode::Rand(32));
+                        let prefix: Option<String> = attributes
+                            .iter()
+                            .find(|a| a.key == Some(GeekAttributeKeys::RandPrefix))
+                            .map(|a| {
+                                if let Some(value) = &a.value {
+                                    if let GeekAttributeValue::String(prefix) = value {
+                                        Some(prefix.clone())
+                                    } else {
+                                        None
+                                    }
+                                } else {
+                                    None
+                                }
+                            })
+                            .flatten();
+
+                        let env = attributes
+                            .iter()
+                            .find(|a| a.key == Some(GeekAttributeKeys::RandEnv))
+                            .map(|a| {
+                                if let Some(value) = &a.value {
+                                    if let GeekAttributeValue::String(env) = value {
+                                        Some(env.clone())
+                                    } else {
+                                        None
+                                    }
+                                } else {
+                                    None
+                                }
+                            })
+                            .flatten();
+
+                        self.mode = Some(ColumnMode::Rand { len, prefix, env });
                     }
                     GeekAttributeKeys::Hash => {
                         self.mode = Some(ColumnMode::Hash(HashingAlgorithm::Pbkdf2));
@@ -240,7 +291,7 @@ impl ColumnDerive {
             return None;
         }
         // Modes
-        if let Some(ColumnMode::Rand(_)) = &self.mode {
+        if let Some(ColumnMode::Rand { .. }) = &self.mode {
             return None;
         }
 
@@ -298,16 +349,26 @@ impl ColumnDerive {
         }
 
         // Random
-        if let Some(ColumnMode::Rand(len)) = &self.mode {
+        if let Some(ColumnMode::Rand { len, prefix, env }) = &self.mode {
+            let mut pre = String::new();
+            if let Some(prefix) = prefix {
+                pre.push_str(prefix.as_str());
+                pre.push('_');
+            }
+            if let Some(env) = env {
+                pre.push_str(env.as_str());
+                pre.push('_');
+            }
+
             return quote! {
-                #identifier: geekorm::utils::generate_random_string(#len)
+                #identifier: geekorm::utils::generate_random_string(#len, #pre)
             };
         } else if let Some(ColumnMode::Hash(alg)) = &self.mode {
             let hash = alg.to_str();
             return quote! {
                 #identifier: geekorm::utils::generate_hash(
                     #identifier,
-                    geekorm::utils::crypto::HashingAlgorithm::from(#hash)
+                    geekorm::utils::crypto::HashingAlgorithm::try_from(#hash).unwrap_or_default()
                 ).unwrap()
             };
         }

@@ -2,6 +2,7 @@ use proc_macro2::Span;
 use proc_macro2::TokenStream;
 use quote::quote;
 use quote::ToTokens;
+use syn::punctuated::Punctuated;
 use syn::LitInt;
 use syn::{
     parse::{Parse, ParseStream},
@@ -18,7 +19,7 @@ pub(crate) struct GeekAttribute {
     pub(crate) value_span: Option<Span>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub(crate) enum GeekAttributeKeys {
     Skip,
     Rename,
@@ -27,8 +28,12 @@ pub(crate) enum GeekAttributeKeys {
     ForeignKey,
     // Random value
     Rand,
+    RandLength,
+    RandPrefix,
+    RandEnv,
     // Hash / Password
     Hash,
+    HashAlgorithm,
 }
 
 #[derive(Debug, Clone)]
@@ -41,17 +46,15 @@ pub(crate) enum GeekAttributeValue {
 impl GeekAttribute {
     pub(crate) fn parse_all(all_attrs: &[Attribute]) -> Result<Vec<Self>, syn::Error> {
         let mut parsed = Vec::new();
-        for attr in all_attrs {
-            if attr.path().is_ident("geekorm") {
-                // Parse the attribute
-                let parsed_attr = match attr.parse_args::<GeekAttribute>() {
-                    Ok(parsed_attr) => parsed_attr,
-                    Err(e) => return Err(e),
-                };
-
-                parsed_attr.validate()?;
-
-                parsed.push(parsed_attr);
+        for attribute in all_attrs {
+            if attribute.path().is_ident("geekorm") {
+                for attr in attribute
+                    .parse_args_with(Punctuated::<GeekAttribute, Token![,]>::parse_terminated)?
+                {
+                    // Validate the attribute before adding it to the parsed list
+                    attr.validate()?;
+                    parsed.push(attr);
+                }
             } else {
                 continue;
             };
@@ -88,6 +91,33 @@ impl GeekAttribute {
                     ))
                 }
             }
+            Some(GeekAttributeKeys::HashAlgorithm) => {
+                if let Some(value) = &self.value {
+                    if let GeekAttributeValue::String(content) = value {
+                        if let Ok(_) =
+                            geekorm_core::utils::crypto::HashingAlgorithm::try_from(content)
+                        {
+                            Ok(())
+                        } else {
+                            Err(syn::Error::new(
+                                self.value_span.unwrap_or_else(|| self.span.span()),
+                                "The `hash_algorithm` attribute requires a supported hashing algorithm",
+                            ))
+                        }
+                    } else {
+                        Err(syn::Error::new(
+                            self.span.span(),
+                            "The `hash_algorithm` attribute requires a string value",
+                        ))
+                    }
+                } else {
+                    Err(syn::Error::new(
+                        self.span.span(),
+                        "The `hash_algorithm` attribute requires a value",
+                    ))
+                }
+            }
+
             _ => Ok(()),
         }
     }
@@ -114,6 +144,33 @@ impl Parse for GeekAttribute {
                     ))
                 }
             },
+            "rand_length" => match cfg!(feature = "rand") {
+                true => Some(GeekAttributeKeys::RandLength),
+                false => {
+                    return Err(syn::Error::new(
+                        name.span(),
+                        "The `rand_length` attribute requires the `rand` feature to be enabled",
+                    ))
+                }
+            },
+            "rand_prefix" => match cfg!(feature = "rand") {
+                true => Some(GeekAttributeKeys::RandPrefix),
+                false => {
+                    return Err(syn::Error::new(
+                        name.span(),
+                        "The `rand_prefix` attribute requires the `rand` feature to be enabled",
+                    ))
+                }
+            },
+            "rand_env" => match cfg!(feature = "rand") {
+                true => Some(GeekAttributeKeys::RandEnv),
+                false => {
+                    return Err(syn::Error::new(
+                        name.span(),
+                        "The `rand_env` attribute requires the `rand` feature to be enabled",
+                    ))
+                }
+            },
             "hash" | "password" => match cfg!(feature = "hash") {
                 true => Some(GeekAttributeKeys::Hash),
                 false => return Err(syn::Error::new(
@@ -121,6 +178,15 @@ impl Parse for GeekAttribute {
                     "The `hash` or `password` attribute requires the `hash` feature to be enabled",
                 )),
             },
+            "hash_algorithm" => {
+                match cfg!(feature = "hash") {
+                    true => Some(GeekAttributeKeys::HashAlgorithm),
+                    false => return Err(syn::Error::new(
+                        name.span(),
+                        "The `hash_algorithm` attribute requires the `hash` feature to be enabled",
+                    )),
+                }
+            }
             _ => None,
         };
 
