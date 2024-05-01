@@ -45,6 +45,8 @@ jobs:
 
       - name: "GitHub Release"
         if: steps.check.outputs.outdated == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
