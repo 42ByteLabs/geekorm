@@ -1,7 +1,7 @@
 use std::any::Any;
 
 #[allow(unused_imports)]
-use proc_macro2::TokenStream;
+use proc_macro2::{Ident, Span, TokenStream};
 use quote::{quote, ToTokens};
 use syn::{
     parse_macro_input, spanned::Spanned, Data, DataStruct, DeriveInput, Fields, FieldsNamed,
@@ -252,6 +252,8 @@ pub fn generate_table_fetch(
     let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
 
     let mut stream = TokenStream::new();
+    let mut fetch_functions = TokenStream::new();
+
     // Generate the selectors for the columns
     for column in table.columns.get_foreign_keys() {
         let field = fields
@@ -285,7 +287,16 @@ pub fn generate_table_fetch(
         match inner_type {
             syn::GenericArgument::Type(Type::Path(path)) => {
                 let fident = path.path.segments.first().unwrap().ident.clone();
+
                 stream.extend(column.get_fetcher(ident, &fident));
+
+                // Add fetch function to the list of fetch functions
+                let func_name = format!("fetch_{}", column.identifier);
+                let func = Ident::new(&func_name, Span::call_site());
+
+                fetch_functions.extend(quote! {
+                    Self::#func(self, connection).await?;
+                });
             }
             _ => {
                 return Err(syn::Error::new(
@@ -294,6 +305,26 @@ pub fn generate_table_fetch(
                 ))
             }
         }
+    }
+
+    // Generate a fetch all method for the struct
+    match cfg!(feature = "libsql") {
+        true => {
+            stream.extend(quote! {
+                pub async fn fetch_all(&mut self, connection: &libsql::Connection) -> Result<(), geekorm::Error> {
+                    #fetch_functions
+                    Ok(())
+                }
+            });
+        }
+        false => {
+            stream.extend(quote! {});
+        }
+    }
+
+    // Generate the fetch method for PrimaryKey
+    if let Some(key) = table.columns.get_primary_key() {
+        stream.extend(key.get_fetcher_pk(ident));
     }
 
     Ok(quote! {
