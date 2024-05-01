@@ -430,12 +430,17 @@ impl ColumnDerive {
         match cfg!(feature = "libsql") {
             true => {
                 quote! {
+                    /// Fetch a row by the primary key value
                     pub async fn fetch_primary_key(
                         connection: &libsql::Connection,
                         pk: impl Into<geekorm::Value>
                     ) -> Result<#ident, geekorm::Error> {
                         let q = #ident::select_by_primary_key(pk.into());
-                        #ident::query_first(connection, q).await
+                        let mut r: #ident = #ident::query_first(connection, q).await?;
+
+                        r.fetch_all(connection).await?;
+
+                        Ok(r)
                     }
                 }
             }
@@ -446,7 +451,7 @@ impl ColumnDerive {
     /// Generate a fetcher function for the column
     #[allow(unused_variables)]
     pub(crate) fn get_fetcher(&self, table_ident: &Ident, foreign_ident: &Ident) -> TokenStream {
-        let identifier = &self.identifier; // `user`
+        let identifier = &self.identifier;
 
         let func_name = format!("fetch_{}", identifier);
         let func = Ident::new(&func_name, Span::call_site());
@@ -454,6 +459,7 @@ impl ColumnDerive {
         match cfg!(feature = "libsql") {
             true => {
                 quote! {
+                    /// Fetch the foreign key data for the column
                     pub async fn #func(&mut self, connection: &libsql::Connection) -> Result<#foreign_ident, geekorm::Error> {
                         let q = #foreign_ident::select_by_primary_key(self.#identifier.key);
                         let r = #foreign_ident::query_first(connection, q).await?;
