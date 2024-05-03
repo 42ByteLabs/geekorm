@@ -232,7 +232,6 @@ pub fn generate_table_execute(
                     .limit(1)
                     .build()?;
 
-                log::debug!("Insert query: {}", select_query.to_str());
                 let item: #ident = #ident::query_first(connection, select_query).await?;
 
                 #insert_values
