@@ -16,7 +16,7 @@
 
 ## Overview
 
-[GeekORM][docs-orm] is a simple [Object Relation Mapper][docs-orm] for empowering your [Rust][rust-lang] development.
+[GeekORM][crates-io] is a simple [Object Relation Mapper][docs-orm] for empowering your [Rust][rust-lang] development.
 
 ## ✨ Features
 
@@ -25,9 +25,11 @@
   - Using `GeekTable`
 - Dynamically build queries
   - `Select`, `Create`, `Update`, and `Insert` queries
-- Generate helper functions
-  - Select `select_by_primary_key()` & `select_by_{field}()`
-  - New instance `new`
+- [Extensive crate features](#-create-features)
+- Field Attribute Helpers
+  - `foreign_key`: Set the foreign key for a join
+  - [`rand`][docs-rand]: Generate random strings (set lenght, set prefix, set enviroment)
+  - [`hash` or `password`][docs-hash]: Generate secure Hashes of passwords (set algorithm)
 - Support for Backends
   - [`libsql`][lib-libsql] ([Turso][web-turso])
 - [Documentation][docs]
@@ -45,6 +47,56 @@ cargo add geekorm
 ```bash
 cargo install --git https://github.com/42ByteLabs/geekorm
 ```
+
+## 🏃 Getting Started
+
+Once you have installed `geekorm`, you can start using the derive macros like the following:
+
+```rust
+use geekorm::prelude::*;
+use geekorm::{QueryOrder, PrimaryKeyInteger};
+
+#[derive(Debug, Clone, GeekTable)]
+struct Users {
+   id: PrimaryKeyInteger,
+   username: String,
+   email: String,
+   age: i32,
+   postcode: Option<String>,
+}
+
+// Use the `create` method to build a CREATE TABLE query
+let create_table = Users::create().build()
+    .expect("Failed to build create table query");
+println!("Create Table Query: {}", create_table);
+
+// Use the `select` method to build a SELECT query along with different conditions
+// and ordering
+let select_user = Users::select()
+    .where_eq("username", "geekmasher")
+    .and()
+    .where_gt("age", 42)
+    .order_by("age", QueryOrder::Asc)
+    .limit(10)
+    .build()
+    .expect("Failed to build query");
+
+```
+
+### 🏄 Create Features
+
+There are a number of opt-in features supported by GeekORM.
+Features can be added either [using `cargo add geekorm -F all`][docs-cargo-add] or added them directly in your `Cargo.toml` file.
+
+- `all`: Enable all the major stable features
+- [`new`][docs-new]: Generate `Table::new(...)` functions
+- [`helpers`][docs-helpers]: Generate a number of helper functions
+  - Select `Table::select_by_primary_key()`
+  - Select column `Table::select_by_{field}()`
+- [`rand`][docs-rand]: Support Generating random strings
+- [`hash`][docs-hash]: Support Generating password hashes
+- Backends
+  - `libsql`: Add LibSQL backend support
 
 ## 🧑‍🤝‍🧑 Maintainers / Contributors
 
@@ -87,6 +139,12 @@ Please refer to [MIT][license] for the full terms.
 [github-issues]: https://github.com/42ByteLabs/geekorm/issues
 [crates]: https://crates.io
 [docs-orm]: https://en.wikipedia.org/wiki/Object%E2%80%93relational_mapping
+[docs-cargo-add]: https://doc.rust-lang.org/cargo/commands/cargo-add.html#dependency-options
+
+[docs-new]: https://docs.rs/geekorm-derive/latest/geekorm_derive/derive.GeekTable.html#generate-new-rows
+[docs-helpers]: https://docs.rs/geekorm-derive/latest/geekorm_derive/derive.GeekTable.html#generated-helper-methods
+[docs-hash]: https://docs.rs/geekorm-derive/latest/geekorm_derive/derive.GeekTable.html#generate-hash-for-storing-passwords
+[docs-rand]: https://docs.rs/geekorm-derive/latest/geekorm_derive/derive.GeekTable.html#generate-random-data-for-column
 
 [lib-libsql]: https://github.com/tursodatabase/libsql
 [web-turso]: https://turso.tech/
