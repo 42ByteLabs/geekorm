@@ -1,35 +1,21 @@
 # GeekORM Derive
 
-## Feature - Automatic New Struct Function
+The `geekorm_derive` crate is for all pre-processing derive macros used by `geekorm` at build time.
 
-When the `new` feature is enabled, the following methods are generated for the struct:
+## Default Features
 
-- `PrimaryKey<T>` fields are not generated
-- `Option<T>` fields are not generated
+### Generate Query Methods
 
-```rust
-use geekorm::{GeekTable, PrimaryKeyInteger};
-use geekorm::prelude::*;
+By default, the following methods are generated for the struct:
 
-#[derive(GeekTable)]
-struct Users {
-    id: PrimaryKeyInteger,
-    name: String,
-    age: i32,
-    occupation: String,
-    country: Option<String>,
-}
+- `create()`: Create Query
+- `select()`: Select Query
+- `all()`: Select all rows in a table
+- `insert()`: Insert Query 
+- `update()`: Update Query
+- `count()`: Count the number of rows
 
-let user = Users::new(
-    String::from("geekmasher"),
-    42,
-    String::from("Software Developer")
-);
-```
-
-## Generated Query Methods
-
-When using the `helpers` feature, the following methods are generated for the struct:
+These are all defined by the `geekorm_core::QueryBuilderTrait` trait.
 
 ```rust
 use geekorm::{GeekTable, PrimaryKeyInteger};
@@ -62,6 +48,33 @@ let insert = Users::insert(&user);
 // Update query
 user.name = String::from("42ByteLabs");
 let update = Users::update(&user);
+```
+
+## Feature - Automatic New Struct Function
+
+When the `new` feature is enabled, the following methods are generated for the struct:
+
+- `PrimaryKey<T>` fields are not generated
+- `Option<T>` fields are not generated
+
+```rust
+use geekorm::{GeekTable, PrimaryKeyInteger};
+use geekorm::prelude::*;
+
+#[derive(GeekTable)]
+struct Users {
+    id: PrimaryKeyInteger,
+    name: String,
+    age: i32,
+    occupation: String,
+    country: Option<String>,
+}
+
+let user = Users::new(
+    String::from("geekmasher"),
+    42,
+    String::from("Software Developer")
+);
 ```
 
 # Feature - Generated Helper Methods
