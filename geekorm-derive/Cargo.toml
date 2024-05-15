@@ -30,7 +30,11 @@ chrono = ["geekorm-core/chrono"]
 new = []
 primary_key = []
 rand = ["geekorm-core/rand", "dep:rand"]
+# Hashing algorithms
 hash = ["geekorm-core/hash"]
+hash-pbkdf2 = ["geekorm-core/hash-pbkdf2"]
+hash-sha512 = ["geekorm-core/hash-sha512"]
+
 helpers = []
 
 # Backends
@@ -40,7 +44,7 @@ libsql = ["geekorm-core/libsql"]
 proc-macro = true
 
 [dependencies]
-geekorm-core = { path = "../geekorm-core", version = "^0.2.0" }
+geekorm-core = { path = "../geekorm-core", version = "^0.3.0" }
 thiserror = "1.0"
 # macro magic
 proc-macro2 = "1.0"

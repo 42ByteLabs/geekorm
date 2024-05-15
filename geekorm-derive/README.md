@@ -138,6 +138,8 @@ println!("{}", user.token);
 When using the `hash` feature, you can automatically hash passwords to make sure they are stored securely.
 
 ```rust
+# #[cfg(feature = "hash-sha512")]
+# {
 use geekorm::prelude::*;
 use geekorm::{GeekTable, PrimaryKeyInteger};
 
@@ -146,7 +148,9 @@ pub struct Users {
     id: PrimaryKeyInteger,
     username: String,
 
-    #[geekorm(hash, hash_algorithm = "Pbkdf2")]
+    #[geekorm(hash)]
+#   // This config below is not the most secure algorithm, always use default ;) 
+#   #[geekorm(hash_algorithm = "Sha512")]
     password: String,
 }
 
@@ -165,6 +169,7 @@ if user.check_password("newpassword")? {
 }
 
 # Ok(())
+# }
 # }
 ```
 
