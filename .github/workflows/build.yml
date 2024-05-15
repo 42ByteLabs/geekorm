@@ -32,6 +32,19 @@ jobs:
         if: steps.changes.outputs.src == 'true'
         with:
           components: clippy,rustfmt
+      
+      - name: Restore cached Cargo 
+        id: cache-restore
+        if: steps.changes.outputs.src == 'true'
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Build
         if: steps.changes.outputs.src == 'true'
@@ -56,3 +69,16 @@ jobs:
         if: steps.changes.outputs.src == 'true'
         run: |
           cargo clippy --all-targets
+
+      - name: Save Cargo / Rust Cache 
+        id: cache-save
+        if: steps.changes.outputs.src == 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ steps.cache-restore.outputs.cache-primary-key }}
