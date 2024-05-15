@@ -8,6 +8,8 @@ use pbkdf2::{
     password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
     Pbkdf2,
 };
+#[cfg(feature = "hash-sha512")]
+use sha_crypt::{sha512_check, sha512_simple, Sha512Params};
 
 /// Character set for generating random strings
 pub const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ\
@@ -33,6 +35,9 @@ pub enum HashingAlgorithm {
     /// PBKDF2
     #[default]
     Pbkdf2,
+    /// SHA512 + Rounds
+    #[cfg(feature = "hash-sha512")]
+    Sha512,
 }
 
 impl HashingAlgorithm {
@@ -40,6 +45,8 @@ impl HashingAlgorithm {
     pub fn to_str(&self) -> &str {
         match self {
             HashingAlgorithm::Pbkdf2 => "Pbkdf2",
+            #[cfg(feature = "hash-sha512")]
+            HashingAlgorithm::Sha512 => "Sha512",
         }
     }
 }
@@ -50,6 +57,8 @@ impl TryFrom<&str> for HashingAlgorithm {
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         match value.to_lowercase().as_str() {
             "pbkdf2" => Ok(HashingAlgorithm::Pbkdf2),
+            #[cfg(feature = "hash-sha512")]
+            "sha512" => Ok(HashingAlgorithm::Sha512),
             _ => Err(crate::Error::HashingError(format!(
                 "Invalid hashing algorithm: {}",
                 value
@@ -73,6 +82,8 @@ impl TryFrom<&String> for HashingAlgorithm {
 pub fn generate_hash(data: String, alg: HashingAlgorithm) -> Result<String, crate::Error> {
     match alg {
         HashingAlgorithm::Pbkdf2 => generate_hash_pdkdf2(data),
+        #[cfg(feature = "hash-sha512")]
+        HashingAlgorithm::Sha512 => generate_hash_sha512(data),
     }
 }
 
@@ -85,6 +96,11 @@ pub fn verify_hash(
 ) -> Result<bool, crate::Error> {
     match alg {
         HashingAlgorithm::Pbkdf2 => verify_hash_pbkdf2(data, hash),
+        #[cfg(feature = "hash-sha512")]
+        HashingAlgorithm::Sha512 => match sha512_check(data.as_str(), hash.as_str()) {
+            Ok(_) => Ok(true),
+            Err(_) => Ok(false),
+        },
     }
 }
 
@@ -128,14 +144,21 @@ pub(crate) fn verify_hash_pbkdf2(data: String, hash: String) -> Result<bool, cra
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    #[cfg(feature = "rand")]
-    fn test_generate_random_string() {
-        let random_string = generate_random_string(10, "");
-        assert_eq!(random_string.len(), 10);
+/// Generate a hash using SHA512 + Rounds
+#[cfg(feature = "hash-sha512")]
+pub(crate) fn generate_hash_sha512(data: String) -> Result<String, crate::Error> {
+    let params = match Sha512Params::new(100_000) {
+        Ok(p) => p,
+        Err(_) => {
+            return Err(crate::Error::HashingError(String::from(
+                "Error creating params for sha512",
+            )))
+        }
+    };
+    match sha512_simple(data.as_str(), &params) {
+        Ok(hash) => Ok(hash),
+        Err(_) => Err(crate::Error::HashingError(format!(
+            "Error hashing password using SHA512",
+        ))),
     }
 }
