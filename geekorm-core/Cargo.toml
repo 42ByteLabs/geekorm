@@ -1,6 +1,6 @@
 [package]
 name = "geekorm-core"
-description = "GeekORM core library"
+description = "GeekORM Core Library"
 
 version.workspace = true
 categories.workspace = true
