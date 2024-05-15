@@ -26,7 +26,10 @@ default = []
 uuid = ["dep:uuid"]
 chrono = ["dep:chrono"]
 rand = ["dep:rand"]
-hash = ["dep:pbkdf2", "dep:rand_core"]
+# Hashing algorithms
+hash = ["hash-pbkdf2"]
+hash-pbkdf2 = ["dep:pbkdf2", "dep:rand_core"]
+hash-sha512 = ["dep:sha-crypt", "dep:rand_core"]
 
 # Backends
 libsql = ["dep:libsql"]
@@ -45,6 +48,7 @@ rand = { version = "0.8", optional = true }
 rand_core = { version = "0.6", features = ["std"], optional = true }
 # For hashing data
 pbkdf2 = { version = "0.12", features = ["simple"], optional = true }
+sha-crypt = { version = "0.5.0", optional = true }
 
 libsql = { version = "0.3", optional = true }
 sqlite = { version = "0.36", optional = true }

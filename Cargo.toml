@@ -3,7 +3,7 @@ resolver = "2"
 members = [".", "geekorm-core", "geekorm-derive", "geekorm-cli"]
 
 [workspace.package]
-version = "0.2.8"
+version = "0.3.0"
 license = "MIT"
 edition = "2021"
 rust-version = "1.74"
@@ -44,7 +44,10 @@ all = ["uuid", "chrono", "new", "helpers", "rand", "hash"]
 uuid = ["geekorm-core/uuid"]
 chrono = ["geekorm-derive/chrono"]
 rand = ["geekorm-derive/rand", "geekorm-core/rand"]
-hash = ["geekorm-derive/hash", "geekorm-core/hash"]
+# Hash functions
+hash = ["geekorm-derive/hash", "geekorm-core/hash", "hash-pbkdf2"]
+hash-pbkdf2 = ["geekorm-derive/hash-pbkdf2", "geekorm-core/hash-pbkdf2"]
+hash-sha512 = ["geekorm-derive/hash-sha512", "geekorm-core/hash-sha512"]
 
 # Generate new functions for Tables
 new = ["geekorm-derive/new"]
@@ -57,8 +60,8 @@ primary_key = ["geekorm-derive/primary_key"]
 libsql = ["geekorm-derive/libsql", "geekorm-core/libsql"]
 
 [dependencies]
-geekorm-core = { version = "^0.2.0", path = "geekorm-core" }
-geekorm-derive = { version = "^0.2.0", path = "geekorm-derive" }
+geekorm-core = { version = "^0.3.0", path = "geekorm-core" }
+geekorm-derive = { version = "^0.3.0", path = "geekorm-derive" }
 
 [dev-dependencies]
 anyhow = "1"

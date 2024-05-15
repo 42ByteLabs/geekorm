@@ -325,7 +325,7 @@ impl ColumnDerive {
             }
         }
         Some(quote! {
-            #identifier: #itype
+            #identifier: impl Into< #itype >
         })
     }
 
@@ -367,7 +367,7 @@ impl ColumnDerive {
             let hash = alg.to_str();
             return quote! {
                 #identifier: geekorm::utils::generate_hash(
-                    #identifier,
+                    #identifier.into(),
                     geekorm::utils::crypto::HashingAlgorithm::try_from(#hash).unwrap_or_default()
                 ).unwrap()
             };
@@ -400,7 +400,7 @@ impl ColumnDerive {
             }
         }
         quote! {
-            #identifier
+            #identifier: #identifier.into()
         }
     }
 
