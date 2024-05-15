@@ -2,7 +2,7 @@ use crate::{Columns, QueryBuilder, ToSqlite, Values};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
-/// The Table struct for creating tables
+/// The Table struct for defining a table
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Table {
     /// Name of the table

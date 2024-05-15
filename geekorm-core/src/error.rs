@@ -1,3 +1,5 @@
+//! Error Module for GeekORM
+
 /// Error type for the crate
 #[derive(Debug, thiserror::Error, Clone)]
 pub enum Error {
