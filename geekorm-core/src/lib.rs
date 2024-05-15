@@ -1,17 +1,15 @@
-//! GeekORM is a simple ORM for SQLite databases.
-#![forbid(unsafe_code)]
 #![allow(dead_code)]
+#![forbid(unsafe_code)]
 #![deny(missing_docs)]
+#![doc = include_str!("../README.md")]
+#![doc(
+    html_logo_url = "https://raw.githubusercontent.com/42ByteLabs/geekorm/main/assets/geekorm.png"
+)]
 
-/// Backend module
 pub mod backends;
-/// Builder module
 pub mod builder;
-/// Error module
 pub mod error;
-/// Query module
 pub mod queries;
-/// Utils module
 pub mod utils;
 
 #[cfg(feature = "libsql")]
@@ -27,7 +25,10 @@ pub use crate::builder::table::Table;
 pub use crate::builder::values::{Value, Values};
 pub use crate::queries::{Query, QueryBuilder};
 
-/// Trait for creating tables
+/// Trait for basic creation of tables
+///
+/// This trait is used to define the table structure for the database.
+/// It is used to define the table name and the columns in the table.
 pub trait TableBuilder
 where
     Self: Sized,

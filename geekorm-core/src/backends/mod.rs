@@ -1,3 +1,5 @@
+//! Backend Module for GeekORM
+
 use std::collections::HashMap;
 
 use crate::{Query, QueryBuilderTrait, TableBuilder, Value};

@@ -1,3 +1,5 @@
+//! Query builder module
+
 /// Column builder module
 pub mod columns;
 /// Column types module
