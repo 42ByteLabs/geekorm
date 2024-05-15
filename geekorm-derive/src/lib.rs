@@ -55,3 +55,33 @@ pub fn table_derive(input: TokenStream) -> TokenStream {
 
     derive_parser(&ast).unwrap().into()
 }
+
+/// Query macro for generating SQL queries.
+///
+/// ```rust
+/// # use std::default;
+/// # use geekorm::prelude::*;
+/// # use geekorm::PrimaryKeyInteger;
+/// # use geekorm_derive::query;
+///
+/// #[derive(GeekTable)]
+/// struct Users {
+///     id: PrimaryKeyInteger,
+///     name: String,
+/// }
+///
+/// let q = query! {
+///     geekorm::QueryBuilder::select()
+///         .build()
+///         .unwrap()
+/// };
+///
+///  // assert_eq!(q, Query { query: String::from("SELECT * FROM Users"), ..default::Default()} );
+///
+/// ```
+#[proc_macro]
+pub fn query(item: TokenStream) -> TokenStream {
+    let ast: DeriveInput = parse_macro_input!(item as DeriveInput);
+
+    quote! { todo!() }.into()
+}
