@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use serde::{Deserialize, Serialize};
 
 use crate::ToSqlite;
@@ -17,6 +19,19 @@ pub enum ColumnType {
     Boolean(ColumnTypeOptions),
     /// Blob / Vec / List column type with options
     Blob(ColumnTypeOptions),
+}
+
+impl Display for ColumnType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ColumnType::Identifier(_) => write!(f, "PrimaryKey"),
+            ColumnType::ForeignKey(fk) => write!(f, "ForeignKey<{}>", fk),
+            ColumnType::Text(_) => write!(f, "Text"),
+            ColumnType::Integer(_) => write!(f, "Integer"),
+            ColumnType::Boolean(_) => write!(f, "Boolean"),
+            ColumnType::Blob(_) => write!(f, "Blob"),
+        }
+    }
 }
 
 impl ToSqlite for ColumnType {
@@ -143,6 +158,15 @@ impl ColumnTypeOptions {
             not_null: false,
             ..Default::default()
         }
+    }
+}
+
+impl Display for ColumnTypeOptions {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if !self.foreign_key.is_empty() {
+            return write!(f, "{}", self.foreign_key);
+        }
+        Err(std::fmt::Error)
     }
 }
 
