@@ -160,7 +160,7 @@ jobs:
 
       - name: Build CLI
         run: |
-          cargo build \
+          cargo run \
             --example geekorm-example-turso-libsql \
             --features="all libsql"
 
