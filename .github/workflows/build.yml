@@ -11,6 +11,7 @@ env:
 
 jobs:
   build:
+    name: "Build"
     runs-on: ubuntu-latest
 
     steps:
@@ -120,6 +121,7 @@ jobs:
 
   cli:
     name: CLI
+    needs: [ build ]
     runs-on: ubuntu-latest
     steps:
       - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36
