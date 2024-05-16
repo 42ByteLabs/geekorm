@@ -18,6 +18,9 @@ const GEEKORM_STATE_FILE: &str = env!("GEEKORM_STATE_FILE");
 pub(crate) struct TableState {
     /// The time the state was created
     pub(crate) created_at: chrono::DateTime<chrono::Utc>,
+    /// The time the state was updated last
+    pub(crate) updated_at: chrono::DateTime<chrono::Utc>,
+
     pub(crate) tables: Vec<Table>,
 }
 
@@ -25,6 +28,7 @@ impl TableState {
     pub(crate) fn new() -> Self {
         let table = Self {
             created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
             tables: Vec::new(),
         };
         Self::write(&table);
@@ -65,8 +69,10 @@ impl TableState {
         let mut state = Self::load_state_file();
         // Remove the table if it already exists
         state.tables.retain(|t| t.name != table.name);
-
         state.tables.push(table);
+
+        state.updated_at = chrono::Utc::now();
+
         Self::write(&state);
     }
 
