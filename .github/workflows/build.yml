@@ -11,6 +11,7 @@ env:
 
 jobs:
   build:
+    name: "Build"
     runs-on: ubuntu-latest
 
     steps:
@@ -57,14 +58,6 @@ jobs:
         run: |
           cargo fmt --check
 
-      - name: Run tests
-        if: steps.changes.outputs.src == 'true'
-        run: |
-          cargo test -F all --workspace
-
-          # Run Examples Backend Features
-          cargo run -F all,libsql --example geekorm-example-turso-libsql
-
       - name: Run Analysis
         if: steps.changes.outputs.src == 'true'
         run: |
@@ -82,3 +75,94 @@ jobs:
             ~/.cargo/git/db/
             target/
           key: ${{ steps.cache-restore.outputs.cache-primary-key }}
+
+  test:
+    name: Tests
+    needs: [ build ]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36
+        id: changes
+        with:
+          filters: |
+            src:
+              - '**/Cargo.*'
+              - 'rust-toolchain.toml'
+              - 'src/**'
+              - 'geekorm-*/**'
+              - 'examples/**'
+              - 'tests/**'
+
+      - uses: dtolnay/rust-toolchain@nightly
+        if: steps.changes.outputs.src == 'true'
+        with:
+          components: clippy,rustfmt
+      
+      - name: Restore cached Cargo 
+        id: cache-restore
+        if: steps.changes.outputs.src == 'true'
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Run tests
+        if: steps.changes.outputs.src == 'true'
+        run: |
+          cargo test -F all --workspace
+
+          # Run Examples Backend Features
+          cargo run -F all,libsql --example geekorm-example-turso-libsql
+
+  cli:
+    name: CLI
+    needs: [ build ]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36
+        id: changes
+        with:
+          filters: |
+            src:
+              - '**/Cargo.*'
+              - 'rust-toolchain.toml'
+              - 'src/**'
+              - 'geekorm-*/**'
+              - 'examples/**'
+              - 'tests/**'
+
+      - uses: dtolnay/rust-toolchain@nightly
+        if: steps.changes.outputs.src == 'true'
+        with:
+          components: clippy,rustfmt
+      
+      - name: Restore cached Cargo 
+        id: cache-restore
+        if: steps.changes.outputs.src == 'true'
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build CLI
+        run: |
+          cargo build \
+            --example geekorm-example-turso-libsql \
+            --features="all libsql"
+
+          cargo run -p geekorm-cli -- display
+
