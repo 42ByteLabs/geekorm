@@ -2,8 +2,6 @@
 
 use std::fmt::Display;
 
-use super::{generate_hash, verify_hash};
-
 /// Random number generator
 #[cfg(feature = "rand")]
 pub mod rand;
@@ -11,6 +9,9 @@ pub mod rand;
 /// Hashing module
 #[cfg(feature = "hash")]
 pub mod hashing;
+
+#[cfg(feature = "hash")]
+use crate::utils::crypto::hashing::{generate_hash, verify_hash};
 
 /// Hashing algorithms
 #[derive(Default, Clone, Debug)]
@@ -42,11 +43,13 @@ impl HashingAlgorithm {
     }
 
     /// Generate a hash using the selected algorithm
+    #[cfg(feature = "hash")]
     pub fn generate_hash(&self, data: String) -> Result<String, crate::Error> {
         generate_hash(data, self.clone())
     }
 
     /// Verify a hash using the selected algorithm
+    #[cfg(feature = "hash")]
     pub fn verify_hash(&self, data: String, hash: String) -> Result<bool, crate::Error> {
         verify_hash(data, hash, self.clone())
     }
