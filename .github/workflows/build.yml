@@ -51,7 +51,7 @@ jobs:
         if: steps.changes.outputs.src == 'true'
         run: |
           cargo build --workspace
-          cargo build -F all --workspace
+          cargo build -F all,hash-all --workspace
 
       - name: Formatting Checks
         if: steps.changes.outputs.src == 'true'
