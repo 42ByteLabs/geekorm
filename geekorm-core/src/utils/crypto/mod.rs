@@ -1,5 +1,9 @@
 //! This module contains functions for generating random strings
 
+use std::fmt::Display;
+
+use super::{generate_hash, verify_hash};
+
 /// Random number generator
 #[cfg(feature = "rand")]
 pub mod rand;
@@ -36,6 +40,16 @@ impl HashingAlgorithm {
             HashingAlgorithm::Sha512 => "Sha512",
         }
     }
+
+    /// Generate a hash using the selected algorithm
+    pub fn generate_hash(&self, data: String) -> Result<String, crate::Error> {
+        generate_hash(data, self.clone())
+    }
+
+    /// Verify a hash using the selected algorithm
+    pub fn verify_hash(&self, data: String, hash: String) -> Result<bool, crate::Error> {
+        verify_hash(data, hash, self.clone())
+    }
 }
 
 impl TryFrom<&str> for HashingAlgorithm {
@@ -61,5 +75,11 @@ impl TryFrom<&String> for HashingAlgorithm {
 
     fn try_from(value: &String) -> Result<Self, Self::Error> {
         Self::try_from(value.as_str())
+    }
+}
+
+impl Display for HashingAlgorithm {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "HashingAlgorithm({})", self.to_str())
     }
 }
