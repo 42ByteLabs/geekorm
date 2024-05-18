@@ -49,7 +49,9 @@ pub fn verify_hash(
         HashingAlgorithm::Pbkdf2 => verify_hash_pbkdf2(data, hash),
         #[cfg(feature = "hash-argon2")]
         HashingAlgorithm::Argon2 => {
-            let hasher = PasswordHash::new(&hash)?;
+            let hasher = PasswordHash::new(&hash).map_err(|e| {
+                crate::Error::HashingError(format!("Error parsing password hash: {}", e))
+            })?;
             match Argon2::default().verify_password(data.as_bytes(), &hasher) {
                 Ok(_) => Ok(true),
                 Err(_) => Ok(false),
@@ -106,7 +108,8 @@ pub(crate) fn generate_hash_argon2(data: String) -> Result<String, crate::Error>
     let salt = SaltString::generate(&mut OsRng);
     // Hash
     let argon2 = Argon2::default();
-    match argon2.hash_password(data.as_bytes(), salt.as_ref()) {
+
+    match argon2.hash_password(data.as_bytes(), &salt) {
         Ok(hash) => Ok(hash.to_string()),
         Err(e) => Err(crate::Error::HashingError(format!(
             "Error hashing password: {}",
