@@ -46,7 +46,10 @@ chrono = ["geekorm-derive/chrono"]
 rand = ["geekorm-derive/rand", "geekorm-core/rand"]
 # Hash functions
 hash = ["geekorm-derive/hash", "geekorm-core/hash", "hash-pbkdf2"]
+# All hash functions available
+hash-all = ["hash-pbkdf2", "hash-argon2", "hash-sha512"]
 hash-pbkdf2 = ["geekorm-derive/hash-pbkdf2", "geekorm-core/hash-pbkdf2"]
+hash-argon2 = ["geekorm-derive/hash-argon2", "geekorm-core/hash-argon2"]
 hash-sha512 = ["geekorm-derive/hash-sha512", "geekorm-core/hash-sha512"]
 
 # Generate new functions for Tables

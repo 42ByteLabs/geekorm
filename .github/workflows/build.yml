@@ -51,7 +51,7 @@ jobs:
         if: steps.changes.outputs.src == 'true'
         run: |
           cargo build --workspace
-          cargo build -F all --workspace
+          cargo build -F all,hash-all --workspace
 
       - name: Formatting Checks
         if: steps.changes.outputs.src == 'true'
@@ -116,7 +116,7 @@ jobs:
       - name: Run tests
         if: steps.changes.outputs.src == 'true'
         run: |
-          cargo test -F all --workspace
+          cargo test -F all,hash-all --workspace
 
           # Run Examples Backend Features
           cargo run -F all,libsql --example geekorm-example-turso-libsql
