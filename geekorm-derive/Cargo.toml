@@ -33,6 +33,7 @@ rand = ["geekorm-core/rand", "dep:rand"]
 # Hashing algorithms
 hash = ["geekorm-core/hash"]
 hash-pbkdf2 = ["geekorm-core/hash-pbkdf2"]
+hash-argon2 = ["geekorm-core/hash-argon2"]
 hash-sha512 = ["geekorm-core/hash-sha512"]
 
 helpers = []
