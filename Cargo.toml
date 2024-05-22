@@ -89,6 +89,11 @@ path = "./examples/foreignkeys/src/main.rs"
 required-features = ["new", "helpers"]
 
 [[example]]
+name = "geekorm-example-one-to-many"
+path = "./examples/one-to-many/src/main.rs"
+required-features = ["new", "helpers", "rand", "libsql"]
+
+[[example]]
 name = "geekorm-example-turso-libsql"
 path = "./examples/turso-libsql/src/main.rs"
 required-features = ["new", "helpers", "libsql"]
