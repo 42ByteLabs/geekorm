@@ -100,6 +100,9 @@ pub fn generate_query_builder(
     for column in table.columns.columns.iter() {
         let name = &column.name;
         let ident = syn::Ident::new(name.as_str(), name.span());
+        if column.skip {
+            continue;
+        }
         insert_values.extend(quote! {
             .add_value(#name, &item.#ident)
         });
@@ -287,15 +290,18 @@ pub fn generate_table_fetch(
             syn::GenericArgument::Type(Type::Path(path)) => {
                 let fident = path.path.segments.first().unwrap().ident.clone();
 
-                stream.extend(column.get_fetcher(ident, &fident));
+                // TODO check other types?
+                if field_type.ident.to_string().as_str() == "ForeignKey" {
+                    stream.extend(column.get_fetcher(ident, &fident));
 
-                // Add fetch function to the list of fetch functions
-                let func_name = format!("fetch_{}", column.identifier);
-                let func = Ident::new(&func_name, Span::call_site());
+                    // Add fetch function to the list of fetch functions
+                    let func_name = format!("fetch_{}", column.identifier);
+                    let func = Ident::new(&func_name, Span::call_site());
 
-                fetch_functions.extend(quote! {
-                    Self::#func(self, connection).await?;
-                });
+                    fetch_functions.extend(quote! {
+                        Self::#func(self, connection).await?;
+                    });
+                }
             }
             _ => {
                 return Err(syn::Error::new(

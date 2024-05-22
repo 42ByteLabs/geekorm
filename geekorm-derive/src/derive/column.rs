@@ -17,7 +17,9 @@ use crate::{
     internal::TableState,
 };
 
-#[derive(Debug, Clone)]
+use super::{multitable::one_to_many, TableDerive};
+
+#[derive(Debug, Clone, Default)]
 pub(crate) struct ColumnsDerive {
     pub(crate) columns: Vec<ColumnDerive>,
 }
@@ -144,7 +146,10 @@ pub(crate) struct ColumnDerive {
 
 impl ColumnDerive {
     #[allow(irrefutable_let_patterns, clippy::collapsible_match)]
-    pub(crate) fn apply_attributes(&mut self) -> Result<(), syn::Error> {
+    pub(crate) fn apply_attributes(
+        &mut self,
+        table_derive: &TableDerive,
+    ) -> Result<(), syn::Error> {
         let attributes = &self.attributes;
 
         for attr in attributes {
@@ -198,6 +203,17 @@ impl ColumnDerive {
                                         foreign_key: format!("{}.{}", table, column),
                                         ..Default::default()
                                     });
+
+                                if let Type::Path(TypePath { path, .. }) = &self.itype {
+                                    if let Some(segment) = path.segments.first() {
+                                        if segment.ident.to_string().as_str() == "Vec" {
+                                            // Skip, this isn't a column in the parent table
+                                            self.skip = true;
+                                            // This is One-to-Many
+                                            one_to_many(table_derive, self, table)?;
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -208,7 +224,7 @@ impl ColumnDerive {
                             .map(|a| {
                                 if let Some(value) = &a.value {
                                     if let GeekAttributeValue::Int(len) = value {
-                                        len.clone() as usize
+                                        *len as usize
                                     } else {
                                         32
                                     }
@@ -558,10 +574,8 @@ impl From<ColumnDerive> for geekorm_core::Column {
     }
 }
 
-impl TryFrom<&Field> for ColumnDerive {
-    type Error = syn::Error;
-
-    fn try_from(value: &Field) -> Result<Self, Self::Error> {
+impl ColumnDerive {
+    pub(crate) fn parse(value: &Field, table: &TableDerive) -> Result<Self, syn::Error> {
         let name: Ident = match &value.ident {
             Some(ident) => ident.clone(),
             None => {
@@ -592,7 +606,7 @@ impl TryFrom<&Field> for ColumnDerive {
             skip: false,
             mode: None,
         };
-        col.apply_attributes()?;
+        col.apply_attributes(table)?;
 
         // TODO(geekmasher): Check if the column is public
         // if let Some(ref mode) = col.mode {

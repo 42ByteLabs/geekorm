@@ -34,25 +34,26 @@ pub(crate) fn derive_parser(ast: &DeriveInput) -> Result<TokenStream, syn::Error
             ..
         }) => {
             let mut errors: Vec<syn::Error> = Vec::new();
-            let mut columns: Vec<ColumnDerive> = Vec::new();
-
-            for field in fields.named.iter() {
-                match ColumnDerive::try_from(field) {
-                    Ok(column) => columns.push(column),
-                    Err(err) => errors.push(err),
-                }
-            }
 
             let mut table = TableDerive {
                 name: name.to_string(),
-                columns: ColumnsDerive::from(columns),
+                columns: ColumnsDerive::default(),
             };
+
+            for field in fields.named.iter() {
+                match ColumnDerive::parse(field, &table) {
+                    Ok(column) => {
+                        table.columns.columns.push(column);
+                    }
+                    Err(err) => errors.push(err),
+                }
+            }
             table.apply_attributes(&attributes);
 
             TableState::add(table.clone().into());
 
             // Generate for the whole table
-            let mut tokens = generate_struct(name, &fields, &ast.generics, table)?;
+            let mut tokens = generate_struct(name, fields, &ast.generics, table)?;
 
             if !errors.is_empty() {
                 for error in errors {

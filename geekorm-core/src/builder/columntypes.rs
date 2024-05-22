@@ -11,6 +11,8 @@ pub enum ColumnType {
     Identifier(ColumnTypeOptions),
     /// Foreign Key column type with the table name
     ForeignKey(ColumnTypeOptions),
+    /// One to many column type with options
+    OneToMany(ColumnTypeOptions),
     /// Text column type with options
     Text(ColumnTypeOptions),
     /// Integer column type with options
@@ -26,6 +28,7 @@ impl Display for ColumnType {
         match self {
             ColumnType::Identifier(_) => write!(f, "PrimaryKey"),
             ColumnType::ForeignKey(fk) => write!(f, "ForeignKey<{}>", fk),
+            ColumnType::OneToMany(_) => write!(f, "OneToMany"),
             ColumnType::Text(_) => write!(f, "Text"),
             ColumnType::Integer(_) => write!(f, "Integer"),
             ColumnType::Boolean(_) => write!(f, "Boolean"),
@@ -76,6 +79,8 @@ impl ToSqlite for ColumnType {
                 }
                 format!("BLOB {}", options.on_create(query)?)
             }
+            // Blank
+            ColumnType::OneToMany(_) => String::new(),
         })
     }
 }

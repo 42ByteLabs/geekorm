@@ -18,6 +18,15 @@ pub(crate) struct TableDerive {
 }
 
 impl TableDerive {
+    pub(crate) fn get_primary_key(&self) -> Option<ColumnDerive> {
+        for column in &self.columns.columns {
+            if column.is_primary_key() {
+                return Some(column.clone());
+            }
+        }
+        None
+    }
+
     #[allow(irrefutable_let_patterns)]
     pub(crate) fn apply_attributes(&mut self, attributes: &Vec<GeekAttribute>) {
         for attr in attributes {

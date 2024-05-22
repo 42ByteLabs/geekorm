@@ -13,6 +13,7 @@ use uuid::Uuid;
 
 mod column;
 mod columntypes;
+mod multitable;
 mod table;
 
 use crate::{

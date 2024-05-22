@@ -50,6 +50,29 @@ user.name = String::from("42ByteLabs");
 let update = Users::update(&user);
 ```
 
+### One-to-Many
+
+```rust
+use geekorm::prelude::*;
+use geekorm::{GeekTable, PrimaryKeyInteger};
+
+#[derive(GeekTable, Default)]
+struct Users {
+    id: PrimaryKeyInteger,
+
+    #[geekorm(foreign_key = "Sessions.id")]
+    sessions: Vec<Sessions>,
+}
+
+#[derive(GeekTable, Default)]
+struct Sessions {
+    id: PrimaryKeyInteger,
+
+    #[geekorm(rand, rand_length = 42)]
+    session: String,
+}
+```
+
 ## Feature - Automatic New Struct Function
 
 When the `new` feature is enabled, the following methods are generated for the struct:
@@ -177,5 +200,7 @@ if user.check_password("newpassword")? {
 
 - `hash` or `password`: Sets the String field as a hashable value
 - `hash_algorithm`: Set the algorithm to use
-    - Default: `Pbkdf2`
+    - `Pbkdf2` (default)
+    - `Argon2`
+    - `Sha512`
 

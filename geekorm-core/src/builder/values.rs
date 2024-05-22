@@ -240,18 +240,6 @@ impl From<usize> for Value {
     }
 }
 
-impl From<Vec<String>> for Value {
-    fn from(value: Vec<String>) -> Self {
-        Value::Blob(serde_json::to_vec(&value).unwrap())
-    }
-}
-
-impl From<&Vec<String>> for Value {
-    fn from(value: &Vec<String>) -> Self {
-        Value::Blob(serde_json::to_vec(value).unwrap())
-    }
-}
-
 impl From<Vec<u8>> for Value {
     fn from(value: Vec<u8>) -> Self {
         Value::Blob(value)
@@ -261,6 +249,50 @@ impl From<Vec<u8>> for Value {
 impl From<&Vec<u8>> for Value {
     fn from(value: &Vec<u8>) -> Self {
         Value::Blob(value.clone())
+    }
+}
+
+impl<T> From<std::vec::Vec<T>> for Value
+where
+    T: Into<Value>,
+{
+    fn from(value: std::vec::Vec<T>) -> Self {
+        Value::Blob(
+            value
+                .into_iter()
+                .map(|value| value.into())
+                .flat_map(|value| match value {
+                    Value::Text(value) => value.into_bytes(),
+                    Value::Integer(value) => value.to_string().into_bytes(),
+                    Value::Boolean(value) => value.to_string().into_bytes(),
+                    Value::Identifier(value) => value.into_bytes(),
+                    Value::Blob(value) => value,
+                    Value::Null => Vec::new(),
+                })
+                .collect(),
+        )
+    }
+}
+
+impl<T> From<&std::vec::Vec<T>> for Value
+where
+    T: Into<Value> + Clone,
+{
+    fn from(value: &std::vec::Vec<T>) -> Self {
+        Value::Blob(
+            value
+                .iter()
+                .map(|value| value.clone().into())
+                .flat_map(|value| match value {
+                    Value::Text(value) => value.into_bytes(),
+                    Value::Integer(value) => value.to_string().into_bytes(),
+                    Value::Boolean(value) => value.to_string().into_bytes(),
+                    Value::Identifier(value) => value.into_bytes(),
+                    Value::Blob(value) => value,
+                    Value::Null => Vec::new(),
+                })
+                .collect(),
+        )
     }
 }
 
