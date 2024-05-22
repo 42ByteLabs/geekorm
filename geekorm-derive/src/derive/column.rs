@@ -1,4 +1,4 @@
-use geekorm_core::{utils::crypto::HashingAlgorithm, ColumnType};
+use geekorm_core::{utils::crypto::HashingAlgorithm, Column, ColumnType, Columns};
 use proc_macro2::{Span, TokenStream};
 use quote::{quote, ToTokens};
 use std::{
@@ -114,6 +114,13 @@ impl From<ColumnsDerive> for geekorm_core::Columns {
 
 impl From<Vec<ColumnDerive>> for ColumnsDerive {
     fn from(columns: Vec<ColumnDerive>) -> Self {
+        ColumnsDerive { columns }
+    }
+}
+
+impl From<&Columns> for ColumnsDerive {
+    fn from(value: &Columns) -> Self {
+        let columns = value.columns.iter().map(|c| c.into()).collect();
         ColumnsDerive { columns }
     }
 }
@@ -570,6 +577,21 @@ impl From<ColumnDerive> for geekorm_core::Column {
             column_type: ColumnType::from(value.coltype),
             alias: value.alias,
             skip: value.skip,
+        }
+    }
+}
+
+impl From<&Column> for ColumnDerive {
+    fn from(value: &Column) -> Self {
+        ColumnDerive {
+            name: value.name.clone(),
+            coltype: (&value.column_type).into(),
+            alias: value.alias.clone(),
+            skip: value.skip,
+            attributes: Vec::new(),
+            identifier: Ident::new(&value.name, Span::call_site()),
+            itype: syn::parse_quote! { String },
+            mode: None,
         }
     }
 }

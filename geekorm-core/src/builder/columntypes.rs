@@ -194,6 +194,12 @@ impl ToSqlite for ColumnTypeOptions {
     }
 }
 
+impl From<&ColumnTypeOptions> for String {
+    fn from(options: &ColumnTypeOptions) -> Self {
+        options.to_string()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -29,6 +29,8 @@ pub mod utils {
 }
 
 // Derive Crate
+/// Tables Proc Macro
+pub use geekorm_derive::tables;
 /// GeekTable Derive Macro
 pub use geekorm_derive::GeekTable;
 
@@ -56,6 +58,8 @@ pub mod prelude {
 
     /// GeekTable
     pub use crate::GeekTable;
+    // Tables
+    pub use geekorm_derive::tables;
 
     // Traits
 

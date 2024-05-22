@@ -1,3 +1,4 @@
+use geekorm_core::{ColumnType, ColumnTypeOptions};
 use proc_macro2::{Span, TokenStream};
 use quote::{quote, ToTokens};
 use std::{
@@ -9,11 +10,12 @@ use syn::{GenericArgument, Ident, Type, TypePath};
 #[derive(Debug, Clone)]
 pub(crate) enum ColumnTypeDerive {
     Identifier(ColumnTypeOptionsDerive),
+    ForeignKey(ColumnTypeOptionsDerive),
+    OneToMany(ColumnTypeOptionsDerive),
     Text(ColumnTypeOptionsDerive),
     Integer(ColumnTypeOptionsDerive),
     Boolean(ColumnTypeOptionsDerive),
     Blob(ColumnTypeOptionsDerive),
-    ForeignKey(ColumnTypeOptionsDerive),
 }
 
 impl ToTokens for ColumnTypeDerive {
@@ -47,6 +49,9 @@ impl ToTokens for ColumnTypeDerive {
             ColumnTypeDerive::ForeignKey(options) => tokens.extend(quote! {
                 geekorm::ColumnType::ForeignKey(#options)
             }),
+            ColumnTypeDerive::OneToMany(options) => tokens.extend(quote! {
+                geekorm::ColumnType::OneToMany(#options)
+            }),
         }
     }
 }
@@ -57,6 +62,9 @@ impl From<ColumnTypeDerive> for geekorm_core::ColumnType {
             ColumnTypeDerive::Identifier(options) => {
                 geekorm_core::ColumnType::Identifier(options.into())
             }
+            ColumnTypeDerive::OneToMany(options) => {
+                geekorm_core::ColumnType::OneToMany(options.into())
+            }
             ColumnTypeDerive::Text(options) => geekorm_core::ColumnType::Text(options.into()),
             ColumnTypeDerive::Integer(options) => geekorm_core::ColumnType::Integer(options.into()),
             ColumnTypeDerive::Boolean(options) => geekorm_core::ColumnType::Boolean(options.into()),
@@ -64,6 +72,26 @@ impl From<ColumnTypeDerive> for geekorm_core::ColumnType {
             ColumnTypeDerive::ForeignKey(options) => {
                 geekorm_core::ColumnType::ForeignKey(options.into())
             }
+        }
+    }
+}
+
+impl From<&ColumnType> for ColumnTypeDerive {
+    fn from(coltype: &ColumnType) -> Self {
+        match coltype {
+            geekorm_core::ColumnType::Identifier(options) => {
+                ColumnTypeDerive::Identifier(options.into())
+            }
+            geekorm_core::ColumnType::ForeignKey(options) => {
+                ColumnTypeDerive::ForeignKey(options.into())
+            }
+            geekorm_core::ColumnType::OneToMany(options) => {
+                ColumnTypeDerive::OneToMany(options.into())
+            }
+            geekorm_core::ColumnType::Text(options) => ColumnTypeDerive::Text(options.into()),
+            geekorm_core::ColumnType::Integer(options) => ColumnTypeDerive::Integer(options.into()),
+            geekorm_core::ColumnType::Boolean(options) => ColumnTypeDerive::Boolean(options.into()),
+            geekorm_core::ColumnType::Blob(options) => ColumnTypeDerive::Blob(options.into()),
         }
     }
 }
@@ -220,6 +248,18 @@ impl From<ColumnTypeOptionsDerive> for geekorm_core::ColumnTypeOptions {
         geekorm_core::ColumnTypeOptions {
             primary_key: opts.primary_key,
             foreign_key: opts.foreign_key,
+            unique: opts.unique,
+            not_null: opts.not_null,
+            auto_increment: opts.auto_increment,
+        }
+    }
+}
+
+impl From<&ColumnTypeOptions> for ColumnTypeOptionsDerive {
+    fn from(opts: &ColumnTypeOptions) -> ColumnTypeOptionsDerive {
+        ColumnTypeOptionsDerive {
+            primary_key: opts.primary_key,
+            foreign_key: opts.foreign_key.clone(),
             unique: opts.unique,
             not_null: opts.not_null,
             auto_increment: opts.auto_increment,

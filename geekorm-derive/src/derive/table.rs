@@ -69,3 +69,12 @@ impl From<TableDerive> for Table {
         }
     }
 }
+
+impl From<&Table> for TableDerive {
+    fn from(value: &Table) -> Self {
+        TableDerive {
+            name: value.name.clone(),
+            columns: (&value.columns).into(),
+        }
+    }
+}

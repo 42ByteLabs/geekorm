@@ -64,6 +64,8 @@ use crate::{
 #[derive(Debug, Clone, Default)]
 pub struct QueryBuilder {
     pub(crate) table: Table,
+    /// Vector of tables to pivot
+    pub(crate) pivot_tables: Vec<Table>,
     pub(crate) query_type: QueryType,
     /// If a query should use aliases
     pub(crate) aliases: bool,

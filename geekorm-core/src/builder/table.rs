@@ -1,4 +1,4 @@
-use crate::{Columns, QueryBuilder, ToSqlite, Values};
+use crate::{Columns, Query, QueryBuilder, ToSqlite, Values};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
@@ -27,6 +27,11 @@ impl Table {
             .unwrap_or_else(|| String::from("id"))
     }
 
+    /// Get all foreign keys in the table
+    pub fn get_foreign_keys(&self) -> Vec<&crate::Column> {
+        self.columns.get_foreign_keys()
+    }
+
     /// Get the foreign key by table name
     pub fn get_foreign_key(&self, table_name: String) -> &crate::Column {
         for column in self.columns.get_foreign_keys() {
@@ -49,15 +54,28 @@ impl Table {
         };
         Ok(format!("{}.{}", self.name, name))
     }
+
+    /// Create Query
+    pub fn create(&self) -> Result<Query, crate::Error> {
+        QueryBuilder::create().table(self.clone()).build()
+    }
 }
 
 impl ToSqlite for Table {
     fn on_create(&self, query: &QueryBuilder) -> Result<String, crate::Error> {
-        Ok(format!(
-            "CREATE TABLE IF NOT EXISTS {} {};",
-            self.name,
-            self.columns.on_create(query)?
-        ))
+        let mut queries = Vec::new();
+
+        if query.pivot_tables.is_empty() {
+            queries.push(format!(
+                "CREATE TABLE IF NOT EXISTS {} {};",
+                self.name,
+                self.columns.on_create(query)?
+            ));
+        } else {
+            todo!("Pivot tables are not yet supported");
+        }
+
+        Ok(queries.join("\n"))
     }
 
     fn on_select(&self, qb: &QueryBuilder) -> Result<String, crate::Error> {

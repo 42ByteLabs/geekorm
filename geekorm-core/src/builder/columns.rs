@@ -38,6 +38,7 @@ impl Columns {
     pub fn get_foreign_keys(&self) -> Vec<&Column> {
         self.columns
             .iter()
+            .filter(|col| !col.skip)
             .filter(|col| matches!(col.column_type, ColumnType::ForeignKey(_)))
             .collect()
     }
@@ -164,6 +165,25 @@ impl Column {
     /// Check if the column is a primary key
     pub fn is_primary_key(&self) -> bool {
         self.column_type.is_primary_key()
+    }
+
+    /// Get the foreign key of a column
+    pub fn foreign_key(&self) -> Option<String> {
+        match &self.column_type {
+            ColumnType::ForeignKey(opts) => Some(opts.foreign_key.clone()),
+            _ => None,
+        }
+    }
+
+    /// Get the foreign key table name
+    pub fn foreign_key_table(&self) -> Option<String> {
+        match &self.column_type {
+            ColumnType::ForeignKey(opts) => {
+                let (table, _) = opts.foreign_key.split_once('.').unwrap();
+                Some(table.to_string())
+            }
+            _ => None,
+        }
     }
 }
 

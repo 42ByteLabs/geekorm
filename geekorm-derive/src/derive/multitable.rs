@@ -6,15 +6,30 @@ use crate::internal::TableState;
 
 use super::{ColumnDerive, ColumnTypeDerive, ColumnTypeOptionsDerive, ColumnsDerive, TableDerive};
 
+/// Create a One-to-Many relationship between two tables by creating a new table
+/// with the primary key of the first and second tables are foreign keys in the third table.
 ///
+/// ```rust
+/// use geekorm::prelude::*;
+/// use geekorm::PrimaryKey;
 ///
-/// # Table
+/// #[derive(GeekTable)]
+/// struct Users {
+///     id: PrimaryKey<i32>,
+///     username: String,
 ///
-/// UsersSession {
-///    id: u64,
-///    user_id: u64,
-///    session_id: u64,
+///     #[geekorm(foreign_key = "Sessions.id")]
+///     sessions: Vec<Sessions>,
 /// }
+///
+/// #[derive(GeekTable)]
+/// struct Sessions {
+///     id: PrimaryKey<i32>,
+///     #[geekorm(rand)]
+///     token: String
+/// }
+///
+/// ```
 pub(crate) fn one_to_many(
     table: &TableDerive,
     column: &ColumnDerive,
