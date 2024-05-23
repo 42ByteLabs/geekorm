@@ -1,0 +1,13 @@
+name: "geekorm"
+repository: "42ByteLabs/geekorm"
+
+locations:
+  - name: "Cargo - Workmembers"
+    paths:
+      - "Cargo.toml"
+      - "**/Cargo.toml"
+    patterns:
+      - 'geekorm = \{.*version = "\^([0-9]\.[0-9]\.[0-9])".*\}'
+      - 'geekorm-core = \{.* version = "\^([0-9]\.[0-9]\.[0-9])".*\}'
+      - 'geekorm-derive = \{.* version = "\^([0-9]\.[0-9]\.[0-9])".*\}'
+
