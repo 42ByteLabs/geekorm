@@ -9,6 +9,7 @@ struct Users {
     username: String,
 
     #[geekorm(foreign_key = "Sessions.id")]
+    #[serde(skip)]
     sessions: Vec<Sessions>,
 }
 
@@ -22,25 +23,25 @@ struct Sessions {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    init();
-    // Initialize an in-memory database
-    let db = libsql::Builder::new_local(":memory:").build().await?;
-    // let db = libsql::Builder::new_local("/tmp/turso-testing.sqlite").build().await?;
-    let conn = db.connect()?;
-
-    let tables = tables!();
+    let conn = init().await?;
 
     let mut user = Users::new("geekmasher");
+    user.execute_insert(&conn).await?;
+
     let session = Sessions::new();
 
     user.sessions.push(session);
+    user.execute_update(&conn).await?;
 
     println!("{:?}", user);
+
+    let query_user = Users::query_first(&conn, Users::select_by_primary_key(user.id)).await?;
+    println!("{:?}", query_user);
 
     Ok(())
 }
 
-fn init() {
+async fn init() -> Result<libsql::Connection> {
     println!(
         "{}  - v{}\n",
         geekorm::GEEKORM_BANNER,
@@ -55,4 +56,17 @@ fn init() {
             log::LevelFilter::Info
         })
         .init();
+
+    // Initialize an in-memory database
+    let db = libsql::Builder::new_local(":memory:").build().await?;
+    // let db = libsql::Builder::new_local("/tmp/turso-testing.sqlite").build().await?;
+    let conn = db.connect()?;
+
+    let tables = tables!();
+    for table in tables {
+        let query = table.create()?;
+        conn.execute(query.to_str(), ()).await?;
+    }
+
+    Ok(conn)
 }

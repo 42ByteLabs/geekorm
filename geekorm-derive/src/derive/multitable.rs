@@ -46,10 +46,8 @@ pub(crate) fn one_to_many(
         name: String::from("id"),
         column_type: ColumnType::Identifier(ColumnTypeOptions {
             primary_key: true,
-            unique: true,
-            not_null: true,
             auto_increment: true,
-            foreign_key: String::new(),
+            ..Default::default()
         }),
         ..Default::default()
     });
