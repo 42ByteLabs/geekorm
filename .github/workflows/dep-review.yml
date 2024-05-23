@@ -8,5 +8,5 @@ permissions:
 jobs:
   dependency-review:
     # https://github.com/42ByteLabs/.github/blob/main/.github/workflows/dep-review.yml
-    uses: 42ByteLabs/.github/.github/workflows/dep-review.yml.yml@main
+    uses: 42ByteLabs/.github/.github/workflows/dep-review.yml@main
     secrets: inherit
