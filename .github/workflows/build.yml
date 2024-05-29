@@ -10,120 +10,14 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
-    name: "Build"
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-    
-      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36
-        id: changes
-        with:
-          filters: |
-            src:
-              - '**/Cargo.*'
-              - 'rust-toolchain.toml'
-              - 'src/**'
-              - 'geekorm-*/**'
-              - 'examples/**'
-              - 'tests/**'
-
-      - uses: dtolnay/rust-toolchain@nightly
-        if: steps.changes.outputs.src == 'true'
-        with:
-          components: clippy,rustfmt
-      
-      - name: Restore cached Cargo 
-        id: cache-restore
-        if: steps.changes.outputs.src == 'true'
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo
-
-      - name: Build
-        if: steps.changes.outputs.src == 'true'
-        run: |
-          cargo build --workspace
-          cargo build -F all,hash-all --workspace
-
-      - name: Formatting Checks
-        if: steps.changes.outputs.src == 'true'
-        run: |
-          cargo fmt --check
-
-      - name: Run Analysis
-        if: steps.changes.outputs.src == 'true'
-        run: |
-          cargo clippy --all-targets
-
-      - name: Save Cargo / Rust Cache 
-        id: cache-save
-        if: steps.changes.outputs.src == 'true'
-        uses: actions/cache/save@v4
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ steps.cache-restore.outputs.cache-primary-key }}
-
-  test:
-    name: Tests
-    needs: [ build ]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36
-        id: changes
-        with:
-          filters: |
-            src:
-              - '**/Cargo.*'
-              - 'rust-toolchain.toml'
-              - 'src/**'
-              - 'geekorm-*/**'
-              - 'examples/**'
-              - 'tests/**'
-
-      - uses: dtolnay/rust-toolchain@nightly
-        if: steps.changes.outputs.src == 'true'
-        with:
-          components: clippy,rustfmt
-      
-      - name: Restore cached Cargo 
-        id: cache-restore
-        if: steps.changes.outputs.src == 'true'
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo
-
-      - name: Run tests
-        if: steps.changes.outputs.src == 'true'
-        run: |
-          cargo test -F all,hash-all --workspace
-
-          # Run Examples Backend Features
-          cargo run -F all,libsql --example geekorm-example-turso-libsql
+  build-test:
+    # https://github.com/42ByteLabs/.github/blob/main/.github/workflows/cargo-build.yml
+    uses: 42ByteLabs/.github/.github/workflows/cargo-build.yml@main
+    secrets: inherit
 
   cli:
     name: CLI
-    needs: [ build ]
+    needs: [ build-test ]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
