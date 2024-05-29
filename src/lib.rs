@@ -78,7 +78,9 @@ pub mod prelude {
     pub use geekorm_core::builder::keys::foreign::{ForeignKey, ForeignKeyInteger};
     #[cfg(feature = "uuid")]
     pub use geekorm_core::builder::keys::primary::PrimaryKeyUuid;
-    pub use geekorm_core::builder::keys::primary::{PrimaryKey, PrimaryKeyInteger, PrimaryKeyString};
+    pub use geekorm_core::builder::keys::primary::{
+        PrimaryKey, PrimaryKeyInteger, PrimaryKeyString,
+    };
     // Query Builder Modules
     pub use geekorm_core::builder::models::{QueryCondition, QueryOrder, QueryType};
     pub use geekorm_core::builder::values::{Value, Values};
