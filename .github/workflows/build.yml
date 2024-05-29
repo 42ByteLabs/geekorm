@@ -12,7 +12,7 @@ env:
 jobs:
   build-test:
     # https://github.com/42ByteLabs/.github/blob/main/.github/workflows/cargo-build.yml
-    uses: 42ByteLabs/.github/.github/workflows/cargo-build.yml@main
+    uses: 42ByteLabs/.github/.github/workflows/cargo.yml@main
     secrets: inherit
 
   cli:
@@ -20,8 +20,8 @@ jobs:
     needs: [ build-test ]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
+      - name: "Checkout"
+        uses: actions/checkout@v4
       - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36
         id: changes
         with:
