@@ -69,4 +69,20 @@ pub mod prelude {
     pub use geekorm_core::ToSqlite;
     // Backends Module
     pub use geekorm_core::{GeekConnection, GeekConnector};
+
+    // Builder Modules
+    pub use geekorm_core::builder::columns::{Column, Columns};
+    pub use geekorm_core::builder::columntypes::{ColumnType, ColumnTypeOptions};
+    pub use geekorm_core::builder::table::Table;
+    // Keys Modules
+    pub use geekorm_core::builder::keys::foreign::{ForeignKey, ForeignKeyInteger};
+    #[cfg(feature = "uuid")]
+    pub use geekorm_core::builder::keys::primary::PrimaryKeyUuid;
+    pub use geekorm_core::builder::keys::primary::{PrimaryKey, PrimaryKeyInteger, PrimaryKeyString};
+    // Query Builder Modules
+    pub use geekorm_core::builder::models::{QueryCondition, QueryOrder, QueryType};
+    pub use geekorm_core::builder::values::{Value, Values};
+    // Query Modules
+    pub use geekorm_core::queries::Query;
+    pub use geekorm_core::queries::QueryBuilder;
 }
