@@ -28,6 +28,7 @@ jobs:
               - 'geekorm-*/**'
               - 'examples/**'
               - 'tests/**'
+              - '.github/workflows/build.yml'
 
       - uses: dtolnay/rust-toolchain@nightly
         if: steps.changes.outputs.src == 'true'
