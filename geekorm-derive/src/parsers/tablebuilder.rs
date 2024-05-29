@@ -218,6 +218,10 @@ pub fn generate_table_execute(
         });
     }
 
+    // table.columns.columns.iter().filter_map(|column| {
+    //     if column.is_
+    // })
+
     // TODO(geekmasher): The execute_insert method might have an issue as we don't have a lock and
     // the last inserted item might not be the one we inserted.
     Ok(quote! {

@@ -3,6 +3,27 @@ use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
 /// The Table struct for defining a table
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Tables {
+    /// Tables in the database
+    pub tables: Vec<Table>,
+}
+
+impl Tables {
+    /// Create all tables in the database
+    #[cfg(feature = "libsql")]
+    pub async fn create_all(&self, conn: &libsql::Connection) -> Result<(), crate::Error> {
+        for table in &self.tables {
+            let query = table.create()?;
+            conn.execute(query.to_str(), ())
+                .await
+                .map_err(|e| crate::Error::LibSQLError(format!("Error creating table: {}", e)))?;
+        }
+        Ok(())
+    }
+}
+
+/// The Table struct for defining a table
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Table {
     /// Name of the table

@@ -11,6 +11,8 @@
 /// The Cryptography module
 pub mod crypto;
 
+pub mod tables;
+
 #[cfg(feature = "rand")]
 pub use crypto::rand::generate_random_string;
 

@@ -11,3 +11,5 @@ repository.workspace = true
 authors.workspace = true
 
 [dependencies]
+geekorm = { path = "../geekorm", features = ["all", "libsql"] }
+

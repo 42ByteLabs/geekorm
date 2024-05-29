@@ -103,7 +103,7 @@ pub fn tables(_input: TokenStream) -> TokenStream {
     });
 
     quote! {
-        vec![ #tables_ast ]
+        geekorm::Tables { tables: vec![ #tables_ast ] }
     }
     .into()
 }

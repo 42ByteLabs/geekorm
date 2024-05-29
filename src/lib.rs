@@ -7,7 +7,7 @@
 // Builder Modules
 pub use geekorm_core::builder::columns::{Column, Columns};
 pub use geekorm_core::builder::columntypes::{ColumnType, ColumnTypeOptions};
-pub use geekorm_core::builder::table::Table;
+pub use geekorm_core::builder::table::{Table, Tables};
 pub use geekorm_core::Error;
 // Keys Modules
 pub use geekorm_core::builder::keys::foreign::{ForeignKey, ForeignKeyInteger};
@@ -29,8 +29,8 @@ pub mod utils {
 }
 
 // Derive Crate
-/// Tables Proc Macro
 pub use geekorm_derive::tables;
+
 /// GeekTable Derive Macro
 pub use geekorm_derive::GeekTable;
 
@@ -58,7 +58,7 @@ pub mod prelude {
 
     /// GeekTable
     pub use crate::GeekTable;
-    // Tables
+    /// Tables
     pub use geekorm_derive::tables;
 
     // Traits
@@ -73,4 +73,7 @@ pub mod prelude {
     pub use geekorm_core::ToSqlite;
     // Backends Module
     pub use geekorm_core::{GeekConnection, GeekConnector};
+
+    /// Public Re-exports
+    pub use geekorm_core::builder::table::Tables;
 }
