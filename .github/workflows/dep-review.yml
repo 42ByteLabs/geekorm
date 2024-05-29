@@ -7,13 +7,6 @@ permissions:
 
 jobs:
   dependency-review:
-    runs-on: ubuntu-latest
-    steps:
-      - name: 'Checkout Repository'
-        uses: actions/checkout@v4
-      - name: 'Dependency Review'
-        uses: actions/dependency-review-action@v4
-        with:
-          fail-on-severity: moderate
-          fail-on-scopes: runtime
-          comment-summary-in-pr: 'always'
+    # https://github.com/42ByteLabs/.github/blob/main/.github/workflows/dep-review.yml
+    uses: 42ByteLabs/.github/.github/workflows/dep-review.yml@main
+    secrets: inherit
