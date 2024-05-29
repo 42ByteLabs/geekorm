@@ -119,7 +119,7 @@ jobs:
           cargo test -F all,hash-all --workspace
 
           # Run Examples Backend Features
-          cargo run -F all,libsql --example geekorm-example-turso-libsql
+          cargo run -F all,libsql --examples
 
   cli:
     name: CLI
