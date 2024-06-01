@@ -2,59 +2,16 @@ name: "Release"
 
 on:
   push:
-    branches:
-      - "main"
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
-  publish:
-    runs-on: ubuntu-latest
-
-    permissions:
-      contents: write
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: "Check up-stream version"
-        id: check
-        run: |
-          ./.github/scripts/crates-version.sh
-            
-      - uses: dtolnay/rust-toolchain@nightly
-        if: steps.check.outputs.outdated == 'true'
-        with:
-          components: clippy
-
-      - name: "Build / Validate"
-        if: steps.check.outputs.outdated == 'true'
-        run: |
-          cargo build
-          cargo test -F all --workspace
-          
-      - name: "Publish"
-        if: steps.check.outputs.outdated == 'true'
-        run: |
-          cargo login ${{ secrets.CRATES_TOKEN }}
-
-          cargo publish -p geekorm-core
-          cargo publish -p geekorm-derive
-          cargo publish
-
-          # CLI
-          cargo publish -p geekorm-cli
-
-      - name: "GitHub Release"
-        if: steps.check.outputs.outdated == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          git config user.name github-actions
-          git config user.email github-actions@github.com
-
-          git tag "v${{ steps.check.outputs.version }}" --force
-          git push origin ${{ github.ref_name }}
-          git push origin --tags --force
-
-          gh release create --latest --generate-notes \
-            --title "${{ steps.check.outputs.version }}"
-
+  cargo-publish:
+    # https://github.com/42ByteLabs/.github/blob/main/.github/workflows/cargo-publish.yml
+    uses: 42ByteLabs/.github/.github/workflows/cargo-publish.yml@v0.2
+    secrets: inherit
+    with:
+      crate: geekorm

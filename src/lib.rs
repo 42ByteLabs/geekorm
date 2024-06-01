@@ -76,4 +76,22 @@ pub mod prelude {
 
     /// Public Re-exports
     pub use geekorm_core::builder::table::Tables;
+
+    // Builder Modules
+    pub use geekorm_core::builder::columns::{Column, Columns};
+    pub use geekorm_core::builder::columntypes::{ColumnType, ColumnTypeOptions};
+    pub use geekorm_core::builder::table::Table;
+    // Keys Modules
+    pub use geekorm_core::builder::keys::foreign::{ForeignKey, ForeignKeyInteger};
+    #[cfg(feature = "uuid")]
+    pub use geekorm_core::builder::keys::primary::PrimaryKeyUuid;
+    pub use geekorm_core::builder::keys::primary::{
+        PrimaryKey, PrimaryKeyInteger, PrimaryKeyString,
+    };
+    // Query Builder Modules
+    pub use geekorm_core::builder::models::{QueryCondition, QueryOrder, QueryType};
+    pub use geekorm_core::builder::values::{Value, Values};
+    // Query Modules
+    pub use geekorm_core::queries::Query;
+    pub use geekorm_core::queries::QueryBuilder;
 }
