@@ -10,14 +10,14 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build-test:
+  build:
     # https://github.com/42ByteLabs/.github/blob/main/.github/workflows/cargo-build.yml
     uses: 42ByteLabs/.github/.github/workflows/cargo.yml@main
     secrets: inherit
 
   cli:
     name: CLI
-    needs: [ build-test ]
+    needs: [ build ]
     runs-on: ubuntu-latest
     steps:
       - name: "Checkout"
