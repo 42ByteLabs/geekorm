@@ -5,6 +5,9 @@ on:
     branches:
       - "main"
 
+permissions:
+  contents: write
+
 jobs:
   cargo-publish:
     # https://github.com/42ByteLabs/.github/blob/main/.github/workflows/cargo-publish.yml
