@@ -9,33 +9,8 @@ on:
 
 jobs:
   train:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: "Checkout"
-        uses: actions/checkout@v4
-
-      - name: "Check when was the last version released"
-        id: crates-check
-        run: |          
-          ./.github/scripts/crates-check.sh
-
-      - name: "Bump version"
-        id: version
-        if: steps.crates-check.outputs.changes == "true"
-        run: |
-          ./.github/scripts/bump-version.sh
-    
-      - name: Create Pull Request
-        uses: peter-evans/create-pull-request@6d6857d36972b65feb161a90e484f2984215f83e # v6.0.5
-        with:
-          token: ${{ github.token }}
-          commit-message: |
-            [chore] Train Release - ${{ steps.version.outputs.version }}
-          labels: version
-          assignees: GeekMasher
-          body: |
-            This PR was automatically created from the train release.
-
-            * `v${{ steps.version.outputs.version }}`
-
+    # https://github.com/42ByteLabs/.github/blob/main/.github/workflows/cargo-train.yml
+    uses: 42ByteLabs/.github/.github/workflows/cargo-train.yml@v0.2
+    secrets: inherit
+    with:
+      crate: geekorm
