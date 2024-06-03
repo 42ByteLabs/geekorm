@@ -10,7 +10,7 @@ on:
 jobs:
   train:
     # https://github.com/42ByteLabs/.github/blob/main/.github/workflows/cargo-train.yml
-    uses: 42ByteLabs/.github/.github/workflows/cargo-train.yml@v0.3
+    uses: 42ByteLabs/.github/.github/workflows/cargo-train.yml@v0.4
     secrets: inherit
     with:
       crate: geekorm
