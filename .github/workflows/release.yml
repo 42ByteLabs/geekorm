@@ -11,7 +11,7 @@ permissions:
 jobs:
   cargo-publish:
     # https://github.com/42ByteLabs/.github/blob/main/.github/workflows/cargo-publish.yml
-    uses: 42ByteLabs/.github/.github/workflows/cargo-publish.yml@v0.2
+    uses: 42ByteLabs/.github/.github/workflows/cargo-publish.yml@v0.4
     secrets: inherit
     with:
       crate: geekorm
