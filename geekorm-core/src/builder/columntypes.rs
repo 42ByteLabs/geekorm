@@ -231,12 +231,12 @@ mod tests {
 
         let column_type_options = ColumnTypeOptions {
             primary_key: true,
-            not_null: true,
+            auto_increment: true,
             ..Default::default()
         };
         assert_eq!(
             column_type_options.on_create(&query).unwrap(),
-            "NOT NULL PRIMARY KEY"
+            "PRIMARY KEY AUTOINCREMENT"
         );
     }
 }

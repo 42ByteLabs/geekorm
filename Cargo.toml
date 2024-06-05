@@ -42,7 +42,7 @@ default = []
 all = ["uuid", "chrono", "new", "helpers", "rand", "hash"]
 
 uuid = ["geekorm-core/uuid"]
-chrono = ["geekorm-derive/chrono"]
+chrono = ["geekorm-derive/chrono", "geekorm-core/chrono"]
 # Random Generators
 rand = ["geekorm-derive/rand", "geekorm-core/rand"]
 
@@ -74,6 +74,7 @@ libsql = "0.3"
 log = "0.4.21"
 serde = { version = "1", features = ["derive"] }
 tokio = { version = "1", features = ["full"] }
+chrono = { version = "0.4", features = ["serde"] }
 
 [profile.test]
 opt-level = 1
@@ -81,7 +82,7 @@ opt-level = 1
 [[example]]
 name = "geekorm-example-users"
 path = "./examples/users/src/main.rs"
-required-features = ["new"]
+required-features = ["new", "chrono"]
 
 [[example]]
 name = "geekorm-example-foreignkeys"

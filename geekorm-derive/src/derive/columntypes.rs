@@ -51,6 +51,41 @@ impl ToTokens for ColumnTypeDerive {
     }
 }
 
+impl ColumnTypeDerive {
+    pub fn set_notnull(&mut self, notnull: bool) {
+        match self {
+            ColumnTypeDerive::Identifier(options)
+            | ColumnTypeDerive::Text(options)
+            | ColumnTypeDerive::Integer(options)
+            | ColumnTypeDerive::Boolean(options)
+            | ColumnTypeDerive::Blob(options)
+            | ColumnTypeDerive::ForeignKey(options) => {
+                options.set_notnull(notnull);
+            }
+        }
+    }
+    pub fn set_unique(&mut self, unique: bool) {
+        match self {
+            ColumnTypeDerive::Identifier(options)
+            | ColumnTypeDerive::Text(options)
+            | ColumnTypeDerive::Integer(options)
+            | ColumnTypeDerive::Boolean(options)
+            | ColumnTypeDerive::Blob(options)
+            | ColumnTypeDerive::ForeignKey(options) => {
+                options.set_unique(unique);
+            }
+        }
+    }
+    pub fn set_auto_increment(&mut self, auto_increment: bool) {
+        match self {
+            ColumnTypeDerive::Identifier(options) | ColumnTypeDerive::Integer(options) => {
+                options.set_auto_increment(auto_increment);
+            }
+            _ => {}
+        }
+    }
+}
+
 impl From<ColumnTypeDerive> for geekorm_core::ColumnType {
     fn from(coltype: ColumnTypeDerive) -> Self {
         match coltype {
@@ -160,7 +195,7 @@ fn parse_path(typ: &Type, opts: ColumnTypeOptionsDerive) -> Result<ColumnTypeDer
                 #[cfg(feature = "uuid")]
                 "Uuid" => Ok(ColumnTypeDerive::Text(opts)),
                 #[cfg(feature = "chrono")]
-                "DateTime" => Ok(ColumnTypeDerive::Text(opts)),
+                "chrono" | "DateTime" => Ok(ColumnTypeDerive::Text(opts)),
                 // TODO(geekmasher): Remove this
                 _ => Err(syn::Error::new_spanned(
                     ident,
@@ -178,9 +213,27 @@ pub(crate) struct ColumnTypeOptionsDerive {
     pub(crate) primary_key: bool,
     // TableName::ColumnKey
     pub(crate) foreign_key: String,
+    /// Column is unique
     pub(crate) unique: bool,
+    /// Column is not null
     pub(crate) not_null: bool,
+    /// Column is auto increment
     pub(crate) auto_increment: bool,
+}
+
+impl ColumnTypeOptionsDerive {
+    /// Set Unique
+    pub fn set_unique(&mut self, unique: bool) {
+        self.unique = unique;
+    }
+    /// Set Not Null
+    pub fn set_notnull(&mut self, notnull: bool) {
+        self.not_null = notnull;
+    }
+    /// Set Auto Increment
+    pub fn set_auto_increment(&mut self, auto_increment: bool) {
+        self.auto_increment = auto_increment;
+    }
 }
 
 impl Default for ColumnTypeOptionsDerive {

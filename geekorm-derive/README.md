@@ -109,6 +109,8 @@ let user = Users::select_by_occupation("Software Developer");
 When using the `rand` feature, you can automatically generate random strings and use 
 
 ```rust
+# #[cfg(feature = "rand")]
+# {
 use geekorm::prelude::*;
 use geekorm::{GeekTable, PrimaryKeyInteger};
 
@@ -123,6 +125,7 @@ pub struct Users {
 let user = Users::new(String::from("geekmasher"));
 println!("{}", user.token);
 # assert_eq!(user.token.len(), 48);
+# }
 ```
 
 **`rand` attributes:**
