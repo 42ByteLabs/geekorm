@@ -61,7 +61,7 @@ pub(crate) fn generate_serde(
     variants: &syn::punctuated::Punctuated<syn::Variant, syn::token::Comma>,
     generics: &syn::Generics,
 ) -> Result<TokenStream, syn::Error> {
-    let (impl_generics, ty_generics, _where_clause) = generics.split_for_impl();
+    let (_impl_generics, _ty_generics, _where_clause) = generics.split_for_impl();
 
     let mut stream = TokenStream::new();
 
