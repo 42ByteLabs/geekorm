@@ -5,12 +5,14 @@ use geekorm::{prelude::*, ForeignKey, PrimaryKeyInteger};
 
 #[derive(Debug, Clone, Default, GeekTable, serde::Serialize, serde::Deserialize)]
 pub struct Repository {
+    #[geekorm(primary_key, auto_increment)]
     pub id: PrimaryKeyInteger,
     pub url: String,
 }
 
 #[derive(Debug, Clone, Default, GeekTable, serde::Serialize, serde::Deserialize)]
 pub struct Projects {
+    #[geekorm(primary_key, auto_increment)]
     pub id: PrimaryKeyInteger,
     pub name: String,
     pub url: String,

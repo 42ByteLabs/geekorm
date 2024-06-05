@@ -1,13 +1,66 @@
-use proc_macro2::Span;
-use proc_macro2::TokenStream;
-use quote::quote;
-use quote::ToTokens;
-use syn::punctuated::Punctuated;
-use syn::LitInt;
+//! Geek Attributes for the derive macro
+//!
+//! # Samples
+//!
+//! ```rust
+//! use geekorm::prelude::*;
+//!
+//! #[derive(GeekTable, Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
+//! struct Users {
+//!     #[geekorm(primary_key, auto_increment)]
+//!     id: PrimaryKey<i32>,
+//!     /// Rename the field for the table
+//!     #[geekorm(rename = "full_name")]
+//!     name: String,
+//!
+//!     age: i32,
+//!
+//!     occupation: String,
+//!     /// Random value
+//! #   #[cfg(feature = "rand")]
+//!     #[geekorm(unique, rand, rand_length = "42", rand_prefix = "gorm_")]
+//!     session: String,
+//!     /// Datetime using chrono
+//! #   #[cfg(feature = "chrono")]
+//!     #[geekorm(new = "chrono::Utc::now()")]
+//!     created_at: chrono::DateTime<chrono::Utc>,
+//! }
+//!
+//! #[derive(GeekTable, Debug, Clone, serde::Serialize, serde::Deserialize)]
+//! struct Posts {
+//!     #[geekorm(primary_key, auto_increment)]
+//!     id: PrimaryKeyInteger,
+//!     #[geekorm(not_null)]
+//!     title: String,
+//!     #[geekorm(foreign_key = "Users.id")]
+//!     author: ForeignKey<i32, Users>,
+//! }
+//!
+//! # fn main() {
+//!     # let create_query = Users::create().build().unwrap();
+//!     # assert_eq!(
+//!     #     create_query.query.as_str(),
+//!     #     "CREATE TABLE IF NOT EXISTS Users (id INTEGER PRIMARY KEY AUTOINCREMENT, full_name TEXT NOT NULL, age INTEGER NOT NULL, occupation TEXT NOT NULL, session TEXT NOT NULL UNIQUE, created_at TEXT NOT NULL);"
+//!     # );
+//!
+//!     let user = Users::new(
+//!         "geekmasher",
+//!         42,
+//!         "Software Engineer",
+//!     );
+//!     let post = Posts::new(
+//!         "Why I love Rust",
+//!         user.id
+//!     );
+//! # }
+//! ```
+use proc_macro2::{Span, TokenStream};
+use quote::{quote, ToTokens};
 use syn::{
     parse::{Parse, ParseStream},
+    punctuated::Punctuated,
     spanned::Spanned,
-    Attribute, Ident, LitStr, Token,
+    Attribute, Ident, LitBool, LitInt, LitStr, Token,
 };
 
 #[derive(Debug, Clone)]
@@ -21,26 +74,37 @@ pub(crate) struct GeekAttribute {
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub(crate) enum GeekAttributeKeys {
-    Skip,
+    /// Rename the field for the table
     Rename,
-    Default,
+    /// Unique value
+    Unique,
+    /// New Constructor
+    New,
+    /// Primary Key
+    PrimaryKey,
+    /// Auto Increment
     AutoIncrement,
+    /// Not Null
+    NotNull,
+    /// Foreign Key
     ForeignKey,
-    // Random value
+    /// Random value
     Rand,
     RandLength,
     RandPrefix,
     RandEnv,
-    // Hash / Password
+    /// Hash / Password
     Hash,
     HashAlgorithm,
+    /// Skip this field
+    Skip,
 }
 
 #[derive(Debug, Clone)]
 pub(crate) enum GeekAttributeValue {
     String(String),
-    #[allow(dead_code)]
     Int(i64),
+    Bool(bool),
 }
 
 impl GeekAttribute {
@@ -65,6 +129,37 @@ impl GeekAttribute {
     #[allow(irrefutable_let_patterns)]
     pub(crate) fn validate(&self) -> Result<(), syn::Error> {
         match self.key {
+            // Requires: The `primary_key` attribute does not require a value
+            Some(GeekAttributeKeys::PrimaryKey) => {
+                if self.value.is_some() {
+                    Err(syn::Error::new(
+                        self.span.span(),
+                        "The `primary_key` attribute does not require a value",
+                    ))
+                } else {
+                    Ok(())
+                }
+            }
+            Some(GeekAttributeKeys::New) => {
+                // Requires: The `new` attribute requires a string or bool value
+                if let Some(value) = &self.value {
+                    if let GeekAttributeValue::String(_) = value {
+                        Ok(())
+                    } else if let GeekAttributeValue::Bool(_) = value {
+                        Ok(())
+                    } else {
+                        Err(syn::Error::new(
+                            self.span.span(),
+                            "The `new` attribute requires a string value",
+                        ))
+                    }
+                } else {
+                    Err(syn::Error::new(
+                        self.span.span(),
+                        "The `new` attribute requires a value",
+                    ))
+                }
+            }
             // Validate the `foreign_key` attribute
             Some(GeekAttributeKeys::ForeignKey) => {
                 if let Some(value) = &self.value {
@@ -94,8 +189,7 @@ impl GeekAttribute {
             Some(GeekAttributeKeys::HashAlgorithm) => {
                 if let Some(value) = &self.value {
                     if let GeekAttributeValue::String(content) = value {
-                        if let Ok(_) =
-                            geekorm_core::utils::crypto::HashingAlgorithm::try_from(content)
+                        if geekorm_core::utils::crypto::HashingAlgorithm::try_from(content).is_ok()
                         {
                             Ok(())
                         } else {
@@ -131,9 +225,23 @@ impl Parse for GeekAttribute {
         let key: Option<GeekAttributeKeys> = match name_str.as_str() {
             "skip" => Some(GeekAttributeKeys::Skip),
             "rename" => Some(GeekAttributeKeys::Rename),
-            "default" => Some(GeekAttributeKeys::Default),
+            // Primary Keys
+            "primary_key" => Some(GeekAttributeKeys::PrimaryKey),
             "auto_increment" => Some(GeekAttributeKeys::AutoIncrement),
+            "not_null" => Some(GeekAttributeKeys::NotNull),
+            "unique" => Some(GeekAttributeKeys::Unique),
+            // Foreign Key
             "foreign_key" => Some(GeekAttributeKeys::ForeignKey),
+            // New Constructor
+            "new" => match cfg!(feature = "new") {
+                true => Some(GeekAttributeKeys::New),
+                false => {
+                    return Err(syn::Error::new(
+                        name.span(),
+                        "The `new` attribute requires the `new` feature to be enabled",
+                    ))
+                }
+            },
             // Random value feature
             "rand" => match cfg!(feature = "rand") {
                 true => Some(GeekAttributeKeys::Rand),
@@ -187,7 +295,12 @@ impl Parse for GeekAttribute {
                     )),
                 }
             }
-            _ => None,
+            _ => {
+                return Err(syn::Error::new(
+                    name.span(),
+                    format!("Unknown attribute `{}`", name_str),
+                ))
+            }
         };
 
         let mut value_span: Option<Span> = None;
@@ -205,6 +318,11 @@ impl Parse for GeekAttribute {
                 value_span = Some(lit.span());
 
                 Some(GeekAttributeValue::Int(lit.base10_parse().unwrap()))
+            } else if input.peek(LitBool) {
+                let lit: LitBool = input.parse()?;
+                value_span = Some(lit.span());
+
+                Some(GeekAttributeValue::Bool(lit.value))
             } else {
                 None
             }

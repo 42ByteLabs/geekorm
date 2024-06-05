@@ -1,9 +1,11 @@
 #![allow(dead_code, unused_imports)]
+use chrono::{DateTime, Utc};
 use geekorm::prelude::*;
 use geekorm::{GeekTable, PrimaryKeyInteger};
 
 #[derive(Debug, Clone, Default, GeekTable)]
 struct Users {
+    #[geekorm(primary_key, auto_increment)]
     id: PrimaryKeyInteger,
     username: String,
     email: String,

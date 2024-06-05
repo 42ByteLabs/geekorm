@@ -36,7 +36,7 @@ fn main() {
     println!("Posts by user query: {:?}", posts_by_user.query);
     assert_eq!(
         posts_by_user.query.as_str(),
-        "SELECT (Posts.title, Users.name) FROM Posts INNER JOIN Users ON Users.id = Posts.author_id;"
+        "SELECT Posts.title, Users.name FROM Posts INNER JOIN Users ON Users.id = Posts.author;"
     );
 
     // // Select all users and their posts

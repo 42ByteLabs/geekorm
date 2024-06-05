@@ -4,7 +4,6 @@ use quote::{quote, ToTokens};
 use std::{
     any::{Any, TypeId},
     fmt::Debug,
-    usize,
 };
 use syn::{
     parse::Parse, spanned::Spanned, token::Pub, Attribute, Field, GenericArgument, Ident, Type,
@@ -129,6 +128,10 @@ impl From<Vec<ColumnDerive>> for ColumnsDerive {
 
 #[derive(Debug, Clone)]
 pub(crate) enum ColumnMode {
+    New {
+        enabled: bool,
+        data: Option<String>,
+    },
     Rand {
         len: usize,
         prefix: Option<String>,
@@ -164,6 +167,24 @@ impl ColumnDerive {
                     GeekAttributeKeys::Skip => {
                         self.skip = true;
                     }
+                    GeekAttributeKeys::Unique => {
+                        self.coltype.set_unique(true);
+                    }
+                    GeekAttributeKeys::New => {
+                        if let Some(value) = &attr.value {
+                            if let GeekAttributeValue::String(content) = value {
+                                self.mode = Some(ColumnMode::New {
+                                    enabled: true,
+                                    data: Some(content.to_string()),
+                                });
+                            } else if let GeekAttributeValue::Bool(new) = value {
+                                self.mode = Some(ColumnMode::New {
+                                    enabled: *new,
+                                    data: None,
+                                });
+                            }
+                        }
+                    }
                     GeekAttributeKeys::Rename => {
                         if let Some(value) = &attr.value {
                             if let GeekAttributeValue::String(name) = value {
@@ -171,6 +192,28 @@ impl ColumnDerive {
                             }
                         }
                     }
+                    GeekAttributeKeys::PrimaryKey => {
+                        if let ColumnTypeDerive::Identifier(_) = self.coltype {
+                            // Skip as the column type is already set
+                        } else {
+                            self.coltype = ColumnTypeDerive::Identifier(ColumnTypeOptionsDerive {
+                                primary_key: true,
+                                auto_increment: true,
+                                ..Default::default()
+                            });
+                        }
+                    }
+                    GeekAttributeKeys::AutoIncrement => {
+                        if let Some(value) = &attr.value {
+                            if let GeekAttributeValue::Bool(auto_increment) = value {
+                                self.coltype.set_auto_increment(*auto_increment);
+                            }
+                        } else {
+                            // If no value is set, then set it to true
+                            self.coltype.set_auto_increment(true);
+                        }
+                    }
+                    GeekAttributeKeys::NotNull => self.coltype.set_notnull(true),
                     GeekAttributeKeys::ForeignKey => {
                         if let Some(value) = &attr.value {
                             if let GeekAttributeValue::String(name) = value {
@@ -184,7 +227,7 @@ impl ColumnDerive {
                                     }
                                 };
 
-                                // TODO(geekmasher): These validation checks currently don't work
+                                // TODO: (geekmasher) These validation checks currently don't work
 
                                 // let tables = TableState::load_state_file();
                                 //
@@ -263,10 +306,17 @@ impl ColumnDerive {
 
                         self.mode = Some(ColumnMode::Rand { len, prefix, env });
                     }
+                    GeekAttributeKeys::RandLength
+                    | GeekAttributeKeys::RandEnv
+                    | GeekAttributeKeys::RandPrefix => {
+                        // Skip
+                    }
                     GeekAttributeKeys::Hash => {
                         self.mode = Some(ColumnMode::Hash(HashingAlgorithm::Pbkdf2));
                     }
-                    _ => {}
+                    GeekAttributeKeys::HashAlgorithm => {
+                        // Skip
+                    }
                 }
             } else {
                 // TODO(geekmasher): Handle this better
@@ -301,13 +351,20 @@ impl ColumnDerive {
         if self.skip {
             return None;
         }
-        // Modes
-        if let Some(ColumnMode::Rand { .. }) = &self.mode {
-            return None;
-        }
 
         let identifier = &self.identifier;
         let itype = &self.itype;
+
+        // Modes
+        if let Some(ColumnMode::Rand { .. }) = &self.mode {
+            return None;
+        } else if let Some(ColumnMode::New { enabled, data }) = &self.mode {
+            if !*enabled || data.is_some() {
+                return None;
+            }
+            // Let it continue to the default
+        }
+
         // Ignore PrimaryKey / ForeignKey / Option<T>
         if let Type::Path(TypePath { path, .. }) = itype {
             if let Some(segment) = path.segments.first() {
@@ -359,8 +416,24 @@ impl ColumnDerive {
             return quote! { #identifier: Default::default() };
         }
 
-        // Random
-        if let Some(ColumnMode::Rand { len, prefix, env }) = &self.mode {
+        // Modes
+        if let Some(ColumnMode::New { enabled, data }) = &self.mode {
+            if !*enabled {
+                return quote! { #identifier: Default::default() };
+            } else if let Some(data) = data {
+                // TODO: We might want to handle this better as users can pass in any data
+                // to this field
+                let data = syn::parse_str::<TokenStream>(data)
+                    .map_err(|err| {
+                        syn::Error::new(
+                            self.span(),
+                            format!("Failed to parse data for New mode: {}", err),
+                        )
+                    })
+                    .unwrap();
+                return quote! { #identifier: #data };
+            }
+        } else if let Some(ColumnMode::Rand { len, prefix, env }) = &self.mode {
             let mut pre = String::new();
             if let Some(prefix) = prefix {
                 pre.push_str(prefix.as_str());
