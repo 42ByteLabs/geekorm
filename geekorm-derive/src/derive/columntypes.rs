@@ -196,11 +196,7 @@ fn parse_path(typ: &Type, opts: ColumnTypeOptionsDerive) -> Result<ColumnTypeDer
                 "Uuid" => Ok(ColumnTypeDerive::Text(opts)),
                 #[cfg(feature = "chrono")]
                 "chrono" | "DateTime" => Ok(ColumnTypeDerive::Text(opts)),
-                // TODO(geekmasher): Remove this
-                _ => Err(syn::Error::new_spanned(
-                    ident,
-                    "Unsupported column path type",
-                )),
+                _ => Ok(ColumnTypeDerive::Blob(opts)),
             }
         }
         _ => Err(syn::Error::new_spanned(typ, "Unsupported column type")),

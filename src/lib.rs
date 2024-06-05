@@ -31,6 +31,7 @@ pub mod utils {
 // Derive Crate
 /// GeekTable Derive Macro
 pub use geekorm_derive::GeekTable;
+pub use geekorm_derive::GeekValue;
 
 /// GeekORM Version
 pub const GEEKORM_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -56,6 +57,7 @@ pub mod prelude {
 
     /// GeekTable
     pub use crate::GeekTable;
+    pub use crate::GeekValue;
 
     // Traits
 

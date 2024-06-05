@@ -19,10 +19,10 @@ mod errors;
 mod internal;
 mod parsers;
 
-use parsers::derive_parser;
+use parsers::{derive_parser, enum_parser};
 use proc_macro::TokenStream;
 use quote::{quote, ToTokens};
-use syn::{parse_macro_input, Data, DataStruct, DeriveInput, Fields};
+use syn::{parse_macro_input, Data, DataEnum, DataStruct, DeriveInput, Fields};
 
 /// Derive macro for `GeekTable` trait.
 ///
@@ -54,4 +54,11 @@ pub fn table_derive(input: TokenStream) -> TokenStream {
     let ast: DeriveInput = parse_macro_input!(input as DeriveInput);
 
     derive_parser(&ast).unwrap().into()
+}
+
+#[proc_macro_derive(GeekValue)]
+pub fn value_derive(input: TokenStream) -> TokenStream {
+    let ast: DeriveInput = parse_macro_input!(input as DeriveInput);
+
+    enum_parser(&ast).unwrap().into()
 }

@@ -1,15 +1,18 @@
 use proc_macro2::TokenStream;
 use quote::{quote, quote_spanned, ToTokens};
 use syn::{
-    parse::Parse, parse_macro_input, spanned::Spanned, Data, DataStruct, DeriveInput, Fields,
+    parse::Parse, parse_macro_input, punctuated::Punctuated, spanned::Spanned, Data, DataEnum,
+    DataStruct, DeriveInput, Fields,
 };
 
 #[cfg(feature = "rand")]
 use geekorm_core::utils::generate_random_string;
 use geekorm_core::{Columns, Table};
+use values::{generate_from_value, generate_serde};
 
 mod helpers;
 mod tablebuilder;
+mod values;
 
 use crate::{
     attr::GeekAttribute,
@@ -66,6 +69,26 @@ pub(crate) fn derive_parser(ast: &DeriveInput) -> Result<TokenStream, syn::Error
         _ => Ok(syn::Error::new(
             ast.span(),
             "GeekTable only supported derived structs with named fields",
+        )
+        .to_compile_error()),
+    }
+}
+
+pub(crate) fn enum_parser(ast: &DeriveInput) -> Result<TokenStream, syn::Error> {
+    let name = &ast.ident;
+
+    match &ast.data {
+        Data::Enum(DataEnum { variants, .. }) => {
+            let mut tokens = TokenStream::new();
+
+            tokens.extend(generate_from_value(name, variants, &ast.generics)?);
+            tokens.extend(generate_serde(name, variants, &ast.generics)?);
+
+            Ok(tokens)
+        }
+        _ => Ok(syn::Error::new(
+            ast.span(),
+            "GeekTable only supported derived enums with named fields",
         )
         .to_compile_error()),
     }

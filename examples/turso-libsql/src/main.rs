@@ -10,11 +10,33 @@ pub struct Repository {
     pub url: String,
 }
 
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+pub enum ProjectType {
+    #[default]
+    Library,
+    Application,
+    Framework,
+    Tool,
+}
+
+
+impl Serialize for ProjectType {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_i32(*self)
+    }
+}
+
 #[derive(Debug, Clone, Default, GeekTable, serde::Serialize, serde::Deserialize)]
 pub struct Projects {
     #[geekorm(primary_key, auto_increment)]
     pub id: PrimaryKeyInteger,
     pub name: String,
+
+    #[geekorm(new = "ProjectType::Library")]
+    pub project_type: ProjectType,
     pub url: String,
 
     #[geekorm(foreign_key = "Repository.id")]
@@ -63,8 +85,10 @@ async fn main() -> Result<()> {
         ),
     ];
     // Initialize an in-memory database
-    let db = libsql::Builder::new_local(":memory:").build().await?;
-    // let db = libsql::Builder::new_local("/tmp/turso-testing.sqlite").build().await?;
+    // let db = libsql::Builder::new_local(":memory:").build().await?;
+    let db = libsql::Builder::new_local("/tmp/turso-testing.sqlite")
+        .build()
+        .await?;
     let conn = db.connect()?;
 
     // Create a table
