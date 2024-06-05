@@ -9,3 +9,4 @@ authors.workspace = true
 
 [dependencies]
 geekorm = { path = "../../" }
+chrono = "0.4"
