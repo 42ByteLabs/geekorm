@@ -14,6 +14,8 @@ jobs:
     # https://github.com/42ByteLabs/.github/blob/main/.github/workflows/cargo-build.yml
     uses: 42ByteLabs/.github/.github/workflows/cargo.yml@main
     secrets: inherit
+    with:
+      features: "all"
 
   cli:
     name: CLI
