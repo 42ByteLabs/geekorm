@@ -4,6 +4,8 @@ use syn::{
     parse::Parse, parse_macro_input, spanned::Spanned, Data, DataStruct, DeriveInput, Fields,
 };
 
+#[cfg(feature = "rand")]
+use geekorm_core::utils::generate_random_string;
 use geekorm_core::{Columns, Table};
 
 mod helpers;
@@ -15,7 +17,7 @@ use crate::{
     internal::TableState,
     parsers::tablebuilder::generate_query_builder,
 };
-use helpers::{generate_helpers, generate_new};
+use helpers::{generate_helpers, generate_new, generate_random_helpers};
 use tablebuilder::{
     generate_table_builder, generate_table_execute, generate_table_fetch,
     generate_table_primary_key,
@@ -100,6 +102,9 @@ fn generate_struct(
 
     #[cfg(feature = "hash")]
     stream.extend(generate_hash_helpers(ident, generics, &table)?);
+
+    #[cfg(feature = "rand")]
+    stream.extend(generate_random_helpers(ident, generics, &table)?);
 
     Ok(stream)
 }

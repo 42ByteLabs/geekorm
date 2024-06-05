@@ -103,6 +103,27 @@ pub(crate) fn generate_hash_helpers(
 }
 
 #[allow(dead_code, unused_variables)]
+pub(crate) fn generate_random_helpers(
+    ident: &syn::Ident,
+    generics: &syn::Generics,
+    table: &TableDerive,
+) -> Result<TokenStream, syn::Error> {
+    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
+
+    let mut stream = TokenStream::new();
+    // Generate the selectors for the columns
+    for column in table.columns.get_random_columns() {
+        stream.extend(column.get_random_helpers());
+    }
+
+    Ok(quote! {
+        impl #impl_generics #ident #ty_generics #where_clause {
+            #stream
+        }
+    })
+}
+
+#[allow(dead_code, unused_variables)]
 pub(crate) fn generate_serde(
     ident: &syn::Ident,
     generics: &syn::Generics,
