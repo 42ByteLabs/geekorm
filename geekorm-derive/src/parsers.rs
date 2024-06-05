@@ -4,7 +4,9 @@ use syn::{
     parse::Parse, parse_macro_input, spanned::Spanned, Data, DataStruct, DeriveInput, Fields,
 };
 
-use geekorm_core::{utils::generate_random_string, Columns, Table};
+#[cfg(feature = "rand")]
+use geekorm_core::utils::generate_random_string;
+use geekorm_core::{Columns, Table};
 
 mod helpers;
 mod tablebuilder;
