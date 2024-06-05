@@ -120,9 +120,13 @@ pub struct Users {
     token: String
 }
 
-let user = Users::new(String::from("geekmasher"));
+let mut user = Users::new(String::from("geekmasher"));
 println!("{}", user.token);
 # assert_eq!(user.token.len(), 48);
+
+# let old_token = user.token.clone();
+user.regenerate_token();
+# assert_ne!(old_token, user.token);
 ```
 
 **`rand` attributes:**

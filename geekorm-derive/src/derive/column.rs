@@ -62,6 +62,17 @@ impl ColumnsDerive {
             .collect()
     }
 
+    #[allow(dead_code)]
+    pub(crate) fn get_random_columns(&self) -> Vec<ColumnDerive> {
+        self.columns
+            .iter()
+            .filter_map(|c| match c.mode {
+                Some(ColumnMode::Rand { .. }) => Some(c.clone()),
+                _ => None,
+            })
+            .collect()
+    }
+
     /// Convert the columns into a list of parameters for a function
     pub(crate) fn to_params(&self) -> TokenStream {
         let columns = self.columns.iter().map(|c| c.to_params()).filter_map(|c| c);
@@ -500,6 +511,37 @@ impl ColumnDerive {
                     self.#identifier.clone(),
                     geekorm::utils::crypto::HashingAlgorithm::Pbkdf2
                 )
+            }
+        }
+    }
+
+    pub(crate) fn get_random_helpers(&self) -> TokenStream {
+        let identifier = &self.identifier;
+
+        let random_func_name = format!("regenerate_{}", identifier);
+        let random_func = Ident::new(&random_func_name, Span::call_site());
+
+        let len: usize = if let Some(mode) = &self.mode {
+            match mode {
+                ColumnMode::Rand { len, .. } => len.clone(),
+                _ => 10,
+            }
+        } else {
+            10
+        };
+        let prefix: String = if let Some(mode) = &self.mode {
+            match mode {
+                ColumnMode::Rand { prefix, .. } => prefix.clone().unwrap_or_default(),
+                _ => String::new(),
+            }
+        } else {
+            String::new()
+        };
+
+        quote! {
+            /// Generate a random value for the column
+            pub fn #random_func(&mut self) {
+                self.#identifier = geekorm::utils::generate_random_string(#len, String::from(#prefix));
             }
         }
     }
