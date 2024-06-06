@@ -56,9 +56,12 @@ jobs:
 
       - name: Build CLI
         run: |
+          cargo install --path geekorm-cli
           cargo run \
             --example geekorm-example-turso-libsql \
             --features="all libsql"
 
-          cargo run -p geekorm-cli -- display
+          geekorm-cli --help
+
+          geekorm-cli display
 
