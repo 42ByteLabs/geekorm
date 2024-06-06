@@ -2,6 +2,8 @@ use std::{collections::HashMap, fmt::Display, str};
 
 use serde::{Serialize, Serializer};
 
+#[cfg(feature = "totp")]
+pub(crate) mod totp_value;
 #[cfg(feature = "chrono")]
 pub(crate) mod valchrono;
 #[cfg(feature = "uuid")]

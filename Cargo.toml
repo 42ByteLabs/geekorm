@@ -60,6 +60,8 @@ helpers = ["geekorm-derive/helpers"]
 # Generate primary key functions for Tables automatically
 primary_key = ["geekorm-derive/primary_key"]
 
+totp = ["geekorm-derive/totp", "geekorm-core/totp"]
+
 # Backends for the ORM
 libsql = ["geekorm-derive/libsql", "geekorm-core/libsql"]
 

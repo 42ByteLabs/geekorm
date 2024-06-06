@@ -37,6 +37,7 @@ hash-argon2 = ["geekorm-core/hash-argon2"]
 hash-sha512 = ["geekorm-core/hash-sha512"]
 
 helpers = []
+totp = ["geekorm-core/totp"]
 
 # Backends
 libsql = ["geekorm-core/libsql"]
