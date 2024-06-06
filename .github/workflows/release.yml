@@ -15,3 +15,4 @@ jobs:
     secrets: inherit
     with:
       crate: geekorm
+      crates: geekorm-core,geekorm-derive,geekorm,geekorm-cli
