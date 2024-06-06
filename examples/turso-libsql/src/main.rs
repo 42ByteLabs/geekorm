@@ -19,7 +19,6 @@ pub enum ProjectType {
     Tool,
 }
 
-
 #[derive(Debug, Clone, Default, GeekTable, serde::Serialize, serde::Deserialize)]
 pub struct Projects {
     #[geekorm(primary_key, auto_increment)]
