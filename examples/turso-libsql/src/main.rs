@@ -10,7 +10,7 @@ pub struct Repository {
     pub url: String,
 }
 
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(GeekValue, Debug, Clone, Default)]
 pub enum ProjectType {
     #[default]
     Library,
@@ -19,14 +19,6 @@ pub enum ProjectType {
     Tool,
 }
 
-impl Serialize for ProjectType {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serializer.serialize_i32(*self)
-    }
-}
 
 #[derive(Debug, Clone, Default, GeekTable, serde::Serialize, serde::Deserialize)]
 pub struct Projects {
