@@ -17,7 +17,7 @@ rust-version.workspace = true
 authors.workspace = true
 
 [dependencies]
-geekorm = { path = "../", version = "^0.3.3" }
+geekorm = { path = "../", version = "^0.4.0" }
 # CLI
 clap = { version = "4.0", features = ["derive", "env"] }
 console = "0.15"
