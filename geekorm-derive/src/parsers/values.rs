@@ -18,6 +18,7 @@ pub(crate) fn generate_from_value(
     let (impl_generics, ty_generics, _where_clause) = generics.split_for_impl();
 
     let mut stream = TokenStream::new();
+    let mut from_value_stream = TokenStream::new();
 
     for variant in variants {
         if !matches!(variant.fields, syn::Fields::Unit) {
@@ -41,14 +42,37 @@ pub(crate) fn generate_from_value(
         stream.extend(quote! {
             #ident::#variant_ident => ::geekorm::Value::Text(String::from(#variant_str)),
         });
+        from_value_stream.extend(quote! {
+            ::geekorm::Value::Text(ref s) if s == #variant_str => #ident::#variant_ident,
+        });
     }
 
     Ok(quote! {
+        #[automatically_derived]
+        impl #impl_generics From<#ident #ty_generics> for geekorm::Value {
+            fn from(value: #ident #ty_generics) -> Self {
+                match value {
+                    #stream
+                    _ => panic!("Unknown value"),
+                }
+            }
+        }
+
         #[automatically_derived]
         impl #impl_generics From<&#ident #ty_generics> for geekorm::Value {
             fn from(value: &#ident #ty_generics) -> Self {
                 match value {
                     #stream
+                    _ => panic!("Unknown value"),
+                }
+            }
+        }
+
+        #[automatically_derived]
+        impl #impl_generics From<geekorm::Value> for #ident #ty_generics {
+            fn from(value: geekorm::Value) -> Self {
+                match value {
+                    #from_value_stream
                     _ => panic!("Unknown value"),
                 }
             }

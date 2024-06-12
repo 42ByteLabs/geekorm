@@ -56,6 +56,35 @@ pub fn table_derive(input: TokenStream) -> TokenStream {
     derive_parser(&ast).unwrap().into()
 }
 
+/// GeekValue is the derive macro for serializing and deserializing custom column types.
+///
+/// ```rust
+/// use geekorm::prelude::*;
+///
+/// # #[derive(Eq, PartialEq, Debug)]
+/// #[derive(GeekValue, Default)]
+/// enum Role {
+///     Admin,
+///     Moderator,
+///     User,
+///     #[default]
+///     Guest,
+/// }
+///
+/// #[derive(GeekTable)]
+/// struct Users {
+///     #[geekorm(primary_key, auto_increment)]
+///     id: PrimaryKeyInteger,
+///     username: String,
+///     role: Role,
+/// }
+///
+/// let geekmasher = Users::new("geekmasher", Role::Admin);
+///
+/// # assert_eq!(geekmasher.role, Role::Admin);
+/// # assert_eq!(Value::from(geekmasher.role), Value::Text("Admin".to_string()));
+/// # assert_eq!(Role::from(Value::Text("Admin".to_string())), Role::Admin);
+/// ```
 #[proc_macro_derive(GeekValue)]
 pub fn value_derive(input: TokenStream) -> TokenStream {
     let ast: DeriveInput = parse_macro_input!(input as DeriveInput);
