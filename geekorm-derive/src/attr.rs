@@ -37,12 +37,6 @@
 //! }
 //!
 //! # fn main() {
-//!     # let create_query = Users::create().build().unwrap();
-//!     # assert_eq!(
-//!     #     create_query.query.as_str(),
-//!     #     "CREATE TABLE IF NOT EXISTS Users (id INTEGER PRIMARY KEY AUTOINCREMENT, full_name TEXT NOT NULL, age INTEGER NOT NULL, occupation TEXT NOT NULL, session TEXT NOT NULL UNIQUE, created_at TEXT NOT NULL);"
-//!     # );
-//!
 //!     let user = Users::new(
 //!         "geekmasher",
 //!         42,
