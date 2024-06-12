@@ -52,7 +52,7 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: ${{ runner.os }}-cargo
+          key: ${{ runner.os }}-stable-cargo
 
       - name: Build CLI
         run: |
