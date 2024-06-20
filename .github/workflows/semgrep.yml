@@ -12,6 +12,10 @@ on:
 env:
   CARGO_TERM_COLOR: always
 
+permissions:
+  contents: read
+  security-events: write
+
 jobs:
   semgrep:
     # https://github.com/42ByteLabs/.github/blob/main/.github/workflows/semgrep.yml
