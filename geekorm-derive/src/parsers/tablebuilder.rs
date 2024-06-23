@@ -39,14 +39,15 @@ pub fn generate_table_builder(
 
     Ok(quote! {
         impl #impl_generics geekorm::prelude::TableBuilder for #ident #ty_generics #where_clause {
+            /// Get the table instance.
             fn table() -> geekorm::Table {
                 #table
             }
-
+            /// Get the table name.
             fn get_table(&self) -> geekorm::Table {
                 #ident::table()
             }
-
+            /// Get the table name.
             fn table_name() -> String {
                 stringify!(#ident).to_string()
             }
@@ -107,16 +108,17 @@ pub fn generate_query_builder(
 
     Ok(quote! {
         impl #impl_generics geekorm::prelude::QueryBuilderTrait for #ident #ty_generics #where_clause {
+            /// Create table query.
             fn create() -> geekorm::QueryBuilder {
                 geekorm::QueryBuilder::create()
                     .table(#ident::table())
             }
-
+            /// Select query.
             fn select() -> geekorm::QueryBuilder {
                 geekorm::QueryBuilder::select()
                     .table(#ident::table())
             }
-
+            /// Insert query.
             fn insert(item: &Self) -> geekorm::Query {
                 geekorm::QueryBuilder::insert()
                     .table(#ident::table())
@@ -124,7 +126,7 @@ pub fn generate_query_builder(
                     .build()
                     .expect("Failed to build insert query")
             }
-
+            /// Update query.
             fn update(item: &Self) -> geekorm::Query {
                 geekorm::QueryBuilder::update()
                     .table(#ident::table())
@@ -132,7 +134,7 @@ pub fn generate_query_builder(
                     .build()
                     .expect("Failed to build update query")
             }
-
+            /// Count query.
             fn count() -> geekorm::QueryBuilder {
                 geekorm::QueryBuilder::select()
                     .table(#ident::table())
@@ -176,10 +178,12 @@ pub fn generate_table_primary_key(
 
         Ok(quote! {
             impl #impl_generics geekorm::prelude::TablePrimaryKey for #ident #ty_generics #where_clause {
+                /// Get the primary key of the table.
                 fn primary_key() -> String {
                     String::from(#name)
                 }
 
+                /// Get the primary key value of the table.
                 fn primary_key_value(&self) -> geekorm::Value {
                     geekorm::Value::from(&self.#identifier)
                 }
@@ -221,12 +225,12 @@ pub fn generate_table_execute(
         impl #impl_generics #ident #ty_generics #where_clause {
             /// Execute an update query for the struct.
             pub async fn execute_update(&self, connection: &libsql::Connection) -> Result<(), geekorm::Error> {
-                #ident::execute(&connection, #ident::update(self)).await
+                #ident::execute(connection, #ident::update(self)).await
             }
 
             /// Execute an update query for the struct.
             pub async fn execute_insert(&mut self, connection: &libsql::Connection) -> Result<(), geekorm::Error> {
-                #ident::execute(&connection, #ident::insert(self)).await?;
+                #ident::execute(connection, #ident::insert(self)).await?;
                 let select_query = #ident::select()
                     .order_by(#ident::primary_key().as_str(), geekorm::QueryOrder::Desc)
                     .limit(1)
@@ -310,6 +314,7 @@ pub fn generate_table_fetch(
     match cfg!(feature = "libsql") {
         true => {
             stream.extend(quote! {
+                /// Fetch all the data for the struct.
                 pub async fn fetch_all(&mut self, connection: &libsql::Connection) -> Result<(), geekorm::Error> {
                     #fetch_functions
                     Ok(())
