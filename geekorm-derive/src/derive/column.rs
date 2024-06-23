@@ -496,6 +496,7 @@ impl ColumnDerive {
         let func = Ident::new(&func_name, Span::call_site());
 
         quote! {
+            /// Select by the column value
             pub fn #func(value: impl Into<geekorm::Value>) -> geekorm::Query {
                 geekorm::QueryBuilder::select()
                     .table(#table_ident::table())

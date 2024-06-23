@@ -35,6 +35,7 @@ pub(crate) fn generate_new(
 
     Ok(quote! {
         impl #impl_generics #ident #ty_generics #where_clause {
+            /// Create a new instance of the struct
             #[allow(dead_code)]
             pub fn new(#params) -> Self {
                 #self_block
