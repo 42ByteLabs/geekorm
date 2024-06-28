@@ -8,7 +8,7 @@ license = "MIT"
 edition = "2021"
 rust-version = "1.74"
 keywords = ["database", "orm", "sql", "sqlite"]
-categories = ["database", "orm"]
+categories = ["database"]
 
 documentation = "https://docs.rs/geekorm"
 repository = "https://github.com/42ByteLabs/geekorm"
