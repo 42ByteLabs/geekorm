@@ -46,19 +46,18 @@ proc-macro = true
 
 [dependencies]
 geekorm-core = { path = "../geekorm-core", version = "^0.4.2" }
-thiserror = "1.0"
+thiserror = "^1.0"
 # macro magic
-proc-macro2 = "1.0"
-quote = "1.0"
-syn = "2.0"
+proc-macro2 = "^1.0"
+quote = "^1.0"
+syn = "^2.0"
 # serialization
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
+serde = { version = "^1.0", features = ["derive"] }
+serde_json = "^1.0"
 # uuid
-uuid = { version = "1.8", features = ["v4"], optional = true }
-chrono = { version = "0.4", features = ["serde"] }
-rand = { version = "0.8", optional = true }
-
+uuid = { version = "^1.9", features = ["v4"], optional = true }
+chrono = { version = "^0.4", features = ["serde"] }
+rand = { version = "^0.8", optional = true }
 
 [dev-dependencies]
 geekorm = { path = "..", features = ["new", "helpers"] }

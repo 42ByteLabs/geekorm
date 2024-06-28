@@ -68,13 +68,13 @@ geekorm-core = { version = "^0.4.2", path = "geekorm-core" }
 geekorm-derive = { version = "^0.4.2", path = "geekorm-derive" }
 
 [dev-dependencies]
-anyhow = "1"
-env_logger = "0.11.3"
+anyhow = "^1.0"
+env_logger = "^0.11"
 libsql = "0.4"
-log = "0.4.21"
-serde = { version = "1", features = ["derive"] }
-tokio = { version = "1", features = ["full"] }
-chrono = { version = "0.4", features = ["serde"] }
+log = "^0.4"
+serde = { version = "^1.0", features = ["derive"] }
+tokio = { version = "^1.38", features = ["full"] }
+chrono = { version = "^0.4", features = ["serde"] }
 
 [profile.test]
 opt-level = 1
@@ -82,14 +82,15 @@ opt-level = 1
 [[example]]
 name = "geekorm-example-users"
 path = "./examples/users/src/main.rs"
-required-features = ["new", "chrono"]
+required-features = ["all"]
 
 [[example]]
 name = "geekorm-example-foreignkeys"
 path = "./examples/foreignkeys/src/main.rs"
-required-features = ["new", "helpers"]
+required-features = ["all"]
 
 [[example]]
 name = "geekorm-example-turso-libsql"
 path = "./examples/turso-libsql/src/main.rs"
-required-features = ["new", "helpers", "libsql"]
+required-features = ["all", "libsql"]
+

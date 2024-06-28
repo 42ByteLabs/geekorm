@@ -39,25 +39,25 @@ libsql = ["dep:libsql"]
 sqlite = ["dep:sqlite"]
 
 [dependencies]
-thiserror = "1"
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-log = { version = "0.4", features = ["std"] }
+thiserror = "^1.0"
+serde = { version = "^1.0", features = ["derive"] }
+serde_json = "^1.0"
+log = { version = "^0.4", features = ["std"] }
 
-uuid = { version = "1.8", features = ["v4"], optional = true }
-chrono = { version = "0.4", optional = true, features = ["serde"] }
+uuid = { version = "^1.9", features = ["v4"], optional = true }
+chrono = { version = "^0.4", optional = true, features = ["serde"] }
 # Random number generation
-rand = { version = "0.8", optional = true }
-rand_core = { version = "0.6", features = ["std"], optional = true }
+rand = { version = "^0.8", optional = true }
+rand_core = { version = "^0.6", features = ["std"], optional = true }
 # For hashing data
-password-hash = { version = "0.5", optional = true }
-pbkdf2 = { version = "0.12", features = ["simple"], optional = true }
-argon2 = { version = "0.5", optional = true }
-sha-crypt = { version = "0.5.0", optional = true }
+password-hash = { version = "^0.5", optional = true }
+pbkdf2 = { version = "^0.12", features = ["simple"], optional = true }
+argon2 = { version = "^0.5", optional = true }
+sha-crypt = { version = "^0.5", optional = true }
 
-libsql = { version = "0.4", optional = true }
-sqlite = { version = "0.36", optional = true }
+libsql = { version = "^0.4", optional = true }
+sqlite = { version = "^0.36", optional = true }
 
 [dev-dependencies]
 geekorm = { path = ".." }
-tokio = { version = "1.37.0", features = ["full"] }
+tokio = { version = "^1.38", features = ["full"] }
