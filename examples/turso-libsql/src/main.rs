@@ -23,10 +23,13 @@ pub enum ProjectType {
 pub struct Projects {
     #[geekorm(primary_key, auto_increment)]
     pub id: PrimaryKeyInteger,
+
+    #[geekorm(unique)]
     pub name: String,
 
     #[geekorm(new = "ProjectType::Library")]
     pub project_type: ProjectType,
+
     pub url: String,
 
     #[geekorm(foreign_key = "Repository.id")]
@@ -91,12 +94,12 @@ async fn main() -> Result<()> {
         // Use the Repository::new() constructor to create a new repository and
         // insert it into the database.
         let mut repository = Repository::new(repo.to_string());
-        repository.execute_insert(&conn).await?;
+        repository.save(&conn).await?;
 
         // Use the Projects::new() constructor to create a new project.
         // This is provided by the GeekTable derive macro when the `new` feature is enabled.
         let mut project = Projects::new(name.to_string(), url.to_string(), repository.id);
-        project.execute_insert(&conn).await?;
+        project.save(&conn).await?;
 
         println!(
             "Project: {} - {} (repo: {})",
@@ -105,51 +108,33 @@ async fn main() -> Result<()> {
     }
 
     // Count the number of projects in the table
-    let count = Projects::row_count(&conn, Projects::count().build().unwrap()).await?;
+    let count = Projects::row_count(&conn, Projects::query_count().build().unwrap()).await?;
     println!("Number of projects: {}\n", count);
 
-    // Look for a project with the name "serde" (only one should exist)
-    println!("Querying for project with name 'serde'...");
-    let query = Projects::select()
-        .where_eq("name", "serde")
-        .limit(1)
-        .build()
-        .unwrap();
+    // Query all projects
+    let all_projects = Projects::fetch_all(&conn).await?;
 
-    println!("Query: {}", query);
-    let mut project_serde = Projects::query_first(
-        &conn,
-        // Create a SELECT query with a WHERE clause
-        Projects::select()
-            .where_eq("name", "serde")
-            .build()
-            .unwrap(),
-    )
-    .await?;
+    for project in all_projects {
+        println!("Project: {:<10} - {}", project.name, project.url);
+    }
+
+    let mut project_serde = Projects::fetch_by_name(&conn, "serde").await?;
 
     println!(
         "Project Serde: {} - {}\n",
         project_serde.name, project_serde.url
     );
 
-    // Query all projects
-    let all_projects = Projects::query(&conn, Projects::all()).await?;
-    for project in all_projects {
-        println!("Project: {:<10} - {}", project.name, project.url);
-    }
-
     // Update the Serde project struct (name and url)
     project_serde.name = "SerDe".to_string();
     project_serde.url = "https://www.youtube.com/watch?v=BI_bHCGRgMY".to_string();
 
     // Now lets update the project in the database
-    project_serde.execute_update(&conn).await?;
+    project_serde.update(&conn).await?;
 
     // Fetch the project repository by the foreign key
     let project_repository = project_serde.fetch_repository(&conn).await?;
-    println!("\nProject Repository: {}", project_repository.url);
-
-    println!("\n");
+    println!("Project Repository: {}", project_repository.url);
 
     // Print the updated project
     println!(

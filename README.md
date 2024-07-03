@@ -66,13 +66,13 @@ struct Users {
 }
 
 // Use the `create` method to build a CREATE TABLE query
-let create_table = Users::create().build()
+let create_table = Users::query_create().build()
     .expect("Failed to build create table query");
 println!("Create Table Query: {}", create_table);
 
 // Use the `select` method to build a SELECT query along with different conditions
 // and ordering
-let select_user = Users::select()
+let select_user = Users::query_select()
     .where_eq("username", "geekmasher")
     .and()
     .where_gt("age", 42)

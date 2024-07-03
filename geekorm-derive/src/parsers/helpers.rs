@@ -57,9 +57,9 @@ pub(crate) fn generate_new(
 ///     age: i32,
 /// }
 ///
-/// let user_id = Users::select_by_id(1);
-/// let user_name = Users::select_by_name("geekmasher");
-/// let user_age = Users::select_by_age(42);
+/// let user_id = Users::query_select_by_id(1);
+/// let user_name = Users::query_select_by_name("geekmasher");
+/// let user_age = Users::query_select_by_age(42);
 /// ```
 #[allow(dead_code, unused_variables)]
 pub(crate) fn generate_helpers(

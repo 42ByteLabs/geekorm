@@ -1,7 +1,11 @@
+//! # Users
+//!
+//! This is an example of how to use the GeekORM query builder
+
 #![allow(dead_code, unused_imports)]
 use chrono::{DateTime, Utc};
+
 use geekorm::prelude::*;
-use geekorm::{GeekTable, PrimaryKeyInteger};
 
 #[derive(GeekValue, Debug, Clone, Default)]
 enum UserType {
@@ -31,12 +35,14 @@ struct Users {
 
 fn main() {
     // Build a CREATE TABLE query
-    let create_query = Users::create().build().expect("Failed to build query");
+    let create_query = Users::query_create()
+        .build()
+        .expect("Failed to build query");
 
     println!("Create Query: {}", create_query);
 
     // Build a SELECT query with WHERE, OR and LIKE
-    let select_query = Users::select()
+    let select_query = Users::query_select()
         .where_eq("username", "geekmasher")
         .or()
         .where_like("email", "%geekmasher%")

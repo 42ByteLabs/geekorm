@@ -30,11 +30,11 @@ struct Users {
 }
 
 // Create a new table query
-let create = Users::create().build()
+let create = Users::query_create().build()
     .expect("Failed to build CREATE TABLE query");
 
 // Select data from the table
-let select = Users::select()
+let select = Users::query_select()
     .where_eq("name", "geekmasher")
     .build()
     .expect("Failed to build SELECT query");
@@ -43,11 +43,11 @@ let select = Users::select()
 let mut user = Users::default();
 
 // Insert data 
-let insert = Users::insert(&user);
+let insert = Users::query_insert(&user);
 
 // Update query
 user.name = String::from("42ByteLabs");
-let update = Users::update(&user);
+let update = Users::query_update(&user);
 ```
 
 ## Feature - Automatic New Struct Function
@@ -96,11 +96,11 @@ struct Users {
 }
 
 // Select by column helper function
-let user = Users::select_by_name("geekmasher");
+let user = Users::query_select_by_name("geekmasher");
 # assert_eq!(user.query, String::from("SELECT id, name, age, occupation FROM Users WHERE name = ?;"));
-let user = Users::select_by_age(42);
+let user = Users::query_select_by_age(42);
 # assert_eq!(user.query, String::from("SELECT id, name, age, occupation FROM Users WHERE age = ?;"));
-let user = Users::select_by_occupation("Software Developer");
+let user = Users::query_select_by_occupation("Software Developer");
 # assert_eq!(user.query, String::from("SELECT id, name, age, occupation FROM Users WHERE occupation = ?;"));
 ```
 

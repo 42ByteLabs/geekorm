@@ -28,7 +28,7 @@ use crate::{PrimaryKey, TableBuilder};
 /// }
 ///
 /// // Create the Posts table with the foreign key referencing the Users table (Users.id)
-/// let create_posts_query = Posts::create().build()
+/// let create_posts_query = Posts::query_create().build()
 ///     .expect("Failed to build query");
 /// # assert_eq!(
 /// #     create_posts_query.to_str(),
@@ -37,7 +37,7 @@ use crate::{PrimaryKey, TableBuilder};
 ///
 /// // Use the foreign key to and join the tables together
 /// // to get the user posts
-/// let user_posts = Users::select()
+/// let user_posts = Users::query_select()
 ///     .order_by("name", geekorm::QueryOrder::Asc)
 ///     .build()
 ///     .expect("Failed to build query");

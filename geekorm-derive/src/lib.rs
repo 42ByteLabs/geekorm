@@ -1,4 +1,4 @@
-#![allow(unused_imports)]
+#![allow(unused_imports, dead_code)]
 #![forbid(unsafe_code)]
 #![doc = include_str!("../README.md")]
 #![doc(

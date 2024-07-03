@@ -115,6 +115,7 @@ fn generate_struct(
     stream.extend(generate_table_execute(ident, generics, &table)?);
 
     // Fetch methods
+    #[cfg(feature = "libsql")]
     stream.extend(generate_table_fetch(ident, fields, generics, &table)?);
 
     #[cfg(feature = "new")]

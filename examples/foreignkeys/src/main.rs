@@ -12,7 +12,6 @@ pub struct Users {
 pub struct Posts {
     pub id: PrimaryKeyInteger,
     pub title: String,
-
     #[geekorm(foreign_key = "Users.id")]
     pub author: ForeignKey<i32, Users>,
 }
@@ -27,7 +26,7 @@ fn main() {
     println!("Post2: {:?}", post2);
 
     // Select all posts by a user
-    let posts_by_user = Posts::select()
+    let posts_by_user = Posts::query_select()
         .columns(vec!["Posts.title", "Users.name"])
         .join(Users::table())
         .build()
