@@ -55,6 +55,15 @@ pub fn table_derive(input: TokenStream) -> TokenStream {
     derive_parser(&ast).unwrap().into()
 }
 
+#[deprecated(
+    since = "0.4.2",
+    note = "This macro is depricated, please use `Table` instead."
+)]
+#[proc_macro_derive(GeekTable, attributes(geekorm))]
+pub fn depricated_table_derive(input: TokenStream) -> TokenStream {
+    table_derive(input)
+}
+
 /// Data is the derive macro for serializing and deserializing custom column types.
 ///
 /// ```rust
@@ -85,8 +94,18 @@ pub fn table_derive(input: TokenStream) -> TokenStream {
 /// # assert_eq!(Role::from(Value::Text("Admin".to_string())), Role::Admin);
 /// ```
 #[proc_macro_derive(Data)]
-pub fn value_derive(input: TokenStream) -> TokenStream {
+pub fn data_derive(input: TokenStream) -> TokenStream {
     let ast: DeriveInput = parse_macro_input!(input as DeriveInput);
 
     enum_parser(&ast).unwrap().into()
+}
+
+/// Value is the derive macro for serializing and deserializing custom column types.
+#[deprecated(
+    since = "0.4.2",
+    note = "This macro is depricated, please use `Data` instead."
+)]
+#[proc_macro_derive(GeekValue)]
+pub fn depricated_value_derive(input: TokenStream) -> TokenStream {
+    data_derive(input)
 }

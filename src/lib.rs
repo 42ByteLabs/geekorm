@@ -32,6 +32,10 @@ pub mod utils {
 pub use geekorm_derive::Data;
 pub use geekorm_derive::Table;
 
+// Depricated
+pub use geekorm_derive::GeekTable;
+pub use geekorm_derive::GeekValue;
+
 /// GeekORM Version
 pub const GEEKORM_VERSION: &str = env!("CARGO_PKG_VERSION");
 /// GeekORM Banner
@@ -55,8 +59,11 @@ pub mod prelude {
     //! ```
 
     pub use crate::Data;
-    /// Table
     pub use crate::Table;
+
+    // These are depricated
+    pub use crate::GeekTable;
+    pub use crate::GeekValue;
 
     // Traits
 
