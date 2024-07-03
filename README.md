@@ -57,7 +57,7 @@ Once you have installed `geekorm`, you can start using the derive macros like th
 use anyhow::Result;
 use geekorm::prelude::*;
 
-#[derive(GeekTable, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Table, Debug, Default, serde::Serialize, serde::Deserialize)]
 struct Users {
     #[geekorm(primary_key, auto_increment)]
     id: PrimaryKeyInteger,
