@@ -21,7 +21,7 @@ use crate::ToSqlite;
 /// use geekorm::{PrimaryKey};
 /// use geekorm::prelude::*;
 ///
-/// #[derive(Clone, GeekTable, Default)]
+/// #[derive(Table, Clone, Default)]
 /// pub struct Users {
 ///    pub id: PrimaryKey<i32>,
 ///    pub username: String,
@@ -42,7 +42,7 @@ use crate::ToSqlite;
 /// use geekorm::PrimaryKey;
 /// use geekorm::prelude::*;
 ///
-/// #[derive(Clone, GeekTable, Default)]
+/// #[derive(Table, Clone, Default)]
 /// pub struct Users {
 ///     pub id: PrimaryKey<String>,
 ///     pub username: String,
@@ -93,7 +93,7 @@ impl PrimaryKey<String> {
 /// use geekorm::prelude::*;
 /// use geekorm::PrimaryKeyInteger;
 ///
-/// #[derive(Clone, GeekTable, Default)]
+/// #[derive(Table, Clone, Default)]
 /// pub struct Users {
 ///     pub id: PrimaryKeyInteger,
 ///     pub username: String,
@@ -120,7 +120,7 @@ impl Default for PrimaryKeyInteger {
 /// use geekorm::prelude::*;
 /// use geekorm::PrimaryKeyString;
 ///
-/// #[derive(Clone, GeekTable, Default)]
+/// #[derive(Table, Clone, Default)]
 /// pub struct Users {
 ///     pub id: PrimaryKeyString,
 ///     pub username: String,
@@ -148,10 +148,10 @@ impl Default for PrimaryKeyString {
 /// Note: This requires the `uuid` feature to be enabled.
 ///
 /// ```rust
-/// use geekorm::{GeekTable, PrimaryKeyUuid};
+/// use geekorm::{PrimaryKeyUuid};
 /// use geekorm::prelude::*;
 ///
-/// #[derive(Clone, GeekTable, Default)]
+/// #[derive(Table, Clone, Default)]
 /// pub struct Users {
 ///     pub id: PrimaryKeyUuid,
 ///     pub username: String,

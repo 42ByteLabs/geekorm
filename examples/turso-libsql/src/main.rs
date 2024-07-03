@@ -1,16 +1,16 @@
 #![allow(dead_code, unused_variables, unused_imports)]
 use anyhow::Result;
 
-use geekorm::{prelude::*, ForeignKey, PrimaryKeyInteger};
+use geekorm::prelude::*;
 
-#[derive(Debug, Clone, Default, GeekTable, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, Table, serde::Serialize, serde::Deserialize)]
 pub struct Repository {
     #[geekorm(primary_key, auto_increment)]
     pub id: PrimaryKeyInteger,
     pub url: String,
 }
 
-#[derive(GeekValue, Debug, Clone, Default)]
+#[derive(Data, Debug, Clone, Default)]
 pub enum ProjectType {
     #[default]
     Library,
@@ -19,7 +19,7 @@ pub enum ProjectType {
     Tool,
 }
 
-#[derive(Debug, Clone, Default, GeekTable, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, Table, serde::Serialize, serde::Deserialize)]
 pub struct Projects {
     #[geekorm(primary_key, auto_increment)]
     pub id: PrimaryKeyInteger,
@@ -97,7 +97,7 @@ async fn main() -> Result<()> {
         repository.save(&conn).await?;
 
         // Use the Projects::new() constructor to create a new project.
-        // This is provided by the GeekTable derive macro when the `new` feature is enabled.
+        // This is provided by the Table derive macro when the `new` feature is enabled.
         let mut project = Projects::new(name.to_string(), url.to_string(), repository.id);
         project.save(&conn).await?;
 

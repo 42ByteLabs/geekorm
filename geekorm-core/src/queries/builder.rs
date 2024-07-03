@@ -32,7 +32,7 @@ use crate::{
 /// use geekorm::{QueryOrder, PrimaryKeyInteger};
 /// use geekorm::prelude::*;
 ///
-/// #[derive(Debug, Default, Clone, GeekTable)]
+/// #[derive(Table, Debug, Default, Clone)]
 /// pub struct Users {
 ///     pub id: PrimaryKeyInteger,
 ///     pub username: String,

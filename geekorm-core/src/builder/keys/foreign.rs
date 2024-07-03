@@ -11,13 +11,13 @@ use crate::{PrimaryKey, TableBuilder};
 /// use geekorm::prelude::*;
 /// use geekorm::{ForeignKey, PrimaryKeyInteger};
 ///
-/// #[derive(Clone, Default, GeekTable)]
+/// #[derive(Table, Clone, Default)]
 /// struct Users {
 ///     id: PrimaryKeyInteger,
 ///     name: String,
 /// }
 ///
-/// #[derive(Default, Clone, GeekTable)]
+/// #[derive(Table, Default, Clone)]
 /// struct Posts {
 ///     id: PrimaryKeyInteger,
 ///     title: String,

@@ -7,7 +7,7 @@ use chrono::{DateTime, Utc};
 
 use geekorm::prelude::*;
 
-#[derive(GeekValue, Debug, Clone, Default)]
+#[derive(Data, Debug, Clone, Default)]
 enum UserType {
     Admin,
     #[default]
@@ -15,7 +15,7 @@ enum UserType {
     Guest,
 }
 
-#[derive(Debug, Clone, Default, GeekTable, serde::Serialize, serde::Deserialize)]
+#[derive(Table, Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 struct Users {
     #[geekorm(primary_key, auto_increment)]
     id: PrimaryKeyInteger,

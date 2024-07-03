@@ -24,9 +24,9 @@ use proc_macro::TokenStream;
 use quote::{quote, ToTokens};
 use syn::{parse_macro_input, Data, DataEnum, DataStruct, DeriveInput, Fields};
 
-/// Derive macro for `GeekTable` trait.
+/// Derive macro for `Table` trait.
 ///
-/// This macro will generate the implementation of `GeekTable` trait for the given struct.
+/// This macro will generate the implementation of `Table` trait for the given struct.
 /// The struct must have named fields.
 ///
 /// # Example
@@ -34,10 +34,9 @@ use syn::{parse_macro_input, Data, DataEnum, DataStruct, DeriveInput, Fields};
 /// This macro generates a number of methods for the struct, including `table` and `table_name` methods.
 ///
 /// ```rust
-/// use geekorm::{GeekTable, PrimaryKeyInteger};
 /// use geekorm::prelude::*;
 ///
-/// #[derive(GeekTable)]
+/// #[derive(Table)]
 /// struct Users {
 ///     id: PrimaryKeyInteger,
 ///     name: String,
@@ -49,20 +48,20 @@ use syn::{parse_macro_input, Data, DataEnum, DataStruct, DeriveInput, Fields};
 /// let table = Users::table();
 /// assert_eq!(Users::table_name(), "Users");
 /// ```
-#[proc_macro_derive(GeekTable, attributes(geekorm))]
+#[proc_macro_derive(Table, attributes(geekorm, gorm))]
 pub fn table_derive(input: TokenStream) -> TokenStream {
     let ast: DeriveInput = parse_macro_input!(input as DeriveInput);
 
     derive_parser(&ast).unwrap().into()
 }
 
-/// GeekValue is the derive macro for serializing and deserializing custom column types.
+/// Data is the derive macro for serializing and deserializing custom column types.
 ///
 /// ```rust
 /// use geekorm::prelude::*;
 ///
 /// # #[derive(Eq, PartialEq, Debug)]
-/// #[derive(GeekValue, Default)]
+/// #[derive(Data, Default)]
 /// enum Role {
 ///     Admin,
 ///     Moderator,
@@ -71,7 +70,7 @@ pub fn table_derive(input: TokenStream) -> TokenStream {
 ///     Guest,
 /// }
 ///
-/// #[derive(GeekTable)]
+/// #[derive(Table)]
 /// struct Users {
 ///     #[geekorm(primary_key, auto_increment)]
 ///     id: PrimaryKeyInteger,
@@ -85,7 +84,7 @@ pub fn table_derive(input: TokenStream) -> TokenStream {
 /// # assert_eq!(Value::from(geekmasher.role), Value::Text("Admin".to_string()));
 /// # assert_eq!(Role::from(Value::Text("Admin".to_string())), Role::Admin);
 /// ```
-#[proc_macro_derive(GeekValue)]
+#[proc_macro_derive(Data)]
 pub fn value_derive(input: TokenStream) -> TokenStream {
     let ast: DeriveInput = parse_macro_input!(input as DeriveInput);
 

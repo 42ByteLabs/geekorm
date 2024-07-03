@@ -5,7 +5,7 @@
 //! ```rust
 //! use geekorm::prelude::*;
 //!
-//! #[derive(GeekTable, Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
+//! #[derive(Table, Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
 //! struct Users {
 //!     #[geekorm(primary_key, auto_increment)]
 //!     id: PrimaryKey<i32>,
@@ -26,7 +26,7 @@
 //!     created_at: chrono::DateTime<chrono::Utc>,
 //! }
 //!
-//! #[derive(GeekTable, Debug, Clone, serde::Serialize, serde::Deserialize)]
+//! #[derive(Table, Debug, Clone, serde::Serialize, serde::Deserialize)]
 //! struct Posts {
 //!     #[geekorm(primary_key, auto_increment)]
 //!     id: PrimaryKeyInteger,

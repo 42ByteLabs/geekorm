@@ -25,10 +25,10 @@
 {
 use geekorm::prelude::*;
 
-#[derive(GeekTable, Debug, Default)]
+#[derive(Table, Debug, Default)]
 struct Users {
     #[geekorm(primary_key, auto_increment)]
-    id: PrimaryKeyInteger,
+    id: PrimaryKey<i32>,
 
     #[geekorm(unique)]
     username: String,
@@ -45,7 +45,7 @@ struct Users {
     postcode: Option<String>,
 }
 
-#[derive(GeekValue, Debug, Default)]
+#[derive(Data, Debug, Default)]
 enum UserType {
     Admin,
     #[default]

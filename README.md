@@ -22,7 +22,8 @@
 
 - Focus on simplicity
 - Rely on Derive Macros to generate code for your structs
-  - Using `GeekTable`
+  - Using `Table`
+  - Using `Data`
 - Dynamically build queries
   - `Select`, `Create`, `Update`, and `Insert` queries
 - [Extensive crate features](#-create-features)
@@ -76,7 +77,7 @@ struct Users {
     postcode: Option<String>,
 }
 
-#[derive(GeekValue, Debug, Default, Clone)]
+#[derive(Data, Debug, Default, Clone)]
 enum UserType {
     Admin,
     #[default]

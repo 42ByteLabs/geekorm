@@ -9,7 +9,7 @@ use crate::derive::TableDerive;
 /// use geekorm::prelude::*;
 /// use geekorm::PrimaryKeyInteger;
 ///
-/// #[derive(GeekTable, Clone)]
+/// #[derive(Table, Clone)]
 /// struct Users {
 ///     id: PrimaryKeyInteger,
 ///     name: String,
@@ -50,7 +50,7 @@ pub(crate) fn generate_new(
 /// use geekorm::prelude::*;
 /// use geekorm::PrimaryKeyInteger;
 ///
-/// #[derive(GeekTable, Default, Clone)]
+/// #[derive(Table, Default, Clone)]
 /// struct Users {
 ///     id: PrimaryKeyInteger,
 ///     name: String,

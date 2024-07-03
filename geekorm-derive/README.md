@@ -18,10 +18,10 @@ By default, the following methods are generated for the struct:
 These are all defined by the `geekorm_core::QueryBuilderTrait` trait.
 
 ```rust
-use geekorm::{GeekTable, PrimaryKeyInteger};
+use geekorm::{Table, PrimaryKeyInteger};
 use geekorm::prelude::*;
 
-#[derive(GeekTable, Default)]
+#[derive(Table, Default)]
 struct Users {
     id: PrimaryKeyInteger,
     name: String,
@@ -58,10 +58,10 @@ When the `new` feature is enabled, the following methods are generated for the s
 - `Option<T>` fields are not generated
 
 ```rust
-use geekorm::{GeekTable, PrimaryKeyInteger};
+use geekorm::{Table, PrimaryKeyInteger};
 use geekorm::prelude::*;
 
-#[derive(GeekTable)]
+#[derive(Table)]
 struct Users {
     id: PrimaryKeyInteger,
     name: String,
@@ -84,10 +84,10 @@ When the `helpers` feature is enabled, the following helper methods are generate
 _Note:_ This is a very experimental feature and might change in the future.
 
 ```rust
-use geekorm::{GeekTable, PrimaryKeyInteger};
+use geekorm::{Table, PrimaryKeyInteger};
 use geekorm::prelude::*;
 
-#[derive(GeekTable)]
+#[derive(Table)]
 struct Users {
     id: PrimaryKeyInteger,
     name: String,
@@ -112,9 +112,9 @@ When using the `rand` feature, you can automatically generate random strings and
 # #[cfg(feature = "rand")]
 # {
 use geekorm::prelude::*;
-use geekorm::{GeekTable, PrimaryKeyInteger};
+use geekorm::{Table, PrimaryKeyInteger};
 
-#[derive(GeekTable, Debug)]
+#[derive(Table, Debug)]
 pub struct Users {
     id: PrimaryKeyInteger,
     name: String,
@@ -148,9 +148,9 @@ When using the `hash` feature, you can automatically hash passwords to make sure
 # #[cfg(feature = "hash-sha512")]
 # {
 use geekorm::prelude::*;
-use geekorm::{GeekTable, PrimaryKeyInteger};
+use geekorm::{Table, PrimaryKeyInteger};
 
-#[derive(GeekTable, Debug)]
+#[derive(Table, Debug)]
 pub struct Users {
     id: PrimaryKeyInteger,
     username: String,
