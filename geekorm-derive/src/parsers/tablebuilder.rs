@@ -14,9 +14,9 @@ use crate::{derive::TableDerive, internal::TableState};
 ///
 /// ```rust
 /// use geekorm::prelude::*;
-/// use geekorm::{GeekTable, PrimaryKeyInteger};
+/// use geekorm::{Table, PrimaryKeyInteger};
 ///
-/// #[derive(GeekTable, Default, Clone)]
+/// #[derive(Table, Default, Clone)]
 /// struct Users {
 ///     id: PrimaryKeyInteger,
 ///     name: String,
@@ -60,9 +60,9 @@ pub fn generate_table_builder(
 ///
 /// ```rust
 /// use geekorm::prelude::*;
-/// use geekorm::{GeekTable, PrimaryKeyInteger};
+/// use geekorm::{Table, PrimaryKeyInteger};
 ///
-/// #[derive(GeekTable, Default, Clone)]
+/// #[derive(Table, Default, Clone)]
 /// pub struct Users {
 ///     pub id: PrimaryKeyInteger,
 ///     pub name: String,
@@ -70,22 +70,22 @@ pub fn generate_table_builder(
 ///
 ///
 /// # fn main() {
-/// let create = Users::create().build()
+/// let create = Users::query_create().build()
 ///     .expect("Failed to build CREATE TABLE query");
 /// # assert_eq!(create.to_str(), "CREATE TABLE IF NOT EXISTS Users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL);");
 ///
-/// let select = Users::select().build()
+/// let select = Users::query_select().build()
 ///     .expect("Failed to build SELECT query");
 /// # assert_eq!(select.to_str(), "SELECT id, name FROM Users;");
 ///
 /// let user = Users::default();
-/// let insert = Users::insert(&user);
+/// let insert = Users::query_insert(&user);
 /// # assert_eq!(insert.to_str(), "INSERT INTO Users (name) VALUES (?);");
 ///
-/// let update = Users::update(&user);
+/// let update = Users::query_update(&user);
 /// # assert_eq!(update.to_str(), "UPDATE Users SET name = ? WHERE id = 0;");
 ///
-/// let count = Users::count().build()
+/// let count = Users::query_count().build()
 ///     .expect("Failed to build COUNT query");
 /// # assert_eq!(count.to_str(), "SELECT COUNT(1) FROM Users;");
 /// }
@@ -109,17 +109,17 @@ pub fn generate_query_builder(
     Ok(quote! {
         impl #impl_generics geekorm::prelude::QueryBuilderTrait for #ident #ty_generics #where_clause {
             /// Create table query.
-            fn create() -> geekorm::QueryBuilder {
+            fn query_create() -> geekorm::QueryBuilder {
                 geekorm::QueryBuilder::create()
                     .table(#ident::table())
             }
             /// Select query.
-            fn select() -> geekorm::QueryBuilder {
+            fn query_select() -> geekorm::QueryBuilder {
                 geekorm::QueryBuilder::select()
                     .table(#ident::table())
             }
             /// Insert query.
-            fn insert(item: &Self) -> geekorm::Query {
+            fn query_insert(item: &Self) -> geekorm::Query {
                 geekorm::QueryBuilder::insert()
                     .table(#ident::table())
                     #insert_values
@@ -127,7 +127,7 @@ pub fn generate_query_builder(
                     .expect("Failed to build insert query")
             }
             /// Update query.
-            fn update(item: &Self) -> geekorm::Query {
+            fn query_update(item: &Self) -> geekorm::Query {
                 geekorm::QueryBuilder::update()
                     .table(#ident::table())
                     #insert_values
@@ -135,7 +135,7 @@ pub fn generate_query_builder(
                     .expect("Failed to build update query")
             }
             /// Count query.
-            fn count() -> geekorm::QueryBuilder {
+            fn query_count() -> geekorm::QueryBuilder {
                 geekorm::QueryBuilder::select()
                     .table(#ident::table())
                     .count()
@@ -151,17 +151,17 @@ pub fn generate_query_builder(
 /// use geekorm::PrimaryKeyInteger;
 /// # use geekorm::Value;
 ///
-/// #[derive(GeekTable, Default, Clone)]
-/// pub struct Userss {
+/// #[derive(Table, Default, Clone)]
+/// pub struct Users {
 ///    pub id: PrimaryKeyInteger,
 ///    pub name: String,
 ///    pub age: i32,
 /// }
 ///
-/// let user = Userss::new(String::from("John Doe"), 30);
+/// let user = Users::new(String::from("John Doe"), 30);
 ///
-/// # assert_eq!(Userss::primary_key(), "id");
-/// # assert_eq!(Userss::primary_key_value(&user), Value::from(0));
+/// # assert_eq!(Users::primary_key(), "id");
+/// # assert_eq!(Users::primary_key_value(&user), Value::from(0));
 ///
 /// ```
 pub fn generate_table_primary_key(
@@ -199,7 +199,8 @@ pub fn generate_table_primary_key(
 
 /// Generate `execute` helper functions for the struct.
 ///
-/// - `execute_update()`
+/// - `update()`
+/// - `save()`
 #[allow(dead_code)]
 pub fn generate_table_execute(
     ident: &syn::Ident,
@@ -223,15 +224,15 @@ pub fn generate_table_execute(
     // the last inserted item might not be the one we inserted.
     Ok(quote! {
         impl #impl_generics #ident #ty_generics #where_clause {
-            /// Execute an update query for the struct.
-            pub async fn execute_update(&self, connection: &libsql::Connection) -> Result<(), geekorm::Error> {
-                #ident::execute(connection, #ident::update(self)).await
+            /// Update the item in the database.
+            pub async fn update(&self, connection: &libsql::Connection) -> Result<(), geekorm::Error> {
+                #ident::execute(connection, #ident::query_update(self)).await
             }
 
-            /// Execute an update query for the struct.
-            pub async fn execute_insert(&mut self, connection: &libsql::Connection) -> Result<(), geekorm::Error> {
-                #ident::execute(connection, #ident::insert(self)).await?;
-                let select_query = #ident::select()
+            /// Save a new item to the database and return the last inserted item from the database.
+            pub async fn save(&mut self, connection: &libsql::Connection) -> Result<(), geekorm::Error> {
+                #ident::execute(connection, #ident::query_insert(self)).await?;
+                let select_query = #ident::query_select()
                     .order_by(#ident::primary_key().as_str(), geekorm::QueryOrder::Desc)
                     .limit(1)
                     .build()?;
@@ -246,6 +247,11 @@ pub fn generate_table_execute(
 }
 
 /// Generate fetch methods for the struct.
+///
+/// - `fetch_all()` - Gets all the items from the table.
+/// - `fetch_by_primary_key()` - Gets an item by the primary key.
+/// - `fetch_by_{field}()` - Gets an item by the field.
+/// - `fetch_{field}()` - Fetch foreign key items.
 pub fn generate_table_fetch(
     ident: &syn::Ident,
     fields: &FieldsNamed,
@@ -310,14 +316,60 @@ pub fn generate_table_fetch(
         }
     }
 
+    for column in table.columns.columns.iter() {
+        let name = &column.name;
+        let func = syn::Ident::new(format!("fetch_by_{}", name).as_str(), name.span());
+
+        let select_func =
+            syn::Ident::new(format!("query_select_by_{}", name).as_str(), name.span());
+
+        if column.is_unique() {
+            stream.extend(quote! {
+                /// Fetch the data from the table by the field (unique).
+                pub async fn #func(
+                    connection: &libsql::Connection,
+                    value: impl Into<geekorm::Value>
+                ) -> Result<Self, geekorm::Error> {
+                    #ident::query_first(
+                        connection,
+                        #ident :: #select_func(value.into())
+                    ).await
+                }
+            });
+        } else {
+            stream.extend(quote! {
+                /// Fetch the data from the table by the field (non-unique).
+                pub async fn #func(
+                    connection: &libsql::Connection,
+                    value: impl Into<geekorm::Value>
+                ) -> Result<Vec<Self>, geekorm::Error> {
+                    #ident::query(
+                        connection,
+                        #ident :: #select_func(value.into())
+                    ).await
+                }
+            });
+        }
+    }
+
     // Generate a fetch all method for the struct
     match cfg!(feature = "libsql") {
         true => {
             stream.extend(quote! {
-                /// Fetch all the data for the struct.
-                pub async fn fetch_all(&mut self, connection: &libsql::Connection) -> Result<(), geekorm::Error> {
+                /// Fetch all the data from foreign tables and store them in the struct.
+                pub async fn fetch(
+                    &mut self,
+                    connection: &libsql::Connection
+                ) -> Result<(), geekorm::Error> {
                     #fetch_functions
                     Ok(())
+                }
+
+                /// Fetch all the data from the table.
+                pub async fn fetch_all(
+                    connection: &libsql::Connection
+                ) -> Result<Vec<Self>, geekorm::Error> {
+                    Self::query(connection, Self::query_all()).await
                 }
             });
         }

@@ -29,7 +29,10 @@ pub mod utils {
 }
 
 // Derive Crate
-/// GeekTable Derive Macro
+pub use geekorm_derive::Data;
+pub use geekorm_derive::Table;
+
+// Depricated
 pub use geekorm_derive::GeekTable;
 pub use geekorm_derive::GeekValue;
 
@@ -55,7 +58,10 @@ pub mod prelude {
     //! use geekorm::prelude::*;
     //! ```
 
-    /// GeekTable
+    pub use crate::Data;
+    pub use crate::Table;
+
+    // These are depricated
     pub use crate::GeekTable;
     pub use crate::GeekValue;
 
@@ -75,7 +81,8 @@ pub mod prelude {
     // Builder Modules
     pub use geekorm_core::builder::columns::{Column, Columns};
     pub use geekorm_core::builder::columntypes::{ColumnType, ColumnTypeOptions};
-    pub use geekorm_core::builder::table::Table;
+    pub use geekorm_core::builder::table::Table as BuilderTable;
+
     // Keys Modules
     pub use geekorm_core::builder::keys::foreign::{ForeignKey, ForeignKeyInteger};
     #[cfg(feature = "uuid")]
@@ -83,9 +90,10 @@ pub mod prelude {
     pub use geekorm_core::builder::keys::primary::{
         PrimaryKey, PrimaryKeyInteger, PrimaryKeyString,
     };
+
+    pub use geekorm_core::builder::values::{Value, Values};
     // Query Builder Modules
     pub use geekorm_core::builder::models::{QueryCondition, QueryOrder, QueryType};
-    pub use geekorm_core::builder::values::{Value, Values};
     // Query Modules
     pub use geekorm_core::queries::Query;
     pub use geekorm_core::queries::QueryBuilder;

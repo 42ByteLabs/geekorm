@@ -68,7 +68,7 @@ pub(crate) fn derive_parser(ast: &DeriveInput) -> Result<TokenStream, syn::Error
         }
         _ => Ok(syn::Error::new(
             ast.span(),
-            "GeekTable only supported derived structs with named fields",
+            "Table only supported derived structs with named fields",
         )
         .to_compile_error()),
     }
@@ -88,7 +88,7 @@ pub(crate) fn enum_parser(ast: &DeriveInput) -> Result<TokenStream, syn::Error> 
         }
         _ => Ok(syn::Error::new(
             ast.span(),
-            "GeekTable only supported derived enums with named fields",
+            "Table only supported derived enums with named fields",
         )
         .to_compile_error()),
     }
@@ -115,6 +115,7 @@ fn generate_struct(
     stream.extend(generate_table_execute(ident, generics, &table)?);
 
     // Fetch methods
+    #[cfg(feature = "libsql")]
     stream.extend(generate_table_fetch(ident, fields, generics, &table)?);
 
     #[cfg(feature = "new")]

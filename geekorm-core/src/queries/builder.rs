@@ -32,7 +32,7 @@ use crate::{
 /// use geekorm::{QueryOrder, PrimaryKeyInteger};
 /// use geekorm::prelude::*;
 ///
-/// #[derive(Debug, Default, Clone, GeekTable)]
+/// #[derive(Table, Debug, Default, Clone)]
 /// pub struct Users {
 ///     pub id: PrimaryKeyInteger,
 ///     pub username: String,
@@ -42,12 +42,12 @@ use crate::{
 ///
 /// # fn main() {
 /// // Build a query to create a new table
-/// let create_query = Users::create().build()
+/// let create_query = Users::query_create().build()
 ///     .expect("Failed to build create query");
 /// println!("Create Query :: {}", create_query);
 ///
 /// // Build a query to select rows from the table
-/// let select_query = Users::select()
+/// let select_query = Users::query_select()
 ///     .where_eq("username", "geekmasher")
 ///     .order_by("age", QueryOrder::Asc)
 ///     .build()

@@ -49,29 +49,29 @@ where
     Self: TableBuilder + Sized,
 {
     /// Create a new table
-    fn create() -> QueryBuilder;
+    fn query_create() -> QueryBuilder;
 
     /// Select rows in the table
-    fn select() -> QueryBuilder {
+    fn query_select() -> QueryBuilder {
         QueryBuilder::select()
     }
 
     /// Select all rows in the table
-    fn all() -> Query {
-        Self::select()
+    fn query_all() -> Query {
+        Self::query_select()
             .table(Self::table())
             .build()
             .expect("Failed to build SELECT ALL query")
     }
 
     /// Insert a row into the table
-    fn insert(item: &Self) -> Query;
+    fn query_insert(item: &Self) -> Query;
 
     /// Update a row in the table
-    fn update(item: &Self) -> Query;
+    fn query_update(item: &Self) -> Query;
 
     /// Count the rows in the table
-    fn count() -> QueryBuilder;
+    fn query_count() -> QueryBuilder;
 }
 
 /// Trait for Tables with a primary key
@@ -87,8 +87,8 @@ where
     fn primary_key_value(&self) -> Value;
 
     /// Select a row by the primary key
-    fn select_by_primary_key(pk: impl Into<Value>) -> Query {
-        Self::select()
+    fn query_select_by_primary_key(pk: impl Into<Value>) -> Query {
+        Self::query_select()
             .table(Self::table())
             .where_eq(&Self::primary_key(), pk)
             .build()

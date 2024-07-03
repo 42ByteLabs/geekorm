@@ -345,6 +345,18 @@ impl ColumnDerive {
         }
     }
 
+    /// Check if the column is unique
+    pub(crate) fn is_unique(&self) -> bool {
+        match &self.coltype {
+            ColumnTypeDerive::Identifier(opts) => opts.unique,
+            ColumnTypeDerive::Text(opts) => opts.unique,
+            ColumnTypeDerive::Integer(opts) => opts.unique,
+            ColumnTypeDerive::ForeignKey(opts) => opts.unique,
+            ColumnTypeDerive::Blob(opts) => opts.unique,
+            _ => false,
+        }
+    }
+
     /// Convert the column into a list of parameters for a function
     pub(crate) fn to_params(&self) -> Option<TokenStream> {
         // Skip the column if it's marked as such
@@ -492,7 +504,7 @@ impl ColumnDerive {
         let identifier = &self.identifier;
         let name = &self.name;
 
-        let func_name = format!("select_by_{}", identifier);
+        let func_name = format!("query_select_by_{}", identifier);
         let func = Ident::new(&func_name, Span::call_site());
 
         quote! {
@@ -516,14 +528,14 @@ impl ColumnDerive {
             true => {
                 quote! {
                     /// Fetch a row by the primary key value
-                    pub async fn fetch_primary_key(
+                    pub async fn fetch_by_primary_key(
                         connection: &libsql::Connection,
                         pk: impl Into<geekorm::Value>
                     ) -> Result<#ident, geekorm::Error> {
-                        let q = #ident::select_by_primary_key(pk.into());
+                        let q = #ident::query_select_by_primary_key(pk.into());
                         let mut r: #ident = #ident::query_first(connection, q).await?;
 
-                        r.fetch_all(connection).await?;
+                        r.fetch(connection).await?;
 
                         Ok(r)
                     }
@@ -546,7 +558,7 @@ impl ColumnDerive {
                 quote! {
                     /// Fetch the foreign key data for the column
                     pub async fn #func(&mut self, connection: &libsql::Connection) -> Result<#foreign_ident, geekorm::Error> {
-                        let q = #foreign_ident::select_by_primary_key(self.#identifier.key);
+                        let q = #foreign_ident::query_select_by_primary_key(self.#identifier.key);
                         let r = #foreign_ident::query_first(connection, q).await?;
                         self.#identifier.data = r.clone();
                         Ok(r)

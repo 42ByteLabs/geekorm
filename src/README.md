@@ -21,38 +21,73 @@
  Here is a simple example of how to use GeekORM:
 
  ```rust
- use geekorm::prelude::*;
- use geekorm::{QueryOrder, PrimaryKeyInteger};
+#[cfg(feature = "libsql")] 
+{
+use geekorm::prelude::*;
 
- #[derive(Debug, Clone, GeekTable)]
- struct Users {
-    id: PrimaryKeyInteger,
+#[derive(Table, Debug, Default)]
+struct Users {
+    #[geekorm(primary_key, auto_increment)]
+    id: PrimaryKey<i32>,
+
+    #[geekorm(unique)]
     username: String,
-    email: String,
-    age: i32,
+
+    #[geekorm(hash)]
+    password: String,
+
+    #[geekorm(new = "UserType::User")]
+    user_type: UserType,
+
+    #[geekorm(new = "chrono::Utc::now()")]
+    created_at: chrono::DateTime<chrono::Utc>,
+
     postcode: Option<String>,
- }
+}
 
- // Use the `create` method to build a CREATE TABLE query
- let create_table = Users::create().build()
-     .expect("Failed to build create table query");
- println!("Create Table Query: {}", create_table);
+#[derive(Data, Debug, Default)]
+enum UserType {
+    Admin,
+    #[default]
+    User,
+}
 
- // Use the `select` method to build a SELECT query along with different conditions
- // and ordering
- let select_user = Users::select()
-     .where_eq("username", "geekmasher")
-     .and()
-     .where_gt("age", 20)
-     .order_by("age", QueryOrder::Asc)
-     .limit(10)
-     .build()
-     .expect("Failed to build query");
- println!("Select Users Query: {}", select_user);
+#[tokio::main]
+async fn main() -> Result<(), geekorm::Error> {
+    // Setup the database and connection
+    let db = libsql::Builder::new_local(":memory:").build().await?;
+    let connection = db.connect()?;
+   
+    // Creating a new User
+    let mut user = Users::new("GeekMasher", "ThisIsNotMyPassword");
+    // Saving the new User in the database
+    user.save(&connection).await?;
+    // Print the Primary Key value set by the database (auto_increment)
+    println!("User ID: {}", user.id);
 
- // Print the values that will be used in the query
- // This is useful for passing values to a database driver or connection in the correct order
- println!("Select Users Values: {:?}", select_user.values);
+    // Updating the User
+    user.user_type = UserType::Admin;
+    user.update(&connection).await?;
+
+    // Fetch the Admin Users
+    let admin_users = Users::fetch_by_user_type(&connection, UserType::Admin).await?;
+
+    // Helper functions built right into the struct by GeekORM
+    user.hash_password("ThisIsStillNotMyPassword");
+
+    // Go back to basics and build your own queries dynamically using 
+    // the QueryBuilder built into GeekORM
+    let query = Users::query_select()
+        .where_eq("username", "GeekMasher")
+        .order_by("id", Order::Desc)
+        .limit(1)
+        .build()?;
+    // Execute the query and return the results
+    let users = Users::query(&connection, query).await?;
+
+    Ok(())
+}
+# }
  ```
 
 ### Unsupported Features

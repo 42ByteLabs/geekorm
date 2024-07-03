@@ -1,33 +1,34 @@
 #![allow(unused_variables, unused_imports)]
-use geekorm::prelude::*;
-use geekorm::{ForeignKey, GeekTable, PrimaryKeyInteger};
 
-#[derive(Debug, Clone, Default, GeekTable)]
+use geekorm::prelude::*;
+
+#[derive(Table, Debug, Clone, Default)]
 pub struct Users {
+    #[geekorm(primary_key, auto_increment)]
     pub id: PrimaryKeyInteger,
     pub name: String,
 }
 
-#[derive(Debug, Clone, Default, GeekTable)]
+#[derive(Table, Debug, Clone, Default)]
 pub struct Posts {
+    #[geekorm(primary_key, auto_increment)]
     pub id: PrimaryKeyInteger,
     pub title: String,
-
     #[geekorm(foreign_key = "Users.id")]
     pub author: ForeignKey<i32, Users>,
 }
 
 fn main() {
-    let user = Users::new(String::from("GeekMasher"));
+    let user = Users::new("GeekMasher");
     println!("User: {:?}", user);
 
-    let post1 = Posts::new(String::from("How I started programming in Rust"), user.id);
+    let post1 = Posts::new("How I started programming in Rust", user.id);
     println!("Post1: {:?}", post1);
-    let post2 = Posts::new(String::from("Why I love Rust"), user.id);
+    let post2 = Posts::new("Why I love Rust", user.id);
     println!("Post2: {:?}", post2);
 
     // Select all posts by a user
-    let posts_by_user = Posts::select()
+    let posts_by_user = Posts::query_select()
         .columns(vec!["Posts.title", "Users.name"])
         .join(Users::table())
         .build()

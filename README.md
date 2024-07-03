@@ -22,7 +22,8 @@
 
 - Focus on simplicity
 - Rely on Derive Macros to generate code for your structs
-  - Using `GeekTable`
+  - Using `Table`
+  - Using `Data`
 - Dynamically build queries
   - `Select`, `Create`, `Update`, and `Insert` queries
 - [Extensive crate features](#-create-features)
@@ -53,34 +54,77 @@ cargo install --git https://github.com/42ByteLabs/geekorm
 Once you have installed `geekorm`, you can start using the derive macros like the following:
 
 ```rust
+use anyhow::Result;
 use geekorm::prelude::*;
-use geekorm::{QueryOrder, PrimaryKeyInteger};
 
-#[derive(Debug, Clone, GeekTable)]
+#[derive(Table, Debug, Default, serde::Serialize, serde::Deserialize)]
 struct Users {
-   id: PrimaryKeyInteger,
-   username: String,
-   email: String,
-   age: i32,
-   postcode: Option<String>,
+    #[geekorm(primary_key, auto_increment)]
+    id: PrimaryKeyInteger,
+
+    #[geekorm(unique)]
+    username: String,
+
+    #[geekorm(hash)]
+    password: String,
+
+    #[geekorm(new = "UserType::User")]
+    user_type: UserType,
+
+    #[geekorm(new = "chrono::Utc::now()")]
+    created_at: chrono::DateTime<chrono::Utc>,
+
+    postcode: Option<String>,
 }
 
-// Use the `create` method to build a CREATE TABLE query
-let create_table = Users::create().build()
-    .expect("Failed to build create table query");
-println!("Create Table Query: {}", create_table);
+#[derive(Data, Debug, Default, Clone)]
+enum UserType {
+    Admin,
+    #[default]
+    User,
+}
 
-// Use the `select` method to build a SELECT query along with different conditions
-// and ordering
-let select_user = Users::select()
-    .where_eq("username", "geekmasher")
-    .and()
-    .where_gt("age", 42)
-    .order_by("age", QueryOrder::Asc)
-    .limit(10)
-    .build()
-    .expect("Failed to build query");
+#[tokio::main]
+async fn main() -> Result<()> {
+    // Setup the database and connection
+    let db = libsql::Builder::new_local(":memory:").build().await?;
+    let connection = db.connect()?;
 
+    // Create the table in the database
+    Users::create_table(&connection).await?;
+
+    // Creating a new User
+    let mut user = Users::new("GeekMasher", "ThisIsNotMyPassword");
+    // Saving the new User in the database
+    user.save(&connection).await?;
+    // Print the Primary Key value set by the database (auto_increment)
+    println!("User ID: {:?}", user.id);
+
+    // Updating the User
+    user.user_type = UserType::Admin;
+    user.update(&connection).await?;
+
+    // Fetch the Admin Users
+    let admin_users = Users::fetch_by_user_type(&connection, UserType::Admin).await?;
+    println!("Admin Users: {:?}", admin_users);
+
+    // Helper functions built right into the struct by GeekORM
+    user.hash_password("ThisIsStillNotMyPassword")?;
+
+    // Go back to basics and build your own queries dynamically using
+    // the QueryBuilder built into GeekORM
+    let query = Users::query_select()
+        .where_eq("username", "GeekMasher")
+        .order_by("id", geekorm::QueryOrder::Desc)
+        .limit(1)
+        .build()?;
+
+    // Execute the query and return the results
+    let users = Users::query(&connection, query).await?;
+    println!("Users: {:?}", users);
+
+    Ok(())
+}
 ```
 
 ### 🏄 Create Features

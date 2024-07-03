@@ -29,7 +29,7 @@ where
     type Rows = Vec<T>;
 
     async fn create_table(connection: &Self::Connection) -> Result<(), crate::Error> {
-        let query = T::create().build()?;
+        let query = T::query_create().build()?;
         debug!("Create Table Query :: {:?}", query.to_str());
         connection
             .execute(query.to_str(), ())

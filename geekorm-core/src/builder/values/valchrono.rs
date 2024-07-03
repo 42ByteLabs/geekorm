@@ -4,7 +4,7 @@
 //! use geekorm::prelude::*;
 //! use chrono::{DateTime, Utc};
 //!
-//! #[derive(GeekTable, Default)]
+//! #[derive(Table, Default)]
 //! struct User {
 //!     id: PrimaryKeyInteger,
 //!     created_at: DateTime<Utc>,
