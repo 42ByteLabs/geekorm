@@ -492,6 +492,10 @@ impl ColumnDerive {
         let identifier = &self.identifier;
         let name = &self.name;
 
+        if self.skip {
+            return quote! {};
+        }
+
         let func_name = format!("select_by_{}", identifier);
         let func = Ident::new(&func_name, Span::call_site());
 

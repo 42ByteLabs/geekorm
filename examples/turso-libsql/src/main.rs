@@ -91,12 +91,12 @@ async fn main() -> Result<()> {
         // Use the Repository::new() constructor to create a new repository and
         // insert it into the database.
         let mut repository = Repository::new(repo.to_string());
-        repository.execute_insert(&conn).await?;
+        repository.create(&conn).await?;
 
         // Use the Projects::new() constructor to create a new project.
         // This is provided by the GeekTable derive macro when the `new` feature is enabled.
         let mut project = Projects::new(name.to_string(), url.to_string(), repository.id);
-        project.execute_insert(&conn).await?;
+        project.create(&conn).await?;
 
         println!(
             "Project: {} - {} (repo: {})",

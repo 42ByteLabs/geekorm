@@ -73,6 +73,15 @@ where
     }
 }
 
+impl<T> Display for PrimaryKey<T>
+where
+    T: Display + 'static,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.value)
+    }
+}
+
 impl PrimaryKey<i32> {
     /// Create a new primary key with an integer
     pub fn new(value: i32) -> Self {

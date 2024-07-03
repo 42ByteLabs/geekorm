@@ -4,10 +4,14 @@ use std::collections::HashMap;
 
 use crate::{Query, QueryBuilderTrait, TableBuilder, Value};
 
+/// This module contains the LibSQL backend
+#[cfg(feature = "libsql")]
+pub mod libsql;
+
 /// GeekConnection
 pub trait GeekConnection
 where
-    Self: Sized,
+    Self: Sized + Send + Sync,
 {
     /// Native connection type
     type Connection;
@@ -20,10 +24,6 @@ where
     #[allow(async_fn_in_trait, unused_variables)]
     async fn prepare(&self, query: &str) -> Result<Self::Statement, Self::Error>;
 }
-
-/// This module contains the LibSQL backend
-#[cfg(feature = "libsql")]
-pub mod libsql;
 
 /// This trait is used to define the connection to the database.
 ///

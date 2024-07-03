@@ -10,6 +10,7 @@ use geekorm_core::utils::generate_random_string;
 use geekorm_core::{Columns, Table};
 use values::{generate_from_value, generate_serde};
 
+mod backends;
 mod helpers;
 mod tablebuilder;
 mod values;
@@ -112,7 +113,9 @@ fn generate_struct(
 
     // Execute methods
     #[cfg(feature = "libsql")]
-    stream.extend(generate_table_execute(ident, generics, &table)?);
+    {
+        stream.extend(generate_table_execute(ident, generics, &table)?);
+    }
 
     // Fetch methods
     stream.extend(generate_table_fetch(ident, fields, generics, &table)?);
