@@ -99,6 +99,9 @@ pub fn generate_query_builder(
 
     let mut insert_values = TokenStream::new();
     for column in table.columns.columns.iter() {
+        if column.skip {
+            continue;
+        }
         let name = &column.name;
         let ident = syn::Ident::new(name.as_str(), name.span());
         insert_values.extend(quote! {
@@ -295,6 +298,11 @@ pub fn generate_table_fetch(
 
         match inner_type {
             syn::GenericArgument::Type(Type::Path(path)) => {
+                // If the column is skipped, then we don't need to fetch it.
+                if column.skip {
+                    continue;
+                }
+
                 let fident = path.path.segments.first().unwrap().ident.clone();
 
                 stream.extend(column.get_fetcher(ident, &fident));
@@ -317,6 +325,10 @@ pub fn generate_table_fetch(
     }
 
     for column in table.columns.columns.iter() {
+        if column.skip {
+            continue;
+        }
+
         let name = &column.name;
         let func = syn::Ident::new(format!("fetch_by_{}", name).as_str(), name.span());
 

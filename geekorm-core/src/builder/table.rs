@@ -80,6 +80,7 @@ impl ToSqlite for Table {
                     self.columns
                         .columns
                         .iter()
+                        .filter(|col| !col.skip)
                         .map(|col| col.name.clone())
                         .collect()
                 };
