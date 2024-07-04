@@ -504,6 +504,10 @@ impl ColumnDerive {
         let identifier = &self.identifier;
         let name = &self.name;
 
+        if self.skip {
+            return quote! {};
+        }
+
         let func_name = format!("query_select_by_{}", identifier);
         let func = Ident::new(&func_name, Span::call_site());
 
@@ -549,6 +553,10 @@ impl ColumnDerive {
     #[allow(unused_variables)]
     pub(crate) fn get_fetcher(&self, table_ident: &Ident, foreign_ident: &Ident) -> TokenStream {
         let identifier = &self.identifier;
+
+        if self.skip {
+            return quote! {};
+        }
 
         let func_name = format!("fetch_{}", identifier);
         let func = Ident::new(&func_name, Span::call_site());
