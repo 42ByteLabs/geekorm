@@ -272,6 +272,24 @@ impl From<PrimaryKeyInteger> for i32 {
     }
 }
 
+impl ToString for PrimaryKey<String> {
+    fn to_string(&self) -> String {
+        self.value.clone()
+    }
+}
+impl ToString for PrimaryKey<i32> {
+    fn to_string(&self) -> String {
+        self.value.to_string()
+    }
+}
+
+#[cfg(feature = "uuid")]
+impl ToString for PrimaryKey<Uuid> {
+    fn to_string(&self) -> String {
+        self.value.to_string()
+    }
+}
+
 impl Serialize for PrimaryKeyInteger {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
