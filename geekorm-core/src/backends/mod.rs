@@ -6,6 +6,8 @@ use crate::{Query, QueryBuilder, QueryBuilderTrait, TableBuilder, Value};
 
 #[cfg(feature = "libsql")]
 pub mod libsql;
+#[cfg(feature = "rusqlite")]
+pub mod rusqlite;
 
 /// GeekConnection is the trait used for models to interact with the database.
 ///
