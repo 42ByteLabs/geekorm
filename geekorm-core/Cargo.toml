@@ -64,5 +64,5 @@ rusqlite = { version = "0.32.0", features = ["bundled"], optional = true }
 serde_rusqlite = { version = "^0.36", optional = true }
 
 [dev-dependencies]
-geekorm = { path = "..", version = "^0.6.0" }
+geekorm = { path = ".." }
 tokio = { version = "^1.40", features = ["full"] }
