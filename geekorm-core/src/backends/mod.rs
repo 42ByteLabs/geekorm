@@ -2,47 +2,139 @@
 
 use std::collections::HashMap;
 
-use crate::{Query, QueryBuilderTrait, TableBuilder, Value};
+use crate::{Query, QueryBuilder, QueryBuilderTrait, TableBuilder, Value};
 
-/// GeekConnection
-pub trait GeekConnection
-where
-    Self: Sized,
-{
-    /// Native connection type
-    type Connection;
-    /// Native error type
-    type Error;
-    /// Native statement
-    type Statement;
-
-    /// Execute a query on the database
-    #[allow(async_fn_in_trait, unused_variables)]
-    async fn prepare(&self, query: &str) -> Result<Self::Statement, Self::Error>;
-}
-
-/// This module contains the LibSQL backend
 #[cfg(feature = "libsql")]
 pub mod libsql;
 
-/// This trait is used to define the connection to the database.
+/// GeekConnection is the trait used for models to interact with the database.
 ///
-/// The main focus of this trait is to provide a way to connect to the database for any Table that
-/// implements it.
+/// This trait is used to define the methods that are used to interact with the database.
 pub trait GeekConnector
 where
-    Self: TableBuilder + QueryBuilderTrait + Sized + serde::Serialize + serde::de::DeserializeOwned,
+    Self: Sized + TableBuilder + QueryBuilderTrait + serde::Serialize + serde::de::DeserializeOwned,
 {
-    /// The connection type
-    type Connection;
-    /// The row
-    type Row;
-    /// The rows to return type
-    type Rows;
+    /// Query the database with an active Connection and Query
+    #[allow(async_fn_in_trait, unused_variables)]
+    async fn query<'a, T>(
+        connection: impl Into<&'a T>,
+        query: Query,
+    ) -> Result<Vec<Self>, crate::Error>
+    where
+        T: GeekConnection<Connection = T> + 'a,
+    {
+        Ok(T::query::<Self>(connection.into(), query).await?)
+    }
+
+    /// Query the first row from the database with an active Connection and Query
+    #[allow(async_fn_in_trait, unused_variables)]
+    async fn query_first<'a, T>(
+        connection: impl Into<&'a T>,
+        query: Query,
+    ) -> Result<Self, crate::Error>
+    where
+        T: GeekConnection<Connection = T> + 'a,
+    {
+        Ok(T::query_first::<Self>(connection.into(), query).await?)
+    }
+
+    /// Execute a query on the database and do not return any rows
+    #[allow(async_fn_in_trait, unused_variables)]
+    async fn execute<'a, T>(connection: impl Into<&'a T>, query: Query) -> Result<(), crate::Error>
+    where
+        T: GeekConnection<Connection = T> + 'a,
+    {
+        Ok(T::execute::<Self>(connection.into(), query).await?)
+    }
 
     /// Create a table in the database
     #[allow(async_fn_in_trait, unused_variables)]
-    async fn create_table(connection: &Self::Connection) -> Result<(), crate::Error> {
+    async fn create_table<'a, T>(connection: impl Into<&'a T>) -> Result<(), crate::Error>
+    where
+        T: GeekConnection<Connection = T> + 'a,
+        Self: serde::Serialize,
+    {
+        Ok(T::create_table::<Self>(connection.into()).await?)
+    }
+
+    /// Count the number of rows based on a Query
+    #[allow(async_fn_in_trait, unused_variables)]
+    async fn row_count<'a, T>(
+        connection: impl Into<&'a T>,
+        query: Query,
+    ) -> Result<i64, crate::Error>
+    where
+        T: GeekConnection<Connection = T> + 'a,
+    {
+        Ok(T::row_count(connection.into(), query).await?)
+    }
+
+    /// Update the current object in the database
+    #[allow(async_fn_in_trait, unused_variables)]
+    async fn update<'a, T>(&self, connection: impl Into<&'a T>) -> Result<(), crate::Error>
+    where
+        T: GeekConnection<Connection = T> + 'a,
+    {
+        Self::execute(connection, Self::query_update(self)).await
+    }
+
+    /// Save the current object to the database
+    #[allow(async_fn_in_trait, unused_variables)]
+    async fn save<'a, T>(&mut self, connection: impl Into<&'a T>) -> Result<(), crate::Error>
+    where
+        T: GeekConnection<Connection = T> + 'a;
+
+    /// Delete the current object from the database
+    #[allow(async_fn_in_trait, unused_variables)]
+    async fn delete<'a, T>(&self, connection: impl Into<&'a T>) -> Result<(), crate::Error>
+    where
+        T: GeekConnection + 'a,
+    {
+        Err(crate::Error::NotImplemented)
+    }
+
+    /// Fetches all of the foreign key values for the current object
+    #[allow(async_fn_in_trait, unused_variables)]
+    async fn fetch<'a, T>(&mut self, connection: impl Into<&'a T>) -> Result<(), crate::Error>
+    where
+        T: GeekConnection<Connection = T> + 'a;
+
+    /// Fetch all rows from the database
+    #[allow(async_fn_in_trait, unused_variables)]
+    async fn fetch_all<'a, T>(connection: impl Into<&'a T>) -> Result<Vec<Self>, crate::Error>
+    where
+        T: GeekConnection<Connection = T> + 'a,
+    {
+        Ok(T::query::<Self>(
+            connection.into(),
+            QueryBuilder::select().table(Self::table()).build()?,
+        )
+        .await?)
+    }
+}
+
+/// GeekConnection is the trait that all backends must implement to be able
+/// to interact with the database.
+pub trait GeekConnection {
+    /// Single item
+    type Row;
+    /// Multiple items
+    type Rows;
+    /// Native Connection
+    type Connection;
+    /// Native Statement (if any)
+    type Statement;
+
+    /// Create a table in the database
+    #[allow(async_fn_in_trait, unused_variables)]
+    async fn create_table<T>(connection: &Self::Connection) -> Result<(), crate::Error>
+    where
+        T: TableBuilder
+            + QueryBuilderTrait
+            + Sized
+            + serde::Serialize
+            + serde::de::DeserializeOwned,
+    {
         Err(crate::Error::NotImplemented)
     }
 
@@ -54,16 +146,19 @@ where
 
     /// Execute a query on the database and do not return any rows
     #[allow(async_fn_in_trait, unused_variables)]
-    async fn execute(connection: &Self::Connection, query: Query) -> Result<(), crate::Error> {
+    async fn execute<T>(connection: &Self::Connection, query: Query) -> Result<(), crate::Error>
+    where
+        T: serde::de::DeserializeOwned,
+    {
         Err(crate::Error::NotImplemented)
     }
 
     /// Query the database with an active Connection and Query
     #[allow(async_fn_in_trait, unused_variables)]
-    async fn query(
-        connection: &Self::Connection,
-        query: Query,
-    ) -> Result<Self::Rows, crate::Error> {
+    async fn query<T>(connection: &Self::Connection, query: Query) -> Result<Vec<T>, crate::Error>
+    where
+        T: serde::de::DeserializeOwned,
+    {
         Err(crate::Error::NotImplemented)
     }
 
@@ -72,10 +167,10 @@ where
     /// Note: Make sure the query is limited to 1 row to avoid retrieving multiple rows
     /// and only using the first one.
     #[allow(async_fn_in_trait, unused_variables)]
-    async fn query_first(
-        connection: &Self::Connection,
-        query: Query,
-    ) -> Result<Self::Row, crate::Error> {
+    async fn query_first<T>(connection: &Self::Connection, query: Query) -> Result<T, crate::Error>
+    where
+        T: serde::de::DeserializeOwned,
+    {
         Err(crate::Error::NotImplemented)
     }
 

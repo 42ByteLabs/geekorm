@@ -35,8 +35,9 @@ hash-argon2 = ["dep:argon2", "dep:password-hash", "dep:rand_core"]
 hash-sha512 = ["dep:sha-crypt", "dep:rand_core"]
 
 # Backends
-libsql = ["dep:libsql"]
-sqlite = ["dep:sqlite"]
+backends = []
+libsql = ["backends", "dep:libsql"]
+sqlite = ["backends", "dep:sqlite"]
 
 [dependencies]
 thiserror = "^1.0"

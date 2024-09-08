@@ -1,4 +1,6 @@
-/// This module contains the implementation for the `GeekConnection` trait for the `libsql` crate.
+//! # libsql
+//!
+//! This module contains the implementation for the `GeekConnection` trait for the `libsql` crate.
 use std::collections::HashMap;
 
 use libsql::{de, params::IntoValue};
@@ -6,29 +8,19 @@ use log::{debug, error};
 use serde::{de::DeserializeOwned, Serialize};
 
 use crate::{
-    builder::models::QueryType, GeekConnection, GeekConnector, QueryBuilderTrait, TableBuilder,
-    Value, Values,
+    builder::models::QueryType, GeekConnection, QueryBuilderTrait, TableBuilder, Value, Values,
 };
 
 impl GeekConnection for libsql::Connection {
     type Connection = libsql::Connection;
-    type Error = libsql::Error;
+    type Row = libsql::Row;
+    type Rows = Vec<libsql::Row>;
     type Statement = libsql::Statement;
 
-    async fn prepare(&self, query: &str) -> Result<Self::Statement, Self::Error> {
-        self.prepare(query).await
-    }
-}
-
-impl<T> GeekConnector for T
-where
-    T: TableBuilder + QueryBuilderTrait + Serialize + DeserializeOwned,
-{
-    type Connection = libsql::Connection;
-    type Row = T;
-    type Rows = Vec<T>;
-
-    async fn create_table(connection: &Self::Connection) -> Result<(), crate::Error> {
+    async fn create_table<T>(connection: &Self::Connection) -> Result<(), crate::Error>
+    where
+        T: TableBuilder + QueryBuilderTrait + Sized + Serialize + DeserializeOwned,
+    {
         let query = T::query_create().build()?;
         debug!("Create Table Query :: {:?}", query.to_str());
         connection
@@ -61,10 +53,13 @@ where
         Ok(row.get(0).unwrap())
     }
 
-    async fn query(
+    async fn query<T>(
         connection: &Self::Connection,
         query: crate::Query,
-    ) -> Result<Self::Rows, crate::Error> {
+    ) -> Result<Vec<T>, crate::Error>
+    where
+        T: serde::de::DeserializeOwned,
+    {
         // TODO(geekmasher): Use different patterns for different query types
 
         let mut statement = match connection.prepare(query.to_str()).await {
@@ -109,10 +104,15 @@ where
         Ok(results)
     }
 
-    async fn query_first(
+    async fn query_first<T>(
         connection: &Self::Connection,
         query: crate::Query,
-    ) -> Result<Self::Row, crate::Error> {
+    ) -> Result<T, crate::Error>
+    where
+        T: serde::de::DeserializeOwned,
+        Self: GeekConnection<Row = libsql::Row>,
+    {
+        // TODO: Should we always make sure the query limit is set to 1?
         if query.query_type == QueryType::Update {
             error!("Query type is an `update`, use execute() instead as it does not return a row");
             return Err(crate::Error::LibSQLError(
@@ -120,17 +120,58 @@ where
             ));
         }
 
-        let rows = Self::query(connection, query).await?;
-        match rows.into_iter().next() {
-            Some(row) => Ok(row),
-            None => Err(crate::Error::NoRowsFound),
-        }
+        let mut statement = match connection.prepare(query.to_str()).await {
+            Ok(statement) => statement,
+            Err(e) => {
+                error!("Error preparing query: `{}`", query.to_str());
+                error!("Parameters :: {:?}", query.parameters);
+                return Err(crate::Error::LibSQLError(e.to_string()));
+            }
+        };
+        // Convert the values to libsql::Value
+        let parameters: Vec<libsql::Value> = match convert_values(&query) {
+            Ok(parameters) => parameters,
+            Err(e) => {
+                error!("Error converting values: `{}`", e);
+                error!("Parameters :: {:?}", query.parameters);
+                return Err(crate::Error::LibSQLError(e.to_string()));
+            }
+        };
+
+        debug!("Query :: {:?}", query.to_str());
+        debug!("Parameters :: {:?}", parameters.clone());
+
+        // Execute the query
+        let mut rows = match statement.query(parameters).await {
+            Ok(rows) => rows,
+            Err(e) => {
+                error!("Error executing query: `{}`", query.to_str());
+                return Err(crate::Error::LibSQLError(e.to_string()));
+            }
+        };
+
+        let row: Self::Row = match rows
+            .next()
+            .await
+            .map_err(|e| crate::Error::LibSQLError(e.to_string()))?
+        {
+            Some(row) => row,
+            None => {
+                error!("No rows found for query: `{}`", query.to_str());
+                return Err(crate::Error::NoRowsFound);
+            }
+        };
+
+        Ok(de::from_row::<T>(&row).unwrap())
     }
 
-    async fn execute(
+    async fn execute<T>(
         connection: &Self::Connection,
         query: crate::Query,
-    ) -> Result<(), crate::Error> {
+    ) -> Result<(), crate::Error>
+    where
+        T: serde::de::DeserializeOwned,
+    {
         // Convert the values to libsql::Value
         let parameters: Vec<libsql::Value> = convert_values(&query).map_err(|e| {
             error!("Error converting values: `{}`", e);
