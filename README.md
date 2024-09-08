@@ -2,14 +2,14 @@
 <div align="center">
 <h1>GeekORM</h1>
 
+<img src="./assets/geekorm.png" width="450" title="GeekORM Logo">
+
 [![GitHub](https://img.shields.io/badge/github-%23121011.svg?style=for-the-badge&logo=github&logoColor=white)][github]
 [![Crates.io Version](https://img.shields.io/crates/v/geekorm?style=for-the-badge)][crates-io]
 [![Crates.io Downloads (recent)](https://img.shields.io/crates/dr/geekorm?style=for-the-badge)][crates-io]
 [![GitHub Stars](https://img.shields.io/github/stars/42ByteLabs/geekorm?style=for-the-badge)][github]
 [![GitHub Issues](https://img.shields.io/github/issues/42ByteLabs/geekorm?style=for-the-badge)][github-issues]
 [![Licence](https://img.shields.io/github/license/Ileriayo/markdown-badges?style=for-the-badge)][license]
-
-<img src="./assets/geekorm.png" width="450" title="GeekORM Logo">
 
 </div>
 <!-- markdownlint-restore -->
@@ -32,6 +32,7 @@
   - [`rand`][docs-rand]: Generate random strings (set lenght, set prefix, set enviroment)
   - [`hash` or `password`][docs-hash]: Generate secure Hashes of passwords (set algorithm)
 - Support for Backends
+  - [`rusqlite`][lib-rusqlite]
   - [`libsql`][lib-libsql] ([Turso][web-turso])
 - [Documentation][docs]
 
@@ -193,4 +194,5 @@ Please refer to [MIT][license] for the full terms.
 [docs-rand]: https://docs.rs/geekorm-derive/latest/geekorm_derive/derive.GeekTable.html#generate-random-data-for-column
 
 [lib-libsql]: https://github.com/tursodatabase/libsql
+[lib-rusqlite]: https://github.com/rusqlite/rusqlite
 [web-turso]: https://turso.tech/
