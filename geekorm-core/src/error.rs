@@ -19,11 +19,6 @@ pub enum Error {
     #[error("No Rows Found in the database for the query")]
     NoRowsFound,
 
-    /// LibSQL Error
-    #[cfg(feature = "libsql")]
-    #[error("LibSQL Error occurred: {0}")]
-    LibSQLError(String),
-
     /// Not Implemented
     #[error("Not Implemented")]
     NotImplemented,
@@ -35,4 +30,14 @@ pub enum Error {
     /// Unknown / Generic Error
     #[error("Unknown Error / Generic Error occurred")]
     Unknown,
+
+    /// LibSQL Error
+    #[cfg(feature = "libsql")]
+    #[error("LibSQL Error occurred: {0}")]
+    LibSQLError(String),
+
+    /// RuSQLite Error
+    #[cfg(feature = "rusqlite")]
+    #[error("RuSQLite Error occurred: {0}")]
+    RuSQLiteError(String),
 }
