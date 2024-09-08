@@ -21,10 +21,7 @@ use crate::{
     parsers::tablebuilder::generate_query_builder,
 };
 use helpers::{generate_helpers, generate_new, generate_random_helpers};
-use tablebuilder::{
-    generate_table_builder, generate_table_execute, generate_table_fetch,
-    generate_table_primary_key,
-};
+use tablebuilder::{generate_backend, generate_table_builder, generate_table_primary_key};
 
 use self::helpers::generate_hash_helpers;
 
@@ -110,13 +107,11 @@ fn generate_struct(
     // Primary Key
     stream.extend(generate_table_primary_key(ident, generics, &table)?);
 
-    // Execute methods
-    #[cfg(feature = "libsql")]
-    stream.extend(generate_table_execute(ident, generics, &table)?);
-
-    // Fetch methods
-    #[cfg(feature = "libsql")]
-    stream.extend(generate_table_fetch(ident, fields, generics, &table)?);
+    #[cfg(feature = "backends")]
+    {
+        // Backend implementations and fetch methods
+        stream.extend(generate_backend(ident, fields, generics, &table)?);
+    }
 
     #[cfg(feature = "new")]
     stream.extend(generate_new(ident, generics, &table));

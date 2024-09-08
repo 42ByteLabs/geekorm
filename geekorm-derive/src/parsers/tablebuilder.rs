@@ -200,20 +200,36 @@ pub fn generate_table_primary_key(
     }
 }
 
-/// Generate `execute` helper functions for the struct.
+/// Generate the backend implementation for the struct and fetch methods.
 ///
-/// - `update()`
-/// - `save()`
+/// - `fetch_by_primary_key()` - Gets an item by the primary key.
+/// - `fetch_by_{field}()` - Gets an item by the field.
+/// - `fetch_{field}()` - Fetch foreign key items.
 #[allow(dead_code)]
-pub fn generate_table_execute(
+pub fn generate_backend(
     ident: &syn::Ident,
+    fields: &FieldsNamed,
     generics: &syn::Generics,
     table: &TableDerive,
 ) -> Result<TokenStream, syn::Error> {
     let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
 
+    // Finished Stream
+    let mut stream = TokenStream::new();
+    // Insert values
     let mut insert_values = TokenStream::new();
+    // Fetch implementation
+    let mut fetch_impl = TokenStream::new();
+    // Fetch functions
+    let mut fetch_functions = TokenStream::new();
+
+    // Generate the selectors for the columns
     for column in table.columns.columns.iter() {
+        // If the column is skipped, then we don't need to fetch it.
+        if column.skip {
+            continue;
+        }
+
         let name = &column.name;
         let ident = syn::Ident::new(name.as_str(), name.span());
 
@@ -221,19 +237,110 @@ pub fn generate_table_execute(
         insert_values.extend(quote! {
             self.#ident = item.#ident.clone();
         });
+
+        if column.is_foreign_key() == true {
+            let field = fields
+                .named
+                .iter()
+                .find(|f| f.ident.as_ref().unwrap() == &column.name)
+                .unwrap();
+
+            // Inner type of the field
+            // ForeignKey<i32, Users>,
+            let field_type = match &field.ty {
+                syn::Type::Path(path) => path.path.segments.first().unwrap(),
+                _ => {
+                    return Err(syn::Error::new(
+                        field.ty.span(),
+                        "Only path types are supported for foreign keys",
+                    ))
+                }
+            };
+
+            let inner_type = match &field_type.arguments {
+                syn::PathArguments::AngleBracketed(args) => args.args.last().unwrap(),
+                _ => {
+                    return Err(syn::Error::new(
+                        field.ty.span(),
+                        "Only angle bracketed arguments are supported for foreign keys",
+                    ))
+                }
+            };
+
+            match inner_type {
+                syn::GenericArgument::Type(Type::Path(path)) => {
+                    let fident = path.path.segments.first().unwrap().ident.clone();
+                    fetch_impl.extend(column.get_fetcher(&ident, &fident));
+
+                    // Add fetch function to the list of fetch functions
+                    let func_name = format!("fetch_{}", column.identifier);
+                    let func = Ident::new(&func_name, Span::call_site());
+
+                    fetch_functions.extend(quote! {
+                        Self::#func(self, connection).await?;
+                    });
+                }
+                _ => {
+                    return Err(syn::Error::new(
+                        field.ty.span(),
+                        "Only type arguments are supported for foreign keys",
+                    ))
+                }
+            }
+        } else {
+            let func = syn::Ident::new(format!("fetch_by_{}", name).as_str(), name.span());
+
+            let select_func =
+                syn::Ident::new(format!("query_select_by_{}", name).as_str(), name.span());
+
+            if column.is_unique() {
+                fetch_impl.extend(quote! {
+                    /// Fetch the data from the table by the field (unique).
+                    pub async fn #func<'a, T>(
+                        connection: impl Into<&'a T>,
+                        value: impl Into<geekorm::Value>
+                    ) -> Result<Self, geekorm::Error>
+                    where
+                        T: GeekConnection<Connection = T> + 'a,
+                        Self: QueryBuilderTrait + serde::Serialize + serde::de::DeserializeOwned
+                    {
+                        T::query_first::<Self>(
+                            connection.into(),
+                            Self:: #select_func(value.into())
+                        ).await
+                    }
+                });
+            } else {
+                fetch_impl.extend(quote! {
+                    /// Fetch the data from the table by the field (non-unique).
+                    pub async fn #func<'a, T>(
+                        connection: impl Into<&'a T>,
+                        value: impl Into<geekorm::Value>
+                    ) -> Result<Vec<Self>, geekorm::Error>
+                    where
+                        T: GeekConnection<Connection = T> + 'a,
+                        Self: QueryBuilderTrait + serde::Serialize + serde::de::DeserializeOwned
+                    {
+                        T::query::<Self>(
+                            connection.into(),
+                            Self:: #select_func(value.into())
+                        ).await
+                    }
+                });
+            }
+        }
     }
 
-    // TODO(geekmasher): The execute_insert method might have an issue as we don't have a lock and
-    // the last inserted item might not be the one we inserted.
-    Ok(quote! {
-        impl #impl_generics #ident #ty_generics #where_clause {
-            /// Update the item in the database.
-            pub async fn update(&self, connection: &libsql::Connection) -> Result<(), geekorm::Error> {
-                #ident::execute(connection, #ident::query_update(self)).await
-            }
-
+    // GeekConnector implementation
+    stream.extend(quote! {
+        impl #impl_generics geekorm::prelude::GeekConnector for #ident #ty_generics #where_clause {
             /// Save a new item to the database and return the last inserted item from the database.
-            pub async fn save(&mut self, connection: &libsql::Connection) -> Result<(), geekorm::Error> {
+            async fn save<'a, T>(&mut self, connection: impl Into<&'a T>) -> Result<(), geekorm::Error>
+            where
+                T: GeekConnection<Connection = T> + 'a,
+                Self: QueryBuilderTrait + serde::Serialize + serde::de::DeserializeOwned
+            {
+                let connection = connection.into();
                 #ident::execute(connection, #ident::query_insert(self)).await?;
                 let select_query = #ident::query_select()
                     .order_by(#ident::primary_key().as_str(), geekorm::QueryOrder::Desc)
@@ -245,159 +352,31 @@ pub fn generate_table_execute(
                 #insert_values
                 Ok(())
             }
-        }
-    })
-}
 
-/// Generate fetch methods for the struct.
-///
-/// - `fetch_all()` - Gets all the items from the table.
-/// - `fetch_by_primary_key()` - Gets an item by the primary key.
-/// - `fetch_by_{field}()` - Gets an item by the field.
-/// - `fetch_{field}()` - Fetch foreign key items.
-pub fn generate_table_fetch(
-    ident: &syn::Ident,
-    fields: &FieldsNamed,
-    generics: &syn::Generics,
-    table: &TableDerive,
-) -> Result<TokenStream, syn::Error> {
-    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
-
-    let mut stream = TokenStream::new();
-    let mut fetch_functions = TokenStream::new();
-
-    // Generate the selectors for the columns
-    for column in table.columns.get_foreign_keys() {
-        let field = fields
-            .named
-            .iter()
-            .find(|f| f.ident.as_ref().unwrap() == &column.name)
-            .unwrap();
-
-        // Inner type of the field
-        // ForeignKey<i32, Users>,
-        let field_type = match &field.ty {
-            syn::Type::Path(path) => path.path.segments.first().unwrap(),
-            _ => {
-                return Err(syn::Error::new(
-                    field.ty.span(),
-                    "Only path types are supported for foreign keys",
-                ))
-            }
-        };
-
-        let inner_type = match &field_type.arguments {
-            syn::PathArguments::AngleBracketed(args) => args.args.last().unwrap(),
-            _ => {
-                return Err(syn::Error::new(
-                    field.ty.span(),
-                    "Only angle bracketed arguments are supported for foreign keys",
-                ))
-            }
-        };
-
-        match inner_type {
-            syn::GenericArgument::Type(Type::Path(path)) => {
-                // If the column is skipped, then we don't need to fetch it.
-                if column.skip {
-                    continue;
-                }
-
-                let fident = path.path.segments.first().unwrap().ident.clone();
-
-                stream.extend(column.get_fetcher(ident, &fident));
-
-                // Add fetch function to the list of fetch functions
-                let func_name = format!("fetch_{}", column.identifier);
-                let func = Ident::new(&func_name, Span::call_site());
-
-                fetch_functions.extend(quote! {
-                    Self::#func(self, connection).await?;
-                });
-            }
-            _ => {
-                return Err(syn::Error::new(
-                    field.ty.span(),
-                    "Only type arguments are supported for foreign keys",
-                ))
+            /// Fetch all the data from foreign tables and store them in the struct.
+            async fn fetch<'a, T>(&mut self, connection: impl Into<&'a T>) -> Result<(), geekorm::Error>
+            where
+                T: GeekConnection<Connection = T> + 'a,
+                Self: QueryBuilderTrait + serde::de::DeserializeOwned
+            {
+                #fetch_functions
+                Ok(())
             }
         }
-    }
-
-    for column in table.columns.columns.iter() {
-        if column.skip {
-            continue;
-        }
-
-        let name = &column.name;
-        let func = syn::Ident::new(format!("fetch_by_{}", name).as_str(), name.span());
-
-        let select_func =
-            syn::Ident::new(format!("query_select_by_{}", name).as_str(), name.span());
-
-        if column.is_unique() {
-            stream.extend(quote! {
-                /// Fetch the data from the table by the field (unique).
-                pub async fn #func(
-                    connection: &libsql::Connection,
-                    value: impl Into<geekorm::Value>
-                ) -> Result<Self, geekorm::Error> {
-                    #ident::query_first(
-                        connection,
-                        #ident :: #select_func(value.into())
-                    ).await
-                }
-            });
-        } else {
-            stream.extend(quote! {
-                /// Fetch the data from the table by the field (non-unique).
-                pub async fn #func(
-                    connection: &libsql::Connection,
-                    value: impl Into<geekorm::Value>
-                ) -> Result<Vec<Self>, geekorm::Error> {
-                    #ident::query(
-                        connection,
-                        #ident :: #select_func(value.into())
-                    ).await
-                }
-            });
-        }
-    }
-
-    // Generate a fetch all method for the struct
-    match cfg!(feature = "libsql") {
-        true => {
-            stream.extend(quote! {
-                /// Fetch all the data from foreign tables and store them in the struct.
-                pub async fn fetch(
-                    &mut self,
-                    connection: &libsql::Connection
-                ) -> Result<(), geekorm::Error> {
-                    #fetch_functions
-                    Ok(())
-                }
-
-                /// Fetch all the data from the table.
-                pub async fn fetch_all(
-                    connection: &libsql::Connection
-                ) -> Result<Vec<Self>, geekorm::Error> {
-                    Self::query(connection, Self::query_all()).await
-                }
-            });
-        }
-        false => {
-            stream.extend(quote! {});
-        }
-    }
+    });
 
     // Generate the fetch method for PrimaryKey
     if let Some(key) = table.columns.get_primary_key() {
-        stream.extend(key.get_fetcher_pk(ident));
+        fetch_impl.extend(key.get_fetcher_pk(ident));
     }
 
-    Ok(quote! {
+    // Fetch functions
+    stream.extend(quote! {
+        /// Fetch methods for the model.
         impl #impl_generics #ident #ty_generics #where_clause {
-            #stream
+            #fetch_impl
         }
-    })
+    });
+
+    Ok(stream)
 }

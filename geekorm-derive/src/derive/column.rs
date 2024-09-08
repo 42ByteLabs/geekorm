@@ -345,6 +345,13 @@ impl ColumnDerive {
         }
     }
 
+    pub(crate) fn is_foreign_key(&self) -> bool {
+        match &self.coltype {
+            ColumnTypeDerive::ForeignKey(_) => true,
+            _ => false,
+        }
+    }
+
     /// Check if the column is unique
     pub(crate) fn is_unique(&self) -> bool {
         match &self.coltype {
@@ -528,24 +535,24 @@ impl ColumnDerive {
     pub(crate) fn get_fetcher_pk(&self, ident: &Ident) -> TokenStream {
         let identifier = &self.identifier; // `user`
 
-        match cfg!(feature = "libsql") {
-            true => {
-                quote! {
-                    /// Fetch a row by the primary key value
-                    pub async fn fetch_by_primary_key(
-                        connection: &libsql::Connection,
-                        pk: impl Into<geekorm::Value>
-                    ) -> Result<#ident, geekorm::Error> {
-                        let q = #ident::query_select_by_primary_key(pk.into());
-                        let mut r: #ident = #ident::query_first(connection, q).await?;
+        quote! {
+            /// Fetch a row by the primary key value
+            pub async fn fetch_by_primary_key<'a, T>(
+                connection: impl Into<&'a T>,
+                pk: impl Into<geekorm::Value>
+            ) -> Result<#ident, geekorm::Error>
+                where
+                    T: GeekConnection<Connection = T> + 'a,
+                    Self: QueryBuilderTrait + serde::Serialize + serde::de::DeserializeOwned
+            {
+                let connection = connection.into();
+                let q = #ident::query_select_by_primary_key(pk.into());
+                let mut r: #ident = #ident::query_first(connection, q).await?;
 
-                        r.fetch(connection).await?;
+                r.fetch(connection).await?;
 
-                        Ok(r)
-                    }
-                }
+                Ok(r)
             }
-            false => quote! {},
         }
     }
 
@@ -561,19 +568,21 @@ impl ColumnDerive {
         let func_name = format!("fetch_{}", identifier);
         let func = Ident::new(&func_name, Span::call_site());
 
-        match cfg!(feature = "libsql") {
-            true => {
-                quote! {
-                    /// Fetch the foreign key data for the column
-                    pub async fn #func(&mut self, connection: &libsql::Connection) -> Result<#foreign_ident, geekorm::Error> {
-                        let q = #foreign_ident::query_select_by_primary_key(self.#identifier.key);
-                        let r = #foreign_ident::query_first(connection, q).await?;
-                        self.#identifier.data = r.clone();
-                        Ok(r)
-                    }
-                }
+        quote! {
+            /// Fetch the foreign key data for the column
+            pub async fn #func<'a, T>(
+                &mut self,
+                connection: impl Into<&'a T>
+            ) -> Result<#foreign_ident, geekorm::Error>
+                where
+                    T: GeekConnection<Connection = T> + 'a,
+                    Self: QueryBuilderTrait + serde::Serialize + serde::de::DeserializeOwned
+            {
+                let q = #foreign_ident::query_select_by_primary_key(self.#identifier.key);
+                let r = #foreign_ident::query_first(connection, q).await?;
+                self.#identifier.data = r.clone();
+                Ok(r)
             }
-            false => quote! {},
         }
     }
 
