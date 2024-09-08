@@ -36,6 +36,11 @@ pub use geekorm_derive::Table;
 pub use geekorm_derive::GeekTable;
 pub use geekorm_derive::GeekValue;
 
+// Traits
+pub use geekorm_core::QueryBuilderTrait;
+pub use geekorm_core::TableBuilder;
+pub use geekorm_core::{GeekConnection, GeekConnector};
+
 /// GeekORM Version
 pub const GEEKORM_VERSION: &str = env!("CARGO_PKG_VERSION");
 /// GeekORM Banner
