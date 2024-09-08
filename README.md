@@ -87,8 +87,10 @@ enum UserType {
 #[tokio::main]
 async fn main() -> Result<()> {
     // Setup the database and connection
-    let db = libsql::Builder::new_local(":memory:").build().await?;
-    let connection = db.connect()?;
+    let db = libsql::Builder::new_local(":memory:").build().await
+        .expect("Failed to create database");
+    let connection = db.connect()
+        .expect("Failed to connect to database");
 
     // Create the table in the database
     Users::create_table(&connection).await?;

@@ -62,20 +62,25 @@ primary_key = ["geekorm-derive/primary_key"]
 
 # Backends for the ORM
 backends = ["geekorm-core/backends", "geekorm-derive/backends"]
+
 libsql = ["backends", "geekorm-derive/libsql", "geekorm-core/libsql"]
+rusqlite = ["backends", "geekorm-derive/rusqlite", "geekorm-core/rusqlite"]
+# sqlite = ["backends", "geekorm-derive/sqlite", "geekorm-core/sqlite"]
 
 [dependencies]
 geekorm-core = { version = "^0.6.0", path = "geekorm-core" }
 geekorm-derive = { version = "^0.6.0", path = "geekorm-derive" }
 
 [dev-dependencies]
-anyhow = "^1.0"
+anyhow = "^1"
 env_logger = "^0.11"
-libsql = "0.5"
 log = "^0.4"
 serde = { version = "^1.0", features = ["derive"] }
 tokio = { version = "^1.38", features = ["full"] }
 chrono = { version = "^0.4", features = ["serde"] }
+
+libsql = "^0.5"
+rusqlite = "^0.32"
 
 [profile.test]
 opt-level = 1
@@ -94,4 +99,9 @@ required-features = ["all"]
 name = "geekorm-example-turso-libsql"
 path = "./examples/turso-libsql/src/main.rs"
 required-features = ["all", "libsql"]
+
+[[example]]
+name = "geekorm-example-rusqlite"
+path = "./examples/rusqlite/src/main.rs"
+required-features = ["all", "rusqlite"]
 
