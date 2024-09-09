@@ -222,6 +222,11 @@ pub fn generate_backend(
     let mut fetch_impl = TokenStream::new();
     // Fetch functions
     let mut fetch_functions = TokenStream::new();
+    // Stream of where clauses
+    let mut where_previous = false;
+    let mut where_clauses = TokenStream::new();
+    // Unique where clause
+    let mut unique_where = TokenStream::new();
 
     // Generate the selectors for the columns
     for column in table.columns.columns.iter() {
@@ -236,7 +241,26 @@ pub fn generate_backend(
         // TODO(geekmasher): This clone isn't ideal, but it's the only way to get this to work.
         insert_values.extend(quote! {
             self.#ident = item.#ident.clone();
-        });
+        });        
+
+        if column.is_searchable() {
+            if where_previous {
+                where_clauses.extend(quote! {
+                    .or()
+                });
+            }
+
+            where_clauses.extend(quote! {
+                .where_like(stringify!(#ident), format!("%{}%", search))
+            });
+            where_previous = true;
+        }
+
+        if column.is_unique() {
+            unique_where.extend(quote! {
+                .where_eq(stringify!(#ident), &self.#ident)
+            });
+        }
 
         if column.is_foreign_key() == true {
             let field = fields
@@ -361,6 +385,47 @@ pub fn generate_backend(
             {
                 #fetch_functions
                 Ok(())
+            }
+
+            /// Fetch or create a row in the database
+            async fn fetch_or_create<'a, T>(
+                &mut self,
+                connection: impl Into<&'a T>,
+            ) -> Result<(), geekorm::Error>
+            where
+                T: GeekConnection<Connection = T> + 'a
+            {
+                let connection = connection.into();
+                let query = Self::query_select()
+                    #unique_where
+                    .build()?;
+
+                match T::query_first::<Self>(connection, query).await {
+                    Ok(item) => {
+                        *self = item;
+                    },
+                    Err(_) => {
+                        self.save(connection).await?;
+                    }
+                }
+                Ok(())
+            }
+
+            async fn search<'a, T>(
+                connection: impl Into<&'a T>,
+                search: impl Into<String>,
+            ) -> Result<Vec<Self>, geekorm::Error>
+            where
+                T: GeekConnection<Connection = T> + 'a 
+            {
+                let search = search.into();
+                Ok(T::query::<Self>(
+                    connection.into(),
+                    geekorm::QueryBuilder::select()
+                        .table(Self::table())
+                        #where_clauses
+                        .build()?
+                ).await?)
             }
         }
     });

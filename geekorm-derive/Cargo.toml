@@ -38,8 +38,10 @@ hash-sha512 = ["geekorm-core/hash-sha512"]
 
 helpers = []
 
+
 # Backends
-backends = []
+backends = ["search"]
+search = ["geekorm-core/search"]
 
 libsql = ["backends", "geekorm-core/libsql"]
 rusqlite = ["backends", "geekorm-core/rusqlite"]

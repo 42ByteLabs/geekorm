@@ -90,6 +90,8 @@ pub(crate) enum GeekAttributeKeys {
     /// Hash / Password
     Hash,
     HashAlgorithm,
+    /// Searchable
+    Searchable,
     /// Skip this field
     Skip,
 }
@@ -205,6 +207,16 @@ impl GeekAttribute {
                     ))
                 }
             }
+            Some(GeekAttributeKeys::Searchable) => {
+                if self.value.is_some() {
+                    Err(syn::Error::new(
+                        self.span.span(),
+                        "The `searchable` attribute does not require a value",
+                    ))
+                } else {
+                    Ok(())
+                }
+            }
 
             _ => Ok(()),
         }
@@ -286,6 +298,15 @@ impl Parse for GeekAttribute {
                     false => return Err(syn::Error::new(
                         name.span(),
                         "The `hash_algorithm` attribute requires the `hash` feature to be enabled",
+                    )),
+                }
+            }
+            "search" | "searchable" => {
+                match cfg!(feature = "search") {
+                    true => Some(GeekAttributeKeys::Searchable),
+                    false => return Err(syn::Error::new(
+                        name.span(),
+                        "The `searchable` attribute requires the `search` feature to be enabled",
                     )),
                 }
             }
