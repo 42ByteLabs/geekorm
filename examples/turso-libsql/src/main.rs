@@ -30,6 +30,7 @@ pub struct Projects {
     #[geekorm(new = "ProjectType::Library")]
     pub project_type: ProjectType,
 
+    #[geekorm(search)]
     pub url: String,
 
     #[geekorm(foreign_key = "Repository.id")]

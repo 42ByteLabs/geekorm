@@ -18,6 +18,7 @@
 //! #[tokio::main]
 //! async fn main() -> Result<()> {
 //!     let connection = rusqlite::Connection::open_in_memory()
+//!         .expect("Failed to open in-memory database");
 //!
 //!     Users::create_table(&connection).await?;
 //!
@@ -26,7 +27,7 @@
 //!         let user = Users::new(user);
 //!         user.save(&connection).await?;
 //!     }
-//!     
+//!
 //!     // Fetch or create a user
 //!     let mut geek = Users::new("geekmasher");
 //!     geek.fetch_or_create(&connection).await?;

@@ -60,8 +60,10 @@ helpers = ["geekorm-derive/helpers"]
 # Generate primary key functions for Tables automatically
 primary_key = ["geekorm-derive/primary_key"]
 
+
 # Backends for the ORM
-backends = ["geekorm-core/backends", "geekorm-derive/backends"]
+backends = ["search", "geekorm-core/backends", "geekorm-derive/backends"]
+search = ["geekorm-derive/search", "geekorm-core/search"]
 
 libsql = ["backends", "geekorm-derive/libsql", "geekorm-core/libsql"]
 rusqlite = ["backends", "geekorm-derive/rusqlite", "geekorm-core/rusqlite"]
