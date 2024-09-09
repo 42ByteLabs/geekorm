@@ -138,6 +138,9 @@ pub(crate) enum ColumnMode {
         env: Option<String>,
     },
     Hash(HashingAlgorithm),
+    Searchable {
+        enabled: bool,
+    },
 }
 
 #[derive(Clone)]
@@ -169,6 +172,12 @@ impl ColumnDerive {
                     }
                     GeekAttributeKeys::Unique => {
                         self.coltype.set_unique(true);
+                        // If the column is unique, then it should be searchable by default
+                        self.mode = Some(ColumnMode::Searchable { enabled: true });
+                    }
+                    GeekAttributeKeys::Searchable => {
+                        // Make the column searchable
+                        self.mode = Some(ColumnMode::Searchable { enabled: true });
                     }
                     GeekAttributeKeys::New => {
                         if let Some(value) = &attr.value {
@@ -360,6 +369,13 @@ impl ColumnDerive {
             ColumnTypeDerive::Integer(opts) => opts.unique,
             ColumnTypeDerive::ForeignKey(opts) => opts.unique,
             ColumnTypeDerive::Blob(opts) => opts.unique,
+            _ => false,
+        }
+    }
+
+    pub(crate) fn is_searchable(&self) -> bool {
+        match &self.mode {
+            Some(ColumnMode::Searchable { enabled: true }) => true,
             _ => false,
         }
     }
