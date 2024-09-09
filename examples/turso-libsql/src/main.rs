@@ -136,6 +136,11 @@ async fn main() -> Result<()> {
     let project_repository = project_serde.fetch_repository(&conn).await?;
     println!("Project Repository: {}", project_repository.url);
 
+    // Fetch the project with the same repository primary key
+    let project_repo: Vec<Projects> = Projects::fetch_by_repository(&conn, 3).await?;
+    println!("Project by Repository: {:?}", project_repo);
+    assert_eq!(project_repo.len(), 1); // Only one project with the repository id of 3
+
     // Print the updated project
     println!(
         "Updated Project: {} - {}\n",
