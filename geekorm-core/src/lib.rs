@@ -70,6 +70,9 @@ where
     /// Update a row in the table
     fn query_update(item: &Self) -> Query;
 
+    /// Detete a row from the table
+    fn query_delete(item: &Self) -> Query;
+
     /// Count the rows in the table
     fn query_count() -> QueryBuilder;
 }
@@ -132,6 +135,14 @@ pub trait ToSqlite {
         Err(Error::QueryBuilderError(
             format!("on_update not implemented for table: {}", query.table),
             String::from("on_update"),
+        ))
+    }
+
+    /// Convert to SQLite for deleting a row
+    fn on_delete(&self, query: &QueryBuilder) -> Result<(String, Values), Error> {
+        Err(Error::QueryBuilderError(
+            format!("on_delete not implemented for table: {}", query.table),
+            String::from("on_delete"),
         ))
     }
 }
