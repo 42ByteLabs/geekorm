@@ -4,22 +4,6 @@ use anyhow::Result;
 use geekorm::prelude::*;
 
 #[derive(Debug, Clone, Default, Table, serde::Serialize, serde::Deserialize)]
-pub struct Repository {
-    #[geekorm(primary_key, auto_increment)]
-    pub id: PrimaryKeyInteger,
-    pub url: String,
-}
-
-#[derive(Data, Debug, Clone, Default)]
-pub enum ProjectType {
-    #[default]
-    Library,
-    Application,
-    Framework,
-    Tool,
-}
-
-#[derive(Debug, Clone, Default, Table, serde::Serialize, serde::Deserialize)]
 pub struct Projects {
     #[geekorm(primary_key, auto_increment)]
     id: PrimaryKeyInteger,
@@ -27,14 +11,8 @@ pub struct Projects {
     #[geekorm(unique)]
     name: String,
 
-    #[geekorm(new = "ProjectType::Library")]
-    project_type: ProjectType,
-
     #[geekorm(search)]
     url: String,
-
-    #[geekorm(foreign_key = "Repository.id")]
-    repository: ForeignKey<i32, Repository>,
 }
 
 #[tokio::main]
@@ -45,37 +23,18 @@ async fn main() -> Result<()> {
         (
             "serde",
             "https://serde.rs/",
-            "https://github.com/serde-rs/serde",
         ),
         (
             "tokio",
             "https://tokio.rs/",
-            "https://github.com/tokio-rs/tokio",
         ),
         (
             "actix",
             "https://actix.rs/",
-            "https://github.com/actix/actix-web",
         ),
         (
             "rocket",
             "https://rocket.rs/",
-            "https://github.com/rwf2/Rocket",
-        ),
-        (
-            "reqwest",
-            "https://docs.rs/reqwest/latest/reqwest/",
-            "https://github.com/seanmonstar/reqwest",
-        ),
-        (
-            "hyper",
-            "https://hyper.rs/",
-            "https://github.com/hyperium/hyper",
-        ),
-        (
-            "rust",
-            "https://rust-lang.org/",
-            "https://github.com/rust-lang/rust/",
         ),
     ];
 
@@ -83,77 +42,59 @@ async fn main() -> Result<()> {
 
     // Create a table
     println!("Creating table 'projects'...");
-    Repository::create_table(&conn).await?;
     Projects::create_table(&conn).await?;
     println!("Table created successfully!\n");
 
     println!("Inserting data into the table...");
-    for (name, url, repo) in projects {
-        // Use the Repository::new() constructor to create a new repository and
-        // insert it into the database.
-        let mut repository = Repository::new(repo.to_string());
-        repository.save(&conn).await?;
-
+    for (name, url) in projects {
         // Use the Projects::new() constructor to create a new project.
         // This is provided by the Table derive macro when the `new` feature is enabled.
-        let mut project = Projects::new(name.to_string(), url.to_string(), repository.id);
+        let mut project = Projects::new(name.to_string(), url.to_string());
         project.fetch_or_create(&conn).await?;
 
         println!(
-            "Project: {} - {} (repo: {})",
-            project.name, project.url, repository.url
+            "Project: {} - {}",
+            project.name, project.url
         );
     }
 
-    // Count the number of projects in the table
-    let count = Projects::row_count(&conn, Projects::query_count().build().unwrap()).await?;
-    println!("Number of projects: {}\n", count);
-
     // Query all projects
     let all_projects = Projects::fetch_all(&conn).await?;
+    assert_eq!(all_projects.len(), 4);
 
-    for project in all_projects {
-        println!("Project: {:<10} - {}", project.name, project.url);
-    }
-
+    // Fetch the project by name (exact match)
     let mut project_serde = Projects::fetch_by_name(&conn, "serde").await?;
-
     println!(
         "Project Serde: {} - {}\n",
         project_serde.name, project_serde.url
     );
-
-    // Update the Serde project struct (name and url)
+    assert_eq!(project_serde.name, "serde");
+    
+    // Update the project name (serde -> SerDe)
     project_serde.name = "SerDe".to_string();
-    project_serde.url = "https://www.youtube.com/watch?v=BI_bHCGRgMY".to_string();
-
-    // Now lets update the project in the database
     project_serde.update(&conn).await?;
+    assert_eq!(project_serde.name, "SerDe");
+    
+    // Fetch or create a project
+    let mut serde = Projects::new("SerDe", "https://serde.rs/");
+    serde.fetch_or_create(&conn).await?;
+    assert_eq!(serde.name, "SerDe");
+    assert_eq!(serde.id, 1.into());
 
-    // Fetch the project repository by the foreign key
-    let project_repository = project_serde.fetch_repository(&conn).await?;
-    println!("Project Repository: {}", project_repository.url);
-
-    // Fetch the project with the same repository primary key
-    let project_repo: Vec<Projects> = Projects::fetch_by_repository(&conn, 3).await?;
-    println!("Project by Repository: {:?}\n", project_repo);
-    assert_eq!(project_repo.len(), 1); // Only one project with the repository id of 3
-
+    // First and Last projects
     let first = Projects::first(&conn).await?;
     println!("First Project: {:?}\n", first);
+    assert_eq!(first.name, "SerDe");
 
     let last = Projects::last(&conn).await?;
     println!("Last Project: {:?}\n", last);
+    assert_eq!(last.name, "rocket");
 
-    let result = Projects::search(&conn, "rust-lang").await?;
+    // Search for a project (partial match)
+    let result = Projects::search(&conn, "e").await?;
     println!("Search Result: {:#?}\n", result);
+    assert_eq!(result.len(), 2);
 
-    // Print the updated project
-    println!(
-        "Updated Project: {} - {}\n",
-        project_serde.name, project_serde.url
-    );
-    assert_eq!(project_serde.name, "SerDe");
 
     Ok(())
 }
