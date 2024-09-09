@@ -20,22 +20,10 @@ async fn main() -> Result<()> {
     init();
 
     let projects = vec![
-        (
-            "serde",
-            "https://serde.rs/",
-        ),
-        (
-            "tokio",
-            "https://tokio.rs/",
-        ),
-        (
-            "actix",
-            "https://actix.rs/",
-        ),
-        (
-            "rocket",
-            "https://rocket.rs/",
-        ),
+        ("serde", "https://serde.rs/"),
+        ("tokio", "https://tokio.rs/"),
+        ("actix", "https://actix.rs/"),
+        ("rocket", "https://rocket.rs/"),
     ];
 
     let conn = rusqlite::Connection::open_in_memory().expect("Failed to open database");
@@ -52,10 +40,7 @@ async fn main() -> Result<()> {
         let mut project = Projects::new(name.to_string(), url.to_string());
         project.fetch_or_create(&conn).await?;
 
-        println!(
-            "Project: {} - {}",
-            project.name, project.url
-        );
+        println!("Project: {} - {}", project.name, project.url);
     }
 
     // Query all projects
@@ -69,12 +54,12 @@ async fn main() -> Result<()> {
         project_serde.name, project_serde.url
     );
     assert_eq!(project_serde.name, "serde");
-    
+
     // Update the project name (serde -> SerDe)
     project_serde.name = "SerDe".to_string();
     project_serde.update(&conn).await?;
     assert_eq!(project_serde.name, "SerDe");
-    
+
     // Fetch or create a project
     let mut serde = Projects::new("SerDe", "https://serde.rs/");
     serde.fetch_or_create(&conn).await?;
@@ -94,7 +79,6 @@ async fn main() -> Result<()> {
     let result = Projects::search(&conn, "e").await?;
     println!("Search Result: {:#?}\n", result);
     assert_eq!(result.len(), 2);
-
 
     Ok(())
 }
