@@ -250,14 +250,22 @@ impl ToSqlite for Table {
         Ok((full_query, parameters))
     }
 
-    fn on_delete(&self, query: &QueryBuilder) -> Result<String, crate::Error> {
+    /// Function to delete a row from the table
+    ///
+    /// Only supports deleting by primary key
+    fn on_delete(&self, query: &QueryBuilder) -> Result<(String, Values), crate::Error> {
+        let mut full_query = format!("DELETE FROM {}", self.name);
+        let mut parameters = Values::new();
+
+        // Delete by primary key
         let primary_key_name = self.get_primary_key();
         let primary_key = query.values.get(&primary_key_name).unwrap();
-        // TODO: is this safe? SQL injection?
-        Ok(format!(
-            "DELETE FROM {} WHERE {} = {};",
-            self.name, primary_key_name, primary_key
-        ))
+
+        parameters.push(primary_key_name.to_string(), primary_key.clone());
+
+        full_query.push_str(&format!(" WHERE {} = ?;", primary_key_name));
+
+        Ok((full_query, parameters))
     }
 }
 
@@ -270,11 +278,11 @@ impl Display for Table {
 #[cfg(test)]
 mod tests {
     use super::*;
-    #[test]
-    fn test_table_to_sql() {
-        use crate::{Column, ColumnType, ColumnTypeOptions, Table};
 
-        let table = Table {
+    fn table() -> Table {
+        use crate::{Column, ColumnType, ColumnTypeOptions};
+
+        Table {
             name: "Test".to_string(),
             columns: vec![
                 Column::new(
@@ -287,7 +295,12 @@ mod tests {
                 ),
             ]
             .into(),
-        };
+        }
+    }
+
+    #[test]
+    fn test_table_to_sql() {
+        let table = table();
 
         let query = crate::QueryBuilder::select().table(table.clone());
         // Basic CREATE and SELECT
@@ -307,13 +320,17 @@ mod tests {
             table.on_select(&query).unwrap(),
             "SELECT id, name FROM Test WHERE name = ?;"
         );
+    }
+
+    #[test]
+    fn test_row_delete() {
+        let table = table();
 
         let query = crate::QueryBuilder::delete()
             .table(table.clone())
             .where_eq("id", 1);
-        assert_eq!(
-            table.on_delete(&query).unwrap(),
-            "DELETE FROM Test WHERE id = 1;"
-        );
+        let (delete_query, _) = table.on_delete(&query).unwrap();
+
+        assert_eq!(delete_query, "DELETE FROM Test WHERE id = ?;");
     }
 }

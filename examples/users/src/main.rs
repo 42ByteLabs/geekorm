@@ -51,4 +51,11 @@ fn main() {
 
     println!("Select Query : {}", select_query);
     println!("Select Values: {:?}", select_query.values);
+
+    let delete_query = Users::query_delete()
+        .where_eq("id", 1)
+        .build()
+        .expect("Failed to build query");
+    println!("Delete Query: {}", delete_query);
+    assert_eq!(delete_query.query, "DELETE FROM users WHERE id = ?");
 }

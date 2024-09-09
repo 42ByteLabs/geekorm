@@ -352,17 +352,16 @@ impl QueryBuilder {
                 ))
             }
             QueryType::Delete => {
-                let query = self.table.on_delete(self)?;
+                let (query, parameters) = self.table.on_delete(self)?;
                 Ok(Query::new(
                     self.query_type.clone(),
                     query.clone(),
                     self.values.clone(),
-                    Values::new(),
+                    parameters,
                     self.columns.clone(),
                     self.table.clone(),
                 ))
             }
-            _ => todo!("Implement other query types"),
         }
     }
 }

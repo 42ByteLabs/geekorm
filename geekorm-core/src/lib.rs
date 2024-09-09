@@ -139,7 +139,7 @@ pub trait ToSqlite {
     }
 
     /// Convert to SQLite for deleting a row
-    fn on_delete(&self, query: &QueryBuilder) -> Result<String, Error> {
+    fn on_delete(&self, query: &QueryBuilder) -> Result<(String, Values), Error> {
         Err(Error::QueryBuilderError(
             format!("on_delete not implemented for table: {}", query.table),
             String::from("on_delete"),
