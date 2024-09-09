@@ -287,47 +287,47 @@ pub fn generate_backend(
                     ))
                 }
             }
+        }
+
+        let func = syn::Ident::new(format!("fetch_by_{}", name).as_str(), name.span());
+
+        let select_func =
+            syn::Ident::new(format!("query_select_by_{}", name).as_str(), name.span());
+
+        if column.is_unique() {
+            fetch_impl.extend(quote! {
+                /// Fetch the data from the table by the field (unique).
+                pub async fn #func<'a, T>(
+                    connection: impl Into<&'a T>,
+                    value: impl Into<geekorm::Value>
+                ) -> Result<Self, geekorm::Error>
+                where
+                    T: GeekConnection<Connection = T> + 'a,
+                    Self: QueryBuilderTrait + serde::Serialize + serde::de::DeserializeOwned
+                {
+                    T::query_first::<Self>(
+                        connection.into(),
+                        Self:: #select_func(value.into())
+                    ).await
+                }
+            });
         } else {
-            let func = syn::Ident::new(format!("fetch_by_{}", name).as_str(), name.span());
-
-            let select_func =
-                syn::Ident::new(format!("query_select_by_{}", name).as_str(), name.span());
-
-            if column.is_unique() {
-                fetch_impl.extend(quote! {
-                    /// Fetch the data from the table by the field (unique).
-                    pub async fn #func<'a, T>(
-                        connection: impl Into<&'a T>,
-                        value: impl Into<geekorm::Value>
-                    ) -> Result<Self, geekorm::Error>
-                    where
-                        T: GeekConnection<Connection = T> + 'a,
-                        Self: QueryBuilderTrait + serde::Serialize + serde::de::DeserializeOwned
-                    {
-                        T::query_first::<Self>(
-                            connection.into(),
-                            Self:: #select_func(value.into())
-                        ).await
-                    }
-                });
-            } else {
-                fetch_impl.extend(quote! {
-                    /// Fetch the data from the table by the field (non-unique).
-                    pub async fn #func<'a, T>(
-                        connection: impl Into<&'a T>,
-                        value: impl Into<geekorm::Value>
-                    ) -> Result<Vec<Self>, geekorm::Error>
-                    where
-                        T: GeekConnection<Connection = T> + 'a,
-                        Self: QueryBuilderTrait + serde::Serialize + serde::de::DeserializeOwned
-                    {
-                        T::query::<Self>(
-                            connection.into(),
-                            Self:: #select_func(value.into())
-                        ).await
-                    }
-                });
-            }
+            fetch_impl.extend(quote! {
+                /// Fetch the data from the table by the field (non-unique).
+                pub async fn #func<'a, T>(
+                    connection: impl Into<&'a T>,
+                    value: impl Into<geekorm::Value>
+                ) -> Result<Vec<Self>, geekorm::Error>
+                where
+                    T: GeekConnection<Connection = T> + 'a,
+                    Self: QueryBuilderTrait + serde::Serialize + serde::de::DeserializeOwned
+                {
+                    T::query::<Self>(
+                        connection.into(),
+                        Self:: #select_func(value.into())
+                    ).await
+                }
+            });
         }
     }
 
