@@ -241,7 +241,7 @@ pub fn generate_backend(
         // TODO(geekmasher): This clone isn't ideal, but it's the only way to get this to work.
         insert_values.extend(quote! {
             self.#ident = item.#ident.clone();
-        });        
+        });
 
         if column.is_searchable() {
             if where_previous {
@@ -416,7 +416,7 @@ pub fn generate_backend(
                 search: impl Into<String>,
             ) -> Result<Vec<Self>, geekorm::Error>
             where
-                T: GeekConnection<Connection = T> + 'a 
+                T: GeekConnection<Connection = T> + 'a,
             {
                 let search = search.into();
                 Ok(T::query::<Self>(
