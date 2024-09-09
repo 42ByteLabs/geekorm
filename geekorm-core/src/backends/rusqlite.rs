@@ -2,12 +2,12 @@
 //!
 //! **Example:**
 //!
-//! ```rust
-//! # #[cfg(feature = "rusqlite")] {
+//! ```no_run
+//! # #[cfg(feature = "backends")] {
 //! # use anyhow::Result;
 //! use geekorm::prelude::*;
 //!
-//! #[derive(Debug, Clone, Default, Table, serde::Serialize, serde::Deserialize)]
+//! #[derive(Table, Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 //! pub struct Users {
 //!     #[geekorm(primary_key, auto_increment)]
 //!     pub id: PrimaryKeyInteger,
@@ -22,7 +22,7 @@
 //!
 //!     Users::create_table(&connection).await?;
 //!
-//!     let user = Users::new("geekmasher");
+//!     let mut user = Users::new("geekmasher");
 //!     user.save(&connection).await?;
 //!
 //!     let geekmasher = Users::fetch_by_username(&connection, "geekmasher").await?;
