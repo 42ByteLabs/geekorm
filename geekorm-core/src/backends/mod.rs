@@ -2,30 +2,41 @@
 //!
 //! **Example:**
 //!
+//! Here is an example of how to use GeekORM with a mock connection.
+//!
 //! ```no_run
-//! # #[cfg(feature = "rusqlite")] {
+//! # #[cfg(feature = "backends")] {
 //! # use anyhow::Result;
 //! use geekorm::prelude::*;
 //!
-//! #[derive(Debug, Clone, Default, Table, serde::Serialize, serde::Deserialize)]
+//! # #[derive(Debug, Clone)]
+//! # struct Connection;
+//! # impl GeekConnection for Connection {
+//! #     type Connection = Self;
+//! #     type Row = ();
+//! #     type Rows = ();
+//! #     type Statement = ();
+//! # }
+//!
+//! #[derive(Table, Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 //! pub struct Users {
 //!     #[geekorm(primary_key, auto_increment)]
-//!     pub id: PrimaryKeyInteger,
+//!     pub id: PrimaryKey<i32>,
 //!     #[geekorm(unique)]
 //!     pub username: String,
 //! }
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<()> {
-//!     let connection = rusqlite::Connection::open_in_memory()
-//!         .expect("Failed to open in-memory database");
+//!     // Create a new connection (this is a mock connection)
+//!     let connection = Connection {};
 //!
 //!     Users::create_table(&connection).await?;
 //!
 //!     let users = vec!["geekmasher", "bob", "alice", "eve", "mallory", "trent"];
 //!     for user in users {
-//!         let user = Users::new(user);
-//!         user.save(&connection).await?;
+//!         let mut new_user = Users::new(user);
+//!         new_user.save(&connection).await?;
 //!     }
 //!
 //!     // Fetch or create a user
@@ -39,10 +50,17 @@
 //!     let search = Users::search(&connection, "geek").await?;
 //!     # assert_eq!(search.len(), 1);
 //!
+//!     // Fetch first and last user
+//!     let first_user = Users::first(&connection).await?;
+//!     # assert_eq!(first_user.username, "geekmasher");
+//!     let last_user = Users::last(&connection).await?;
+//!     # assert_eq!(last_user.username, "trent");
+//!
 //!
 //!     Ok(())
 //! }
 //! # }
+//! ```
 
 use std::collections::HashMap;
 

@@ -66,4 +66,5 @@ serde_rusqlite = { version = "^0.36", optional = true }
 
 [dev-dependencies]
 geekorm = { path = ".." }
+anyhow = "1"
 tokio = { version = "^1.40", features = ["full"] }
