@@ -391,6 +391,7 @@ pub fn generate_backend(
                 T: GeekConnection<Connection = T> + 'a,
                 Self: QueryBuilderTrait + serde::de::DeserializeOwned
             {
+                let connection = connection.into();
                 #fetch_functions
                 Ok(())
             }
