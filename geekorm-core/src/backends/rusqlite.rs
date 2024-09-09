@@ -24,6 +24,8 @@
 //!     let user = Users::new("geekmasher");
 //!     user.save(&connection).await?;
 //!
+//!     let geekmasher = Users::fetch_by_username(&connection, "geekmasher").await?;
+//!
 //!     Ok(())
 //! }
 //! # }
@@ -64,11 +66,17 @@ impl GeekConnection for rusqlite::Connection {
     where
         T: serde::de::DeserializeOwned,
     {
+        debug!("Query :: {:?}", query.to_str());
         let mut statement = connection
             .prepare(query.to_str())
             .map_err(|e| crate::Error::RuSQLiteError(e.to_string()))?;
 
-        let params = rusqlite::params_from_iter(query.parameters.into_iter());
+        let params = if !query.parameters.values.is_empty() {
+            rusqlite::params_from_iter(query.parameters.into_iter())
+        } else {
+            rusqlite::params_from_iter(query.values.into_iter())
+        };
+        debug!("Query Params :: {:?}", params);
 
         let mut results = Vec::new();
 
@@ -96,7 +104,11 @@ impl GeekConnection for rusqlite::Connection {
             .prepare(query.to_str())
             .map_err(|e| crate::Error::RuSQLiteError(e.to_string()))?;
 
-        let params = rusqlite::params_from_iter(query.values.into_iter());
+        let params = if !query.parameters.values.is_empty() {
+            rusqlite::params_from_iter(query.parameters.into_iter())
+        } else {
+            rusqlite::params_from_iter(query.values.into_iter())
+        };
         debug!("Query First Params :: {:?}", params);
 
         let mut res = from_rows::<T>(
@@ -123,7 +135,11 @@ impl GeekConnection for rusqlite::Connection {
             .prepare(query.to_str())
             .map_err(|e| crate::Error::RuSQLiteError(e.to_string()))?;
 
-        let params = rusqlite::params_from_iter(query.parameters.into_iter());
+        let params = if !query.parameters.values.is_empty() {
+            rusqlite::params_from_iter(query.parameters.into_iter())
+        } else {
+            rusqlite::params_from_iter(query.values.into_iter())
+        };
         debug!("Execute Params :: {:?}", params);
 
         statement

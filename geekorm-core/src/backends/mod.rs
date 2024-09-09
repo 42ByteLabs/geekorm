@@ -1,4 +1,4 @@
-//! Backend Module for GeekORM
+//! # Backend Module for GeekORM
 
 use std::collections::HashMap;
 
