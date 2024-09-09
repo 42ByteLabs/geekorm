@@ -1,8 +1,51 @@
 //! # Backend Module for GeekORM
+//!
+//! **Example:**
+//!
+//! ```no_run
+//! # #[cfg(feature = "rusqlite")] {
+//! # use anyhow::Result;
+//! use geekorm::prelude::*;
+//!
+//! #[derive(Debug, Clone, Default, Table, serde::Serialize, serde::Deserialize)]
+//! pub struct Users {
+//!     #[geekorm(primary_key, auto_increment)]
+//!     pub id: PrimaryKeyInteger,
+//!     #[geekorm(unique)]
+//!     pub username: String,
+//! }
+//!
+//! #[tokio::main]
+//! async fn main() -> Result<()> {
+//!     let connection = rusqlite::Connection::open_in_memory()
+//!
+//!     Users::create_table(&connection).await?;
+//!
+//!     let users = vec!["geekmasher", "bob", "alice", "eve", "mallory", "trent"];
+//!     for user in users {
+//!         let user = Users::new(user);
+//!         user.save(&connection).await?;
+//!     }
+//!     
+//!     // Fetch or create a user
+//!     let mut geek = Users::new("geekmasher");
+//!     geek.fetch_or_create(&connection).await?;
+//!     
+//!     // Fetch a user by their username (exact match)
+//!     let geekmasher = Users::fetch_by_username(&connection, "geekmasher").await?;
+//!
+//!     // Search for a user (partial match)
+//!     let search = Users::search(&connection, "geek").await?;
+//!     # assert_eq!(search.len(), 1);
+//!
+//!
+//!     Ok(())
+//! }
+//! # }
 
 use std::collections::HashMap;
 
-use crate::{Query, QueryBuilder, QueryBuilderTrait, TableBuilder, Value};
+use crate::{Query, QueryBuilder, QueryBuilderTrait, TableBuilder, TablePrimaryKey, Value};
 
 #[cfg(feature = "libsql")]
 pub mod libsql;
@@ -110,6 +153,67 @@ where
         Ok(T::query::<Self>(
             connection.into(),
             QueryBuilder::select().table(Self::table()).build()?,
+        )
+        .await?)
+    }
+
+    /// Fetch or create a row in the database
+    #[allow(async_fn_in_trait, unused_variables)]
+    async fn fetch_or_create<'a, T>(
+        &mut self,
+        connection: impl Into<&'a T>,
+    ) -> Result<(), crate::Error>
+    where
+        T: GeekConnection<Connection = T> + 'a;
+
+    /// Search for a row in the database based on specific criteria
+    #[cfg(feature = "search")]
+    #[allow(async_fn_in_trait, unused_variables)]
+    async fn search<'a, T>(
+        connection: impl Into<&'a T>,
+        search: impl Into<String>,
+    ) -> Result<Vec<Self>, crate::Error>
+    where
+        T: GeekConnection<Connection = T> + 'a;
+
+    /// Fetch the first row from the database (based on the primary key)
+    #[allow(async_fn_in_trait, unused_variables)]
+    async fn first<'a, T>(connection: impl Into<&'a T>) -> Result<Self, crate::Error>
+    where
+        T: GeekConnection<Connection = T> + 'a,
+        Self: TablePrimaryKey,
+    {
+        Ok(T::query_first::<Self>(
+            connection.into(),
+            Self::query_select()
+                .table(Self::table())
+                .order_by(
+                    &Self::primary_key(),
+                    crate::builder::models::QueryOrder::Asc,
+                )
+                .limit(1)
+                .build()?,
+        )
+        .await?)
+    }
+
+    /// Fetch last row from the database (based on the primary key)
+    #[allow(async_fn_in_trait, unused_variables)]
+    async fn last<'a, T>(connection: impl Into<&'a T>) -> Result<Self, crate::Error>
+    where
+        T: GeekConnection<Connection = T> + 'a,
+        Self: TablePrimaryKey,
+    {
+        Ok(T::query_first::<Self>(
+            connection.into(),
+            Self::query_select()
+                .table(Self::table())
+                .order_by(
+                    &Self::primary_key(),
+                    crate::builder::models::QueryOrder::Desc,
+                )
+                .limit(1)
+                .build()?,
         )
         .await?)
     }

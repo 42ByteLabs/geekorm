@@ -17,7 +17,8 @@
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<()> {
-//!     let connection = rusqlite::Connection::open_in_memory()?;
+//!     let connection = rusqlite::Connection::open_in_memory()
+//!         .expect("Failed to open connection");
 //!
 //!     Users::create_table(&connection).await?;
 //!
