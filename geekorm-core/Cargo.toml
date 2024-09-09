@@ -35,7 +35,8 @@ hash-argon2 = ["dep:argon2", "dep:password-hash", "dep:rand_core"]
 hash-sha512 = ["dep:sha-crypt", "dep:rand_core"]
 
 # Backends
-backends = []
+backends = ["search"]
+search = []
 
 libsql = ["backends", "dep:libsql"]
 rusqlite = ["backends", "dep:rusqlite", "dep:serde_rusqlite"]
