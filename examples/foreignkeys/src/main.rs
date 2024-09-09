@@ -2,17 +2,18 @@
 
 use geekorm::prelude::*;
 
-#[derive(Table, Debug, Clone, Default)]
+#[derive(Table, Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Users {
     #[geekorm(primary_key, auto_increment)]
     pub id: PrimaryKeyInteger,
     pub name: String,
 }
 
-#[derive(Table, Debug, Clone, Default)]
+#[derive(Table, Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Posts {
     #[geekorm(primary_key, auto_increment)]
     pub id: PrimaryKeyInteger,
+    #[geekorm(unique)]
     pub title: String,
     #[geekorm(foreign_key = "Users.id")]
     pub author: ForeignKey<i32, Users>,

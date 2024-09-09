@@ -22,18 +22,19 @@ pub enum ProjectType {
 #[derive(Debug, Clone, Default, Table, serde::Serialize, serde::Deserialize)]
 pub struct Projects {
     #[geekorm(primary_key, auto_increment)]
-    pub id: PrimaryKeyInteger,
+    id: PrimaryKeyInteger,
 
     #[geekorm(unique)]
-    pub name: String,
+    name: String,
 
     #[geekorm(new = "ProjectType::Library")]
-    pub project_type: ProjectType,
+    project_type: ProjectType,
 
-    pub url: String,
+    #[geekorm(search)]
+    url: String,
 
     #[geekorm(foreign_key = "Repository.id")]
-    pub repository: ForeignKey<i32, Repository>,
+    repository: ForeignKey<i32, Repository>,
 }
 
 #[tokio::main]
@@ -96,7 +97,7 @@ async fn main() -> Result<()> {
         // Use the Projects::new() constructor to create a new project.
         // This is provided by the Table derive macro when the `new` feature is enabled.
         let mut project = Projects::new(name.to_string(), url.to_string(), repository.id);
-        project.save(&conn).await?;
+        project.fetch_or_create(&conn).await?;
 
         println!(
             "Project: {} - {} (repo: {})",
@@ -135,8 +136,17 @@ async fn main() -> Result<()> {
 
     // Fetch the project with the same repository primary key
     let project_repo: Vec<Projects> = Projects::fetch_by_repository(&conn, 3).await?;
-    println!("Project by Repository: {:?}", project_repo);
+    println!("Project by Repository: {:?}\n", project_repo);
     assert_eq!(project_repo.len(), 1); // Only one project with the repository id of 3
+
+    let first = Projects::first(&conn).await?;
+    println!("First Project: {:?}\n", first);
+
+    let last = Projects::last(&conn).await?;
+    println!("Last Project: {:?}\n", last);
+
+    let result = Projects::search(&conn, "rust-lang").await?;
+    println!("Search Result: {:#?}\n", result);
 
     // Print the updated project
     println!(
@@ -154,7 +164,7 @@ fn init() {
         geekorm::GEEKORM_BANNER,
         geekorm::GEEKORM_VERSION
     );
-    println!("SQLite Example\n{:=<40}\n", "=");
+    println!("RuSQLite Example\n{:=<40}\n", "=");
     let debug_env: bool = std::env::var("DEBUG").is_ok();
     env_logger::builder()
         .filter_level(if debug_env {
