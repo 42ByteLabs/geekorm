@@ -249,6 +249,16 @@ impl ToSqlite for Table {
 
         Ok((full_query, parameters))
     }
+
+    fn on_delete(&self, query: &QueryBuilder) -> Result<String, crate::Error> {
+        let primary_key_name = self.get_primary_key();
+        let primary_key = query.values.get(&primary_key_name).unwrap();
+        // TODO: is this safe? SQL injection?
+        Ok(format!(
+            "DELETE FROM {} WHERE {} = {};",
+            self.name, primary_key_name, primary_key
+        ))
+    }
 }
 
 impl Display for Table {
@@ -296,6 +306,14 @@ mod tests {
         assert_eq!(
             table.on_select(&query).unwrap(),
             "SELECT id, name FROM Test WHERE name = ?;"
+        );
+
+        let query = crate::QueryBuilder::delete()
+            .table(table.clone())
+            .where_eq("id", 1);
+        assert_eq!(
+            table.on_delete(&query).unwrap(),
+            "DELETE FROM Test WHERE id = 1;"
         );
     }
 }

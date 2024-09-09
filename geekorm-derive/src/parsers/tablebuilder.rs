@@ -137,6 +137,14 @@ pub fn generate_query_builder(
                     .build()
                     .expect("Failed to build update query")
             }
+            /// Delete query.
+            fn query_delete(item: &Self) -> geekorm::Query {
+                geekorm::QueryBuilder::delete()
+                    .table(#ident::table())
+                    .where_eq(#ident::primary_key().as_str(), item.primary_key_value())
+                    .build()
+                    .expect("Failed to build delete query")
+            }
             /// Count query.
             fn query_count() -> geekorm::QueryBuilder {
                 geekorm::QueryBuilder::select()

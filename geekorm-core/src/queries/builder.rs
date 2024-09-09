@@ -135,6 +135,14 @@ impl QueryBuilder {
         }
     }
 
+    /// Build a delete query
+    pub fn delete() -> QueryBuilder {
+        QueryBuilder {
+            query_type: QueryType::Delete,
+            ..Default::default()
+        }
+    }
+
     /// Set the table for the query builder
     pub fn table(mut self, table: Table) -> Self {
         self.table = table.clone();
@@ -339,6 +347,17 @@ impl QueryBuilder {
                     query.clone(),
                     self.values.clone(),
                     parameters,
+                    self.columns.clone(),
+                    self.table.clone(),
+                ))
+            }
+            QueryType::Delete => {
+                let query = self.table.on_delete(self)?;
+                Ok(Query::new(
+                    self.query_type.clone(),
+                    query.clone(),
+                    self.values.clone(),
+                    Values::new(),
                     self.columns.clone(),
                     self.table.clone(),
                 ))
