@@ -36,7 +36,7 @@ use syn::{parse_macro_input, Data, DataEnum, DataStruct, DeriveInput, Fields};
 /// ```rust
 /// use geekorm::prelude::*;
 ///
-/// #[derive(Table)]
+/// #[derive(Table, Clone, Default, serde::Serialize, serde::Deserialize)]
 /// struct Users {
 ///     id: PrimaryKeyInteger,
 ///     name: String,
@@ -70,7 +70,7 @@ pub fn depricated_table_derive(input: TokenStream) -> TokenStream {
 /// use geekorm::prelude::*;
 ///
 /// # #[derive(Eq, PartialEq, Debug)]
-/// #[derive(Data, Default)]
+/// #[derive(Data, Clone, Default)]
 /// enum Role {
 ///     Admin,
 ///     Moderator,
@@ -79,7 +79,7 @@ pub fn depricated_table_derive(input: TokenStream) -> TokenStream {
 ///     Guest,
 /// }
 ///
-/// #[derive(Table)]
+/// #[derive(Table, Clone, Default, serde::Serialize, serde::Deserialize)]
 /// struct Users {
 ///     #[geekorm(primary_key, auto_increment)]
 ///     id: PrimaryKeyInteger,

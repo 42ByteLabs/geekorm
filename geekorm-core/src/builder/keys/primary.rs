@@ -21,7 +21,7 @@ use crate::ToSqlite;
 /// use geekorm::{PrimaryKey};
 /// use geekorm::prelude::*;
 ///
-/// #[derive(Table, Clone, Default)]
+/// #[derive(Table, Clone, Default, serde::Serialize, serde::Deserialize)]
 /// pub struct Users {
 ///    pub id: PrimaryKey<i32>,
 ///    pub username: String,
@@ -42,7 +42,7 @@ use crate::ToSqlite;
 /// use geekorm::PrimaryKey;
 /// use geekorm::prelude::*;
 ///
-/// #[derive(Table, Clone, Default)]
+/// #[derive(Table, Clone, Default, serde::Serialize, serde::Deserialize)]
 /// pub struct Users {
 ///     pub id: PrimaryKey<String>,
 ///     pub username: String,
@@ -59,17 +59,26 @@ use crate::ToSqlite;
 #[derive(Clone, Copy, Eq, PartialEq)]
 pub struct PrimaryKey<T>
 where
-    T: Display + 'static,
+    T: serde::Serialize + serde::de::DeserializeOwned + Clone + Debug + Display + 'static,
 {
     pub(crate) value: T,
 }
 
 impl<T> Debug for PrimaryKey<T>
 where
-    T: Debug + Display + 'static,
+    T: serde::Serialize + serde::de::DeserializeOwned + Clone + Debug + Display + 'static,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "PrimaryKey({})", self.value)
+    }
+}
+
+impl<T> Display for PrimaryKey<T>
+where
+    T: serde::Serialize + serde::de::DeserializeOwned + Clone + Debug + Display + 'static,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.value)
     }
 }
 
@@ -91,9 +100,8 @@ impl PrimaryKey<String> {
 ///
 /// ```rust
 /// use geekorm::prelude::*;
-/// use geekorm::PrimaryKeyInteger;
 ///
-/// #[derive(Table, Clone, Default)]
+/// #[derive(Table, Clone, Default, serde::Serialize, serde::Deserialize)]
 /// pub struct Users {
 ///     pub id: PrimaryKeyInteger,
 ///     pub username: String,
@@ -118,9 +126,8 @@ impl Default for PrimaryKeyInteger {
 ///
 /// ```rust
 /// use geekorm::prelude::*;
-/// use geekorm::PrimaryKeyString;
 ///
-/// #[derive(Table, Clone, Default)]
+/// #[derive(Table, Clone, Default, serde::Serialize, serde::Deserialize)]
 /// pub struct Users {
 ///     pub id: PrimaryKeyString,
 ///     pub username: String,
@@ -148,10 +155,9 @@ impl Default for PrimaryKeyString {
 /// Note: This requires the `uuid` feature to be enabled.
 ///
 /// ```rust
-/// use geekorm::{PrimaryKeyUuid};
 /// use geekorm::prelude::*;
 ///
-/// #[derive(Table, Clone, Default)]
+/// #[derive(Table, Clone, Default, serde::Serialize, serde::Deserialize)]
 /// pub struct Users {
 ///     pub id: PrimaryKeyUuid,
 ///     pub username: String,
@@ -269,24 +275,6 @@ impl From<PrimaryKey<String>> for String {
 impl From<PrimaryKeyInteger> for i32 {
     fn from(value: PrimaryKeyInteger) -> Self {
         value.value
-    }
-}
-
-impl ToString for PrimaryKey<String> {
-    fn to_string(&self) -> String {
-        self.value.clone()
-    }
-}
-impl ToString for PrimaryKey<i32> {
-    fn to_string(&self) -> String {
-        self.value.to_string()
-    }
-}
-
-#[cfg(feature = "uuid")]
-impl ToString for PrimaryKey<Uuid> {
-    fn to_string(&self) -> String {
-        self.value.to_string()
     }
 }
 

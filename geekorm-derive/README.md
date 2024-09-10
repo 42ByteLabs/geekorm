@@ -21,7 +21,7 @@ These are all defined by the `geekorm_core::QueryBuilderTrait` trait.
 use geekorm::{Table, PrimaryKeyInteger};
 use geekorm::prelude::*;
 
-#[derive(Table, Default)]
+#[derive(Table, Clone, Default, serde::Serialize, serde::Deserialize)]
 struct Users {
     id: PrimaryKeyInteger,
     name: String,
@@ -61,7 +61,7 @@ When the `new` feature is enabled, the following methods are generated for the s
 use geekorm::{Table, PrimaryKeyInteger};
 use geekorm::prelude::*;
 
-#[derive(Table)]
+#[derive(Table, Clone, Default, serde::Serialize, serde::Deserialize)]
 struct Users {
     id: PrimaryKeyInteger,
     name: String,
@@ -87,7 +87,7 @@ _Note:_ This is a very experimental feature and might change in the future.
 use geekorm::{Table, PrimaryKeyInteger};
 use geekorm::prelude::*;
 
-#[derive(Table)]
+#[derive(Table, Clone, Default, serde::Serialize, serde::Deserialize)]
 struct Users {
     id: PrimaryKeyInteger,
     name: String,
@@ -112,9 +112,8 @@ When using the `rand` feature, you can automatically generate random strings and
 # #[cfg(feature = "rand")]
 # {
 use geekorm::prelude::*;
-use geekorm::{Table, PrimaryKeyInteger};
 
-#[derive(Table, Debug)]
+#[derive(Table, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Users {
     id: PrimaryKeyInteger,
     name: String,
@@ -148,9 +147,8 @@ When using the `hash` feature, you can automatically hash passwords to make sure
 # #[cfg(feature = "hash-sha512")]
 # {
 use geekorm::prelude::*;
-use geekorm::{Table, PrimaryKeyInteger};
 
-#[derive(Table, Debug)]
+#[derive(Table, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Users {
     id: PrimaryKeyInteger,
     username: String,

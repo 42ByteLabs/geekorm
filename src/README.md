@@ -25,7 +25,7 @@
 {
 use geekorm::prelude::*;
 
-#[derive(Table, Debug, Default)]
+#[derive(Table, Debug, Default, serde::Serialize, serde::Deserialize)]
 struct Users {
     #[geekorm(primary_key, auto_increment)]
     id: PrimaryKey<i32>,
@@ -45,7 +45,7 @@ struct Users {
     postcode: Option<String>,
 }
 
-#[derive(Data, Debug, Default)]
+#[derive(Data, Clone, Debug, Default)]
 enum UserType {
     Admin,
     #[default]
@@ -55,8 +55,10 @@ enum UserType {
 #[tokio::main]
 async fn main() -> Result<(), geekorm::Error> {
     // Setup the database and connection
-    let db = libsql::Builder::new_local(":memory:").build().await?;
-    let connection = db.connect()?;
+    let db = libsql::Builder::new_local(":memory:").build().await
+        .expect("Failed to create database");
+    let connection = db.connect()
+        .expect("Failed to connect to database");
    
     // Creating a new User
     let mut user = Users::new("GeekMasher", "ThisIsNotMyPassword");
@@ -79,7 +81,7 @@ async fn main() -> Result<(), geekorm::Error> {
     // the QueryBuilder built into GeekORM
     let query = Users::query_select()
         .where_eq("username", "GeekMasher")
-        .order_by("id", Order::Desc)
+        .order_by("id", QueryOrder::Desc)
         .limit(1)
         .build()?;
     // Execute the query and return the results
