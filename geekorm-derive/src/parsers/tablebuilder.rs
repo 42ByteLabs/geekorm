@@ -14,9 +14,8 @@ use crate::{derive::TableDerive, internal::TableState};
 ///
 /// ```rust
 /// use geekorm::prelude::*;
-/// use geekorm::{Table, PrimaryKeyInteger};
 ///
-/// #[derive(Table, Default, Clone)]
+/// #[derive(Table, Default, Clone, serde::Serialize, serde::Deserialize)]
 /// struct Users {
 ///     id: PrimaryKeyInteger,
 ///     name: String,
@@ -60,9 +59,8 @@ pub fn generate_table_builder(
 ///
 /// ```rust
 /// use geekorm::prelude::*;
-/// use geekorm::{Table, PrimaryKeyInteger};
 ///
-/// #[derive(Table, Default, Clone)]
+/// #[derive(Table, Default, Clone, serde::Serialize, serde::Deserialize)]
 /// pub struct Users {
 ///     pub id: PrimaryKeyInteger,
 ///     pub name: String,
@@ -159,10 +157,8 @@ pub fn generate_query_builder(
 ///
 /// ```rust
 /// use geekorm::prelude::*;
-/// use geekorm::PrimaryKeyInteger;
-/// # use geekorm::Value;
 ///
-/// #[derive(Table, Default, Clone)]
+/// #[derive(Table, Default, Clone, serde::Serialize, serde::Deserialize)]
 /// pub struct Users {
 ///    pub id: PrimaryKeyInteger,
 ///    pub name: String,

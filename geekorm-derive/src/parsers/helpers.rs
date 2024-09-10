@@ -7,9 +7,8 @@ use crate::derive::TableDerive;
 ///
 /// ```rust
 /// use geekorm::prelude::*;
-/// use geekorm::PrimaryKeyInteger;
 ///
-/// #[derive(Table, Clone)]
+/// #[derive(Table, Clone, Default, serde::Serialize, serde::Deserialize)]
 /// struct Users {
 ///     id: PrimaryKeyInteger,
 ///     name: String,
@@ -48,9 +47,8 @@ pub(crate) fn generate_new(
 ///
 /// ```rust
 /// use geekorm::prelude::*;
-/// use geekorm::PrimaryKeyInteger;
 ///
-/// #[derive(Table, Default, Clone)]
+/// #[derive(Table, Clone, Default, serde::Serialize, serde::Deserialize)]
 /// struct Users {
 ///     id: PrimaryKeyInteger,
 ///     name: String,

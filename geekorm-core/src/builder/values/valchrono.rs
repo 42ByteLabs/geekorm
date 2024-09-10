@@ -4,12 +4,12 @@
 //! use geekorm::prelude::*;
 //! use chrono::{DateTime, Utc};
 //!
-//! #[derive(Table, Default)]
+//! #[derive(Table, Clone, Default, serde::Serialize, serde::Deserialize)]
 //! struct User {
 //!     id: PrimaryKeyInteger,
 //!     created_at: DateTime<Utc>,
 //! }
-//!
+//! ```
 use super::Value;
 use chrono::{DateTime, TimeZone};
 

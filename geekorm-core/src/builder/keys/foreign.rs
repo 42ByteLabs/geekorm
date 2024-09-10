@@ -9,15 +9,14 @@ use crate::{PrimaryKey, TableBuilder};
 ///
 /// ```rust
 /// use geekorm::prelude::*;
-/// use geekorm::{ForeignKey, PrimaryKeyInteger};
 ///
-/// #[derive(Table, Clone, Default)]
+/// #[derive(Table, Clone, Default, serde::Serialize, serde::Deserialize)]
 /// struct Users {
 ///     id: PrimaryKeyInteger,
 ///     name: String,
 /// }
 ///
-/// #[derive(Table, Default, Clone)]
+/// #[derive(Table, Clone, Default, serde::Serialize, serde::Deserialize)]
 /// struct Posts {
 ///     id: PrimaryKeyInteger,
 ///     title: String,
