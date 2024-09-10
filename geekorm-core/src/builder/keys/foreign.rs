@@ -48,7 +48,7 @@ use crate::{PrimaryKey, TableBuilder};
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct ForeignKey<T, D>
 where
-    T: serde::Serialize + serde::de::DeserializeOwned + Clone + Debug + Display + 'static,
+    T: serde::Serialize + Clone + Debug + Display + 'static,
     D: TableBuilder,
 {
     /// Foreign Key Value
@@ -69,7 +69,7 @@ pub type ForeignKeyUuid<T> = ForeignKey<uuid::Uuid, T>;
 
 impl<T, D> Debug for ForeignKey<T, D>
 where
-    T: serde::Serialize + serde::de::DeserializeOwned + Clone + Debug + Display + 'static,
+    T: serde::Serialize + Clone + Debug + Display + 'static,
     D: TableBuilder,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -79,7 +79,7 @@ where
 
 impl<T, D> Display for ForeignKey<T, D>
 where
-    T: serde::Serialize + serde::de::DeserializeOwned + Clone + Debug + Display + 'static,
+    T: serde::Serialize + Clone + Debug + Display + 'static,
     D: TableBuilder,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

@@ -59,14 +59,14 @@ use crate::ToSqlite;
 #[derive(Clone, Copy, Eq, PartialEq)]
 pub struct PrimaryKey<T>
 where
-    T: serde::Serialize + serde::de::DeserializeOwned + Clone + Debug + Display + 'static,
+    T: serde::Serialize + Clone + Debug + Display + 'static,
 {
     pub(crate) value: T,
 }
 
 impl<T> Debug for PrimaryKey<T>
 where
-    T: serde::Serialize + serde::de::DeserializeOwned + Clone + Debug + Display + 'static,
+    T: serde::Serialize + Clone + Debug + Display + 'static,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "PrimaryKey({})", self.value)
@@ -75,7 +75,7 @@ where
 
 impl<T> Display for PrimaryKey<T>
 where
-    T: serde::Serialize + serde::de::DeserializeOwned + Clone + Debug + Display + 'static,
+    T: serde::Serialize + Clone + Debug + Display + 'static,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.value)
