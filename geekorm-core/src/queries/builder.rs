@@ -29,10 +29,9 @@ use crate::{
 ///
 /// # Example
 /// ```rust
-/// use geekorm::{QueryOrder, PrimaryKeyInteger};
 /// use geekorm::prelude::*;
 ///
-/// #[derive(Table, Debug, Default, Clone)]
+/// #[derive(Table, Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
 /// pub struct Users {
 ///     pub id: PrimaryKeyInteger,
 ///     pub username: String,

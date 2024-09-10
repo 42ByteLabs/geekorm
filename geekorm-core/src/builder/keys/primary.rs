@@ -18,10 +18,9 @@ use crate::ToSqlite;
 /// Here is an example of how to use the PrimaryKey struct with an integer
 ///
 /// ```rust
-/// use geekorm::{PrimaryKey};
 /// use geekorm::prelude::*;
 ///
-/// #[derive(Table, Clone, Default)]
+/// #[derive(Table, Clone, Default, serde::Serialize, serde::Deserialize)]
 /// pub struct Users {
 ///    pub id: PrimaryKey<i32>,
 ///    pub username: String,
@@ -39,10 +38,9 @@ use crate::ToSqlite;
 /// Here is an example of how to use the PrimaryKey struct with a String
 ///
 /// ```rust
-/// use geekorm::PrimaryKey;
 /// use geekorm::prelude::*;
 ///
-/// #[derive(Table, Clone, Default)]
+/// #[derive(Table, Clone, Default, serde::Serialize, serde::Deserialize)]
 /// pub struct Users {
 ///     pub id: PrimaryKey<String>,
 ///     pub username: String,
@@ -73,6 +71,15 @@ where
     }
 }
 
+impl<T> Display for PrimaryKey<T>
+where
+    T: Debug + Display + 'static,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.value)
+    }
+}
+
 impl PrimaryKey<i32> {
     /// Create a new primary key with an integer
     pub fn new(value: i32) -> Self {
@@ -91,9 +98,8 @@ impl PrimaryKey<String> {
 ///
 /// ```rust
 /// use geekorm::prelude::*;
-/// use geekorm::PrimaryKeyInteger;
 ///
-/// #[derive(Table, Clone, Default)]
+/// #[derive(Table, Clone, Default, serde::Serialize, serde::Deserialize)]
 /// pub struct Users {
 ///     pub id: PrimaryKeyInteger,
 ///     pub username: String,
@@ -118,9 +124,8 @@ impl Default for PrimaryKeyInteger {
 ///
 /// ```rust
 /// use geekorm::prelude::*;
-/// use geekorm::PrimaryKeyString;
 ///
-/// #[derive(Table, Clone, Default)]
+/// #[derive(Table, Clone, Default, serde::Serialize, serde::Deserialize)]
 /// pub struct Users {
 ///     pub id: PrimaryKeyString,
 ///     pub username: String,
@@ -148,10 +153,9 @@ impl Default for PrimaryKeyString {
 /// Note: This requires the `uuid` feature to be enabled.
 ///
 /// ```rust
-/// use geekorm::{PrimaryKeyUuid};
 /// use geekorm::prelude::*;
 ///
-/// #[derive(Table, Clone, Default)]
+/// #[derive(Table, Clone, Default, serde::Serialize, serde::Deserialize)]
 /// pub struct Users {
 ///     pub id: PrimaryKeyUuid,
 ///     pub username: String,
@@ -269,24 +273,6 @@ impl From<PrimaryKey<String>> for String {
 impl From<PrimaryKeyInteger> for i32 {
     fn from(value: PrimaryKeyInteger) -> Self {
         value.value
-    }
-}
-
-impl ToString for PrimaryKey<String> {
-    fn to_string(&self) -> String {
-        self.value.clone()
-    }
-}
-impl ToString for PrimaryKey<i32> {
-    fn to_string(&self) -> String {
-        self.value.to_string()
-    }
-}
-
-#[cfg(feature = "uuid")]
-impl ToString for PrimaryKey<Uuid> {
-    fn to_string(&self) -> String {
-        self.value.to_string()
     }
 }
 
