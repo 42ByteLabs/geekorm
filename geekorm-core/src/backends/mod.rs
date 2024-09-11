@@ -109,6 +109,16 @@ where
         C::row_count(connection, query).await
     }
 
+    /// Count the total number of rows in the table
+    #[allow(async_fn_in_trait, unused_variables)]
+    async fn total(connection: &'a C) -> Result<i64, crate::Error> {
+        C::row_count(
+            connection,
+            Self::query_count().table(Self::table()).build()?,
+        )
+        .await
+    }
+
     /// Update the current object in the database
     #[allow(async_fn_in_trait, unused_variables)]
     async fn update(&self, connection: &'a C) -> Result<(), crate::Error> {
