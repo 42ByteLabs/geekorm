@@ -553,17 +553,18 @@ impl ColumnDerive {
 
         quote! {
             /// Fetch a row by the primary key value
-            pub async fn fetch_by_primary_key<'a, T>(
-                connection: impl Into<&'a T>,
+            pub async fn fetch_by_primary_key<'a, C>(
+                connection: &'a C,
                 pk: impl Into<geekorm::Value>
-            ) -> Result<#ident, geekorm::Error>
-                where
-                    T: GeekConnection<Connection = T> + 'a,
-                    Self: QueryBuilderTrait + serde::Serialize + serde::de::DeserializeOwned
+            ) -> Result<Self, geekorm::Error>
+            where
+                C: geekorm::GeekConnection<Connection = C> + 'a,
+                Self: geekorm::QueryBuilderTrait + serde::Serialize + serde::de::DeserializeOwned,
             {
-                let connection = connection.into();
-                let q = #ident::query_select_by_primary_key(pk.into());
-                let mut r: #ident = #ident::query_first(connection, q).await?;
+                let mut r: #ident = C::query_first::<Self>(
+                    connection,
+                    #ident::query_select_by_primary_key(pk.into())
+                ).await?;
 
                 r.fetch(connection).await?;
 
@@ -586,16 +587,16 @@ impl ColumnDerive {
 
         quote! {
             /// Fetch the foreign key data for the column
-            pub async fn #func<'a, T>(
+            pub async fn #func<'a, C>(
                 &mut self,
-                connection: impl Into<&'a T>
+                connection: &'a C
             ) -> Result<#foreign_ident, geekorm::Error>
-                where
-                    T: GeekConnection<Connection = T> + 'a,
-                    Self: QueryBuilderTrait + serde::Serialize + serde::de::DeserializeOwned
+            where
+                C: geekorm::GeekConnection<Connection = C> + 'a,
+                Self: geekorm::QueryBuilderTrait + serde::Serialize + serde::de::DeserializeOwned
             {
                 let q = #foreign_ident::query_select_by_primary_key(self.#identifier.key);
-                let r = #foreign_ident::query_first(connection, q).await?;
+                let r = C::query_first::<#foreign_ident>(connection, q).await?;
                 self.#identifier.data = r.clone();
                 Ok(r)
             }

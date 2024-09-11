@@ -213,11 +213,9 @@ pub fn generate_table_primary_key(
 pub fn generate_backend(
     ident: &syn::Ident,
     fields: &FieldsNamed,
-    generics: &syn::Generics,
+    _generics: &syn::Generics,
     table: &TableDerive,
 ) -> Result<TokenStream, syn::Error> {
-    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
-
     // Finished Stream
     let mut stream = TokenStream::new();
     // Insert values
@@ -325,16 +323,16 @@ pub fn generate_backend(
         if column.is_unique() {
             fetch_impl.extend(quote! {
                 /// Fetch the data from the table by the field (unique).
-                pub async fn #func<'a, T>(
-                    connection: impl Into<&'a T>,
+                pub async fn #func<'a, C>(
+                    connection: &'a C,
                     value: impl Into<geekorm::Value>
                 ) -> Result<Self, geekorm::Error>
                 where
-                    T: GeekConnection<Connection = T> + 'a,
-                    Self: QueryBuilderTrait + serde::Serialize + serde::de::DeserializeOwned
+                    C: geekorm::GeekConnection<Connection = C> + 'a,
+                    Self: geekorm::QueryBuilderTrait + serde::Serialize + serde::de::DeserializeOwned
                 {
-                    T::query_first::<Self>(
-                        connection.into(),
+                    C::query_first::<Self>(
+                        connection,
                         Self:: #select_func(value.into())
                     ).await
                 }
@@ -342,16 +340,16 @@ pub fn generate_backend(
         } else {
             fetch_impl.extend(quote! {
                 /// Fetch the data from the table by the field (non-unique).
-                pub async fn #func<'a, T>(
-                    connection: impl Into<&'a T>,
+                pub async fn #func<'a, C>(
+                    connection: &'a C,
                     value: impl Into<geekorm::Value>
                 ) -> Result<Vec<Self>, geekorm::Error>
                 where
-                    T: GeekConnection<Connection = T> + 'a,
-                    Self: QueryBuilderTrait + serde::Serialize + serde::de::DeserializeOwned
+                    C: geekorm::GeekConnection<Connection = C> + 'a,
+                    Self: geekorm::QueryBuilderTrait + serde::Serialize + serde::de::DeserializeOwned
                 {
-                    T::query::<Self>(
-                        connection.into(),
+                    C::query::<Self>(
+                        connection,
                         Self:: #select_func(value.into())
                     ).await
                 }
@@ -361,46 +359,42 @@ pub fn generate_backend(
 
     // GeekConnector implementation
     stream.extend(quote! {
-        impl #impl_generics geekorm::prelude::GeekConnector for #ident #ty_generics #where_clause {
+        #[automatically_derived]
+        impl<'a, T> geekorm::GeekConnector<'a, T> for #ident where
+            T: geekorm::GeekConnection<Connection = T> + 'a,
+            Self: geekorm::QueryBuilderTrait + serde::Serialize + serde::de::DeserializeOwned
+        {
             /// Save a new item to the database and return the last inserted item from the database.
-            async fn save<'a, T>(&mut self, connection: impl Into<&'a T>) -> Result<(), geekorm::Error>
-            where
-                T: GeekConnection<Connection = T> + 'a,
-                Self: QueryBuilderTrait + serde::Serialize + serde::de::DeserializeOwned
+            #[allow(async_fn_in_trait, unused_variables)]
+            async fn save(&mut self, connection: &'a T) -> Result<(), geekorm::Error>
             {
-                let connection = connection.into();
-                #ident::execute(connection, #ident::query_insert(self)).await?;
+                T::execute::<Self>(connection, Self::query_insert(self)).await?;
                 let select_query = #ident::query_select()
                     .order_by(#ident::primary_key().as_str(), geekorm::QueryOrder::Desc)
                     .limit(1)
                     .build()?;
 
-                let item: #ident = #ident::query_first(connection, select_query).await?;
+                let item: #ident = T::query_first::<Self>(connection, select_query).await?;
 
                 #insert_values
                 Ok(())
             }
 
             /// Fetch all the data from foreign tables and store them in the struct.
-            async fn fetch<'a, T>(&mut self, connection: impl Into<&'a T>) -> Result<(), geekorm::Error>
-            where
-                T: GeekConnection<Connection = T> + 'a,
-                Self: QueryBuilderTrait + serde::de::DeserializeOwned
+            #[allow(async_fn_in_trait, unused_variables)]
+            async fn fetch(&mut self, connection: &'a T) -> Result<(), geekorm::Error>
             {
-                let connection = connection.into();
                 #fetch_functions
                 Ok(())
             }
 
             /// Fetch or create a row in the database
-            async fn fetch_or_create<'a, T>(
+            #[allow(async_fn_in_trait, unused_variables)]
+            async fn fetch_or_create(
                 &mut self,
-                connection: impl Into<&'a T>,
+                connection: &'a T,
             ) -> Result<(), geekorm::Error>
-            where
-                T: GeekConnection<Connection = T> + 'a
             {
-                let connection = connection.into();
                 let query = Self::query_select()
                     #unique_where
                     .build()?;
@@ -416,16 +410,15 @@ pub fn generate_backend(
                 Ok(())
             }
 
-            async fn search<'a, T>(
-                connection: impl Into<&'a T>,
+            #[allow(async_fn_in_trait, unused_variables)]
+            async fn search(
+                connection: &'a T,
                 search: impl Into<String>,
             ) -> Result<Vec<Self>, geekorm::Error>
-            where
-                T: GeekConnection<Connection = T> + 'a,
             {
                 let search = search.into();
                 Ok(T::query::<Self>(
-                    connection.into(),
+                    connection,
                     geekorm::QueryBuilder::select()
                         .table(Self::table())
                         #where_clauses
@@ -443,7 +436,9 @@ pub fn generate_backend(
     // Fetch functions
     stream.extend(quote! {
         /// Fetch methods for the model.
-        impl #impl_generics #ident #ty_generics #where_clause {
+        #[automatically_derived]
+        impl #ident
+        {
             #fetch_impl
         }
     });
