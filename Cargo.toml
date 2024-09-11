@@ -1,6 +1,11 @@
 [workspace]
 resolver = "2"
-members = [".", "geekorm-core", "geekorm-derive", "geekorm-cli"]
+members = [
+    ".",
+    "geekorm-core",
+    "geekorm-derive",
+    "geekorm-cli",
+]
 
 [workspace.package]
 version = "0.6.4"
@@ -84,6 +89,8 @@ chrono = { version = "^0.4", features = ["serde"] }
 libsql = "^0.5"
 rusqlite = "^0.32"
 
+rocket = { version = "^0.5" }
+
 [profile.test]
 opt-level = 1
 
@@ -106,4 +113,9 @@ required-features = ["all", "libsql"]
 name = "geekorm-example-rusqlite"
 path = "./examples/rusqlite/src/main.rs"
 required-features = ["all", "rusqlite"]
+
+[[example]]
+name = "geekorm-example-rocket"
+path = "./examples/server-rocket/src/main.rs"
+required-features = ["all", "libsql"]
 
