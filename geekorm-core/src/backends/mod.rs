@@ -13,9 +13,6 @@
 //! # struct Connection;
 //! # impl GeekConnection for Connection {
 //! #     type Connection = Self;
-//! #     type Row = ();
-//! #     type Rows = ();
-//! #     type Statement = ();
 //! # }
 //!
 //! #[derive(Table, Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
