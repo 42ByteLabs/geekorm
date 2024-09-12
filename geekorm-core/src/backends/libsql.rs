@@ -13,9 +13,6 @@ use crate::{
 
 impl GeekConnection for libsql::Connection {
     type Connection = libsql::Connection;
-    type Row = libsql::Row;
-    type Rows = Vec<libsql::Row>;
-    type Statement = libsql::Statement;
 
     async fn create_table<T>(connection: &Self::Connection) -> Result<(), crate::Error>
     where
@@ -110,7 +107,6 @@ impl GeekConnection for libsql::Connection {
     ) -> Result<T, crate::Error>
     where
         T: serde::de::DeserializeOwned,
-        Self: GeekConnection<Row = libsql::Row>,
     {
         // TODO: Should we always make sure the query limit is set to 1?
         if query.query_type == QueryType::Update {
@@ -150,7 +146,7 @@ impl GeekConnection for libsql::Connection {
             }
         };
 
-        let row: Self::Row = match rows
+        let row: libsql::Row = match rows
             .next()
             .await
             .map_err(|e| crate::Error::LibSQLError(e.to_string()))?

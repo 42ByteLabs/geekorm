@@ -40,9 +40,6 @@ use super::GeekConnection;
 
 impl GeekConnection for rusqlite::Connection {
     type Connection = rusqlite::Connection;
-    type Row = rusqlite::Row<'static>;
-    type Rows = rusqlite::Rows<'static>;
-    type Statement = rusqlite::Statement<'static>;
 
     async fn create_table<T>(connection: &Self::Connection) -> std::result::Result<(), crate::Error>
     where
