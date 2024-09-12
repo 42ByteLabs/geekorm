@@ -8,7 +8,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.6.4"
+version = "0.6.5"
 license = "MIT"
 edition = "2021"
 rust-version = "1.74"
@@ -75,8 +75,8 @@ rusqlite = ["backends", "geekorm-derive/rusqlite", "geekorm-core/rusqlite"]
 # sqlite = ["backends", "geekorm-derive/sqlite", "geekorm-core/sqlite"]
 
 [dependencies]
-geekorm-core = { version = "^0.6.4", path = "geekorm-core" }
-geekorm-derive = { version = "^0.6.4", path = "geekorm-derive" }
+geekorm-core = { version = "^0.6.5", path = "geekorm-core" }
+geekorm-derive = { version = "^0.6.5", path = "geekorm-derive" }
 
 [dev-dependencies]
 anyhow = "^1"
