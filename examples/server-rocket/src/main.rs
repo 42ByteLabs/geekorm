@@ -53,6 +53,11 @@ async fn main() -> Result<()> {
         println!("Inserted user: {:?}", user);
     }
     println!("Users inserted: {}", Users::total(&connection).await?);
+    
+    // Skip launching the server if running in CI
+    if std::env::var("CI").is_ok() {
+        return Ok(());
+    }
 
     println!("Starting Rocket server...");
     rocket::build()
