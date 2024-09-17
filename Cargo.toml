@@ -50,6 +50,8 @@ uuid = ["geekorm-core/uuid"]
 chrono = ["geekorm-derive/chrono", "geekorm-core/chrono"]
 # Random Generators
 rand = ["geekorm-derive/rand", "geekorm-core/rand"]
+# Logging
+log = ["geekorm-core/log"]
 
 # Hashing Algorithms for Passwords
 hash = ["geekorm-derive/hash", "geekorm-core/hash", "hash-pbkdf2"]

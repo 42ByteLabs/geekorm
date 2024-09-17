@@ -4,6 +4,7 @@
 use std::collections::HashMap;
 
 use libsql::{de, params::IntoValue};
+#[cfg(feature = "log")]
 use log::{debug, error};
 use serde::{de::DeserializeOwned, Serialize};
 
@@ -19,7 +20,10 @@ impl GeekConnection for libsql::Connection {
         T: TableBuilder + QueryBuilderTrait + Sized + Serialize + DeserializeOwned,
     {
         let query = T::query_create().build()?;
-        debug!("Create Table Query :: {:?}", query.to_str());
+        #[cfg(feature = "log")]
+        {
+            debug!("Create Table Query :: {:?}", query.to_str());
+        }
         connection
             .execute(query.to_str(), ())
             .await
@@ -31,7 +35,10 @@ impl GeekConnection for libsql::Connection {
         connection: &Self::Connection,
         query: crate::Query,
     ) -> Result<i64, crate::Error> {
-        debug!("Row Count Query :: {:?}", query.to_str());
+        #[cfg(feature = "log")]
+        {
+            debug!("Row Count Query :: {:?}", query.to_str());
+        }
         let mut statement = connection
             .prepare(query.to_str())
             .await
@@ -62,8 +69,11 @@ impl GeekConnection for libsql::Connection {
         let mut statement = match connection.prepare(query.to_str()).await {
             Ok(statement) => statement,
             Err(e) => {
-                error!("Error preparing query: `{}`", query.to_str());
-                error!("Parameters :: {:?}", query.parameters);
+                #[cfg(feature = "log")]
+                {
+                    debug!("Error preparing query: `{}`", query.to_str());
+                    debug!("Parameters :: {:?}", query.parameters);
+                }
                 return Err(crate::Error::LibSQLError(e.to_string()));
             }
         };
@@ -71,20 +81,29 @@ impl GeekConnection for libsql::Connection {
         let parameters: Vec<libsql::Value> = match convert_values(&query) {
             Ok(parameters) => parameters,
             Err(e) => {
-                error!("Error converting values: `{}`", e);
-                error!("Parameters :: {:?}", query.parameters);
+                #[cfg(feature = "log")]
+                {
+                    debug!("Error converting values: `{}`", e);
+                    debug!("Parameters :: {:?}", query.parameters);
+                }
                 return Err(crate::Error::LibSQLError(e.to_string()));
             }
         };
 
-        debug!("Query :: {:?}", query.to_str());
-        debug!("Parameters :: {:?}", parameters.clone());
+        #[cfg(feature = "log")]
+        {
+            debug!("Query :: {:?}", query.to_str());
+            debug!("Parameters :: {:?}", parameters.clone());
+        }
 
         // Execute the query
         let mut rows = match statement.query(parameters).await {
             Ok(rows) => rows,
             Err(e) => {
-                error!("Error executing query: `{}`", query.to_str());
+                #[cfg(feature = "log")]
+                {
+                    debug!("Error executing query: `{}`", query.to_str());
+                }
                 return Err(crate::Error::LibSQLError(e.to_string()));
             }
         };
@@ -110,7 +129,12 @@ impl GeekConnection for libsql::Connection {
     {
         // TODO: Should we always make sure the query limit is set to 1?
         if query.query_type == QueryType::Update {
-            error!("Query type is an `update`, use execute() instead as it does not return a row");
+            #[cfg(feature = "log")]
+            {
+                error!(
+                    "Query type is an `update`, use execute() instead as it does not return a row"
+                );
+            }
             return Err(crate::Error::LibSQLError(
                 "Query type is an `update`".to_string(),
             ));
@@ -119,8 +143,11 @@ impl GeekConnection for libsql::Connection {
         let mut statement = match connection.prepare(query.to_str()).await {
             Ok(statement) => statement,
             Err(e) => {
-                error!("Error preparing query: `{}`", query.to_str());
-                error!("Parameters :: {:?}", query.parameters);
+                #[cfg(feature = "log")]
+                {
+                    debug!("Error preparing query: `{}`", query.to_str());
+                    debug!("Parameters :: {:?}", query.parameters);
+                }
                 return Err(crate::Error::LibSQLError(e.to_string()));
             }
         };
@@ -128,20 +155,29 @@ impl GeekConnection for libsql::Connection {
         let parameters: Vec<libsql::Value> = match convert_values(&query) {
             Ok(parameters) => parameters,
             Err(e) => {
-                error!("Error converting values: `{}`", e);
-                error!("Parameters :: {:?}", query.parameters);
+                #[cfg(feature = "log")]
+                {
+                    error!("Error converting values: `{}`", e);
+                    error!("Parameters :: {:?}", query.parameters);
+                }
                 return Err(crate::Error::LibSQLError(e.to_string()));
             }
         };
 
-        debug!("Query :: {:?}", query.to_str());
-        debug!("Parameters :: {:?}", parameters.clone());
+        #[cfg(feature = "log")]
+        {
+            debug!("Query :: {:?}", query.to_str());
+            debug!("Parameters :: {:?}", parameters.clone());
+        }
 
         // Execute the query
         let mut rows = match statement.query(parameters).await {
             Ok(rows) => rows,
             Err(e) => {
-                error!("Error executing query: `{}`", query.to_str());
+                #[cfg(feature = "log")]
+                {
+                    error!("Error executing query: `{}`", query.to_str());
+                }
                 return Err(crate::Error::LibSQLError(e.to_string()));
             }
         };
@@ -153,7 +189,10 @@ impl GeekConnection for libsql::Connection {
         {
             Some(row) => row,
             None => {
-                error!("No rows found for query: `{}`", query.to_str());
+                #[cfg(feature = "log")]
+                {
+                    error!("No rows found for query: `{}`", query.to_str());
+                }
                 return Err(crate::Error::NoRowsFound);
             }
         };
@@ -170,14 +209,20 @@ impl GeekConnection for libsql::Connection {
     {
         // Convert the values to libsql::Value
         let parameters: Vec<libsql::Value> = convert_values(&query).map_err(|e| {
-            error!("Error converting values: `{}`", e);
+            #[cfg(feature = "log")]
+            {
+                error!("Error converting values: `{}`", e);
+            }
             crate::Error::LibSQLError(e.to_string())
         })?;
         connection
             .execute(query.to_str(), parameters)
             .await
             .map_err(|e| {
-                error!("Error executing query: `{}`", e);
+                #[cfg(feature = "log")]
+                {
+                    error!("Error executing query: `{}`", e);
+                }
                 crate::Error::LibSQLError(e.to_string())
             })?;
         Ok(())
@@ -188,29 +233,44 @@ impl GeekConnection for libsql::Connection {
         query: crate::Query,
     ) -> Result<Vec<HashMap<String, Value>>, crate::Error> {
         let params = convert_values(&query).map_err(|e| {
-            error!("Error converting values: `{}`", e);
+            #[cfg(feature = "log")]
+            {
+                error!("Error converting values: `{}`", e);
+            }
             crate::Error::LibSQLError(e.to_string())
         })?;
 
         let mut statement = match connection.prepare(query.to_str()).await {
             Ok(statement) => statement,
             Err(e) => {
-                error!("Error preparing query: `{}`", query.to_str());
+                #[cfg(feature = "log")]
+                {
+                    error!("Error preparing query: `{}`", query.to_str());
+                }
                 return Err(crate::Error::LibSQLError(e.to_string()));
             }
         };
 
-        debug!("Query :: {:?}", query.to_str());
-        debug!("Parameters :: {:?}", params);
+        #[cfg(feature = "log")]
+        {
+            debug!("Query :: {:?}", query.to_str());
+            debug!("Parameters :: {:?}", params);
+        }
 
         let mut rows = statement.query(params).await.map_err(|e| {
-            error!("Error executing query: `{}`", query.to_str());
+            #[cfg(feature = "log")]
+            {
+                error!("Error executing query: `{}`", query.to_str());
+            }
             crate::Error::LibSQLError(e.to_string())
         })?;
         let mut results: Vec<HashMap<String, Value>> = Vec::new();
 
         while let Some(row) = rows.next().await.map_err(|e| {
-            error!("Error fetching row: `{}`", e);
+            #[cfg(feature = "log")]
+            {
+                error!("Error fetching row: `{}`", e);
+            }
             crate::Error::LibSQLError(e.to_string())
         })? {
             let mut values: HashMap<String, Value> = HashMap::new();
