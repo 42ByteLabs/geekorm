@@ -32,6 +32,7 @@
 //! # }
 //! ```
 
+#[cfg(feature = "log")]
 use log::debug;
 use rusqlite::ToSql;
 use serde_rusqlite::*;
@@ -50,7 +51,10 @@ impl GeekConnection for rusqlite::Connection {
             + serde::de::DeserializeOwned,
     {
         let query = T::query_create().build()?;
-        debug!("Create Table Query :: {:?}", query.to_str());
+        #[cfg(feature = "log")]
+        {
+            debug!("Create Table Query :: {:?}", query.to_str());
+        }
         connection
             .execute(query.to_str(), ())
             .map_err(|e| crate::Error::RuSQLiteError(e.to_string()))?;
@@ -64,7 +68,10 @@ impl GeekConnection for rusqlite::Connection {
     where
         T: serde::de::DeserializeOwned,
     {
-        debug!("Query :: {:?}", query.to_str());
+        #[cfg(feature = "log")]
+        {
+            debug!("Query :: {:?}", query.to_str());
+        }
         let mut statement = connection
             .prepare(query.to_str())
             .map_err(|e| crate::Error::RuSQLiteError(e.to_string()))?;
@@ -74,7 +81,10 @@ impl GeekConnection for rusqlite::Connection {
         } else {
             rusqlite::params_from_iter(query.values.into_iter())
         };
-        debug!("Query Params :: {:?}", params);
+        #[cfg(feature = "log")]
+        {
+            debug!("Query Params :: {:?}", params);
+        }
 
         let mut results = Vec::new();
 
@@ -97,7 +107,10 @@ impl GeekConnection for rusqlite::Connection {
     where
         T: serde::de::DeserializeOwned,
     {
-        debug!("Query First :: {:?}", query.to_str());
+        #[cfg(feature = "log")]
+        {
+            debug!("Query First :: {:?}", query.to_str());
+        }
         let mut statement = connection
             .prepare(query.to_str())
             .map_err(|e| crate::Error::RuSQLiteError(e.to_string()))?;
@@ -107,7 +120,10 @@ impl GeekConnection for rusqlite::Connection {
         } else {
             rusqlite::params_from_iter(query.values.into_iter())
         };
-        debug!("Query First Params :: {:?}", params);
+        #[cfg(feature = "log")]
+        {
+            debug!("Query First Params :: {:?}", params);
+        }
 
         let mut res = from_rows::<T>(
             statement
@@ -128,7 +144,10 @@ impl GeekConnection for rusqlite::Connection {
     where
         T: serde::de::DeserializeOwned,
     {
-        debug!("Execute :: {:?}", query.to_str());
+        #[cfg(feature = "log")]
+        {
+            debug!("Execute :: {:?}", query.to_str());
+        }
         let mut statement = connection
             .prepare(query.to_str())
             .map_err(|e| crate::Error::RuSQLiteError(e.to_string()))?;
@@ -138,7 +157,10 @@ impl GeekConnection for rusqlite::Connection {
         } else {
             rusqlite::params_from_iter(query.values.into_iter())
         };
-        debug!("Execute Params :: {:?}", params);
+        #[cfg(feature = "log")]
+        {
+            debug!("Execute Params :: {:?}", params);
+        }
 
         statement
             .execute(params)
