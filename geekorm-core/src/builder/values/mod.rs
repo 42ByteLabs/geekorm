@@ -4,6 +4,8 @@ use serde::{Serialize, Serializer};
 
 #[cfg(feature = "chrono")]
 pub(crate) mod valchrono;
+#[cfg(feature = "semver")]
+pub(crate) mod valsemver;
 #[cfg(feature = "uuid")]
 pub(crate) mod valuuid;
 
