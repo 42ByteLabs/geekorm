@@ -224,6 +224,8 @@ pub fn generate_backend(
     let mut fetch_impl = TokenStream::new();
     // Fetch functions
     let mut fetch_functions = TokenStream::new();
+    // Auto Update fields
+    let mut auto_update = TokenStream::new();
     // Stream of where clauses
     let mut where_previous = false;
     let mut where_clauses = TokenStream::new();
@@ -244,6 +246,23 @@ pub fn generate_backend(
         insert_values.extend(quote! {
             self.#ident = item.#ident.clone();
         });
+
+        if let Some(update) = &column.update {
+            // self.updated = chrono::Utc::now();
+
+            let auto = syn::parse_str::<TokenStream>(update).map_err(|err| {
+                syn::Error::new(
+                    column.span(),
+                    format!("Failed to parse data for New mode: {}", err),
+                )
+            })?;
+
+            auto_update.extend(quote! {
+                #[cfg(feature = "log")]
+                ::log::debug!("Auto updating field: '{}'", stringify!(#ident));
+                self.#ident = #auto;
+            });
+        }
 
         if column.is_searchable() {
             if where_previous {
@@ -378,6 +397,12 @@ pub fn generate_backend(
 
                 #insert_values
                 Ok(())
+            }
+
+            #[allow(async_fn_in_trait, unused_variables)]
+            async fn update(&mut self, connection: &'a T) -> Result<(), geekorm::Error> {
+                #auto_update
+                T::execute::<Self>(connection, Self::query_update(self)).await
             }
 
             /// Fetch all the data from foreign tables and store them in the struct.
