@@ -1,6 +1,7 @@
 //! # Two Factor Authentication
 //!
 //! ```rust
+//! # #[cfg(feature = "two-factor-auth")] {
 //! use geekorm::prelude::*;
 //!
 //! let tfa = TwoFactorAuth::new();
@@ -12,15 +13,17 @@
 //! # assert!(matches!(value, geekorm::Value::Json(_)));
 //!
 //! let totp2: TwoFactorAuth = value.into();
+//! # }
 //! ```
 
 use crate::Value;
 use std::fmt::Display;
+use totp_rs::{Algorithm, Secret, TOTP};
 
 /// Two Factor Authentication
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct TwoFactorAuth {
-    totp: totp_rs::TOTP,
+    totp: TOTP,
 }
 
 impl TwoFactorAuth {
@@ -38,10 +41,11 @@ impl TwoFactorAuth {
             Ok(account_name) => account_name,
             Err(_) => env!("CARGO_PKG_NAME").to_string(),
         };
+
         Self {
             totp: totp_rs::TOTP {
-                secret: totp_rs::Secret::generate_secret().to_bytes().unwrap(),
-                algorithm: totp_rs::Algorithm::SHA256,
+                secret: Secret::generate_secret().to_bytes().unwrap(),
+                algorithm: Algorithm::SHA256,
                 digits: 6,
                 skew: 1,
                 step: 30,
@@ -58,11 +62,11 @@ impl TwoFactorAuth {
     pub fn new_with_issuer(issuer: impl Into<String>, account_name: impl Into<String>) -> Self {
         Self {
             totp: totp_rs::TOTP {
-                algorithm: totp_rs::Algorithm::SHA256,
+                algorithm: Algorithm::SHA256,
                 digits: 6,
                 skew: 1,
                 step: 30,
-                secret: totp_rs::Secret::generate_secret().to_bytes().unwrap(),
+                secret: Secret::generate_secret().to_bytes().unwrap(),
                 issuer: Some(issuer.into()),
                 account_name: account_name.into(),
             },

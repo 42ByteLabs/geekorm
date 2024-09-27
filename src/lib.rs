@@ -26,6 +26,8 @@ pub use geekorm_core::queries::QueryBuilder;
 /// Utils
 pub mod utils {
     pub use geekorm_core::utils::*;
+    #[cfg(feature = "two-factor-auth")]
+    pub use geekorm_core::TwoFactorAuth;
 }
 
 // Derive Crate

@@ -10,6 +10,7 @@
 
 /// The Cryptography module
 pub mod crypto;
+#[cfg(feature = "two-factor-auth")]
 pub mod tfa;
 
 #[cfg(feature = "hash")]
