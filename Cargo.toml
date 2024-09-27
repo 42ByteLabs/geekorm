@@ -85,7 +85,7 @@ geekorm-core = { version = "^0.6.7", path = "geekorm-core" }
 geekorm-derive = { version = "^0.6.7", path = "geekorm-derive" }
 
 [dev-dependencies]
-geekorm = { path = ".", features = ["all", "tfa", "libsql"] }
+geekorm = { path = ".", features = ["all", "semver", "tfa", "libsql"] }
 
 anyhow = "^1"
 env_logger = "^0.11"
