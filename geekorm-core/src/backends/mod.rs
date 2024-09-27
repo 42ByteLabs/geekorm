@@ -118,7 +118,7 @@ where
 
     /// Update the current object in the database
     #[allow(async_fn_in_trait, unused_variables)]
-    async fn update(&self, connection: &'a C) -> Result<(), crate::Error> {
+    async fn update(&mut self, connection: &'a C) -> Result<(), crate::Error> {
         C::execute::<Self>(connection, Self::query_update(self)).await
     }
 
