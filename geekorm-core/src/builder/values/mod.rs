@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fmt::Display, str};
 
-use serde::{Serialize, Serializer};
+use serde::{Deserialize, Serialize, Serializer};
 
 #[cfg(feature = "chrono")]
 pub(crate) mod valchrono;
@@ -71,6 +71,8 @@ pub enum Value {
     Identifier(String),
     /// A binary blob value (vector of bytes)
     Blob(Vec<u8>),
+    /// JSON blob
+    Json(Vec<u8>),
     /// A NULL value
     Null,
 }
@@ -88,7 +90,9 @@ impl Display for Value {
             Value::Integer(value) => write!(f, "{}", value),
             Value::Boolean(value) => write!(f, "{}", value),
             Value::Identifier(value) => write!(f, "{}", value),
-            Value::Blob(value) => write!(f, "{}", str::from_utf8(value).unwrap_or("")),
+            Value::Blob(value) | Value::Json(value) => {
+                write!(f, "{}", str::from_utf8(value).unwrap_or(""))
+            }
             Value::Null => write!(f, "NULL"),
         }
     }
@@ -268,8 +272,106 @@ impl Serialize for Value {
             Value::Identifier(value) => serializer.serialize_str(value),
             // TODO(geekmasher): This might not be the correct way to serialize a blob
             Value::Blob(value) => serializer.serialize_bytes(value),
-
+            // JSON
+            Value::Json(value) => serde_json::from_slice::<serde_json::Value>(value)
+                .map_err(serde::ser::Error::custom)?
+                .serialize(serializer),
+            // NULL
             Value::Null => serializer.serialize_none(),
         }
+    }
+}
+
+impl<'de> Deserialize<'de> for Value {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        struct ValueVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for ValueVisitor {
+            type Value = Value;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("a value")
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                Ok(Value::Text(value.to_string()))
+            }
+
+            fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                Ok(Value::Text(v))
+            }
+
+            fn visit_i32<E>(self, value: i32) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                Ok(Value::Integer(value))
+            }
+
+            fn visit_i64<E>(self, value: i64) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                Ok(Value::Integer(value as i32))
+            }
+
+            fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                Ok(Value::Integer(value as i32))
+            }
+
+            fn visit_bool<E>(self, value: bool) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                Ok(Value::Boolean(if value { 1 } else { 0 }))
+            }
+
+            fn visit_bytes<E>(self, value: &[u8]) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                // TODO: is this the correct way to handle blobs?
+                if value.starts_with(b"{") || value.starts_with(b"[") {
+                    Ok(Value::Json(value.to_vec()))
+                } else {
+                    Ok(Value::Blob(value.to_vec()))
+                }
+            }
+
+            fn visit_none<E>(self) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                Ok(Value::Null)
+            }
+
+            fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                Deserialize::deserialize(deserializer)
+            }
+
+            fn visit_map<A>(self, _accessor: A) -> Result<Self::Value, A::Error>
+            where
+                A: serde::de::MapAccess<'de>,
+            {
+                Err(serde::de::Error::custom("Expects a struct"))
+            }
+        }
+
+        deserializer.deserialize_any(ValueVisitor)
     }
 }

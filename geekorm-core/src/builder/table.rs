@@ -166,7 +166,7 @@ impl ToSqlite for Table {
 
             // Add to Values
             match value {
-                crate::Value::Identifier(_) | crate::Value::Text(_) => {
+                crate::Value::Identifier(_) | crate::Value::Text(_) | crate::Value::Json(_) => {
                     // Security: String values should never be directly inserted into the query
                     // This is to prevent SQL injection attacks
                     values.push(String::from("?"));
@@ -220,7 +220,10 @@ impl ToSqlite for Table {
 
             // Add to Values
             match value {
-                crate::Value::Identifier(_) | crate::Value::Text(_) | crate::Value::Blob(_) => {
+                crate::Value::Identifier(_)
+                | crate::Value::Text(_)
+                | crate::Value::Blob(_)
+                | crate::Value::Json(_) => {
                     // Security: String values should never be directly inserted into the query
                     // This is to prevent SQL injection attacks
                     columns.push(format!("{} = ?", column_name));

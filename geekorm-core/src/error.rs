@@ -27,9 +27,21 @@ pub enum Error {
     #[error("Error Hashing Password: {0}")]
     HashingError(String),
 
+    /// Serde Error
+    #[error("Serde Error: {0}")]
+    SerdeError(String),
+
     /// Unknown / Generic Error
     #[error("Unknown Error / Generic Error occurred")]
     Unknown,
+
+    /// TOTP Error
+    #[cfg(feature = "two-factor-auth")]
+    #[error("TOTP Error: {0}")]
+    TotpError(String),
+    /// SystemTime Error
+    #[error("SystemTime Error: {0}")]
+    SystemTimeError(#[from] std::time::SystemTimeError),
 
     /// LibSQL Error
     #[cfg(feature = "libsql")]

@@ -49,6 +49,8 @@ all = ["uuid", "chrono", "new", "helpers", "rand", "hash"]
 uuid = ["geekorm-core/uuid"]
 chrono = ["geekorm-derive/chrono", "geekorm-core/chrono"]
 semver = ["geekorm-derive/semver", "geekorm-core/semver"]
+two-factor-auth = ["geekorm-core/two-factor-auth"]
+two-factor-auth-qr = ["two-factor-auth", "geekorm-core/two-factor-auth-qr"]
 # Random Generators
 rand = ["geekorm-derive/rand", "geekorm-core/rand"]
 # Logging
@@ -82,7 +84,7 @@ geekorm-core = { version = "^0.6.7", path = "geekorm-core" }
 geekorm-derive = { version = "^0.6.7", path = "geekorm-derive" }
 
 [dev-dependencies]
-geekorm = { path = ".", features = ["semver"] }
+geekorm = { path = ".", features = ["libsql", "semver", "two-factor-auth"] }
 
 anyhow = "^1"
 env_logger = "^0.11"
@@ -91,6 +93,7 @@ serde = { version = "^1.0", features = ["derive"] }
 tokio = { version = "^1.38", features = ["full"] }
 chrono = { version = "^0.4", features = ["serde"] }
 semver = { version = "1.0", features = ["serde"] }
+totp-rs = { version = "^5.5", features = ["gen_secret"] }
 
 libsql = "^0.5"
 rusqlite = "^0.32"
