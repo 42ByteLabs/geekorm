@@ -10,11 +10,12 @@
 
 /// The Cryptography module
 pub mod crypto;
+pub mod tfa;
 
+#[cfg(feature = "hash")]
+pub use crypto::hashing::{generate_hash, verify_hash};
 #[cfg(feature = "rand")]
 pub use crypto::rand::generate_random_string;
 
-#[cfg(feature = "hash")]
-pub use crypto::hashing::generate_hash;
-#[cfg(feature = "hash")]
-pub use crypto::hashing::verify_hash;
+#[cfg(feature = "two-factor-auth")]
+pub use tfa::TwoFactorAuth;

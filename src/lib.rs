@@ -96,6 +96,10 @@ pub mod prelude {
         PrimaryKey, PrimaryKeyInteger, PrimaryKeyString,
     };
 
+    // Helper Modules
+    #[cfg(feature = "two-factor-auth")]
+    pub use geekorm_core::TwoFactorAuth;
+
     pub use geekorm_core::builder::values::{Value, Values};
     // Query Builder Modules
     pub use geekorm_core::builder::models::{QueryCondition, QueryOrder, QueryType};

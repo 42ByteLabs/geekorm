@@ -24,6 +24,8 @@ pub use crate::builder::keys::{ForeignKey, PrimaryKey};
 pub use crate::builder::table::Table;
 pub use crate::builder::values::{Value, Values};
 pub use crate::queries::{Query, QueryBuilder};
+#[cfg(feature = "two-factor-auth")]
+pub use crate::utils::tfa::TwoFactorAuth;
 
 /// Trait for basic creation of tables
 ///
