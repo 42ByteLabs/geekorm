@@ -85,7 +85,7 @@ geekorm-core = { version = "^0.6.7", path = "geekorm-core" }
 geekorm-derive = { version = "^0.6.7", path = "geekorm-derive" }
 
 [dev-dependencies]
-geekorm = { path = ".", features = ["all", "semver", "tfa", "libsql"] }
+geekorm = { path = ".", features = ["all", "semver", "tfa"] }
 
 anyhow = "^1"
 env_logger = "^0.11"
@@ -105,27 +105,22 @@ rocket = { version = "^0.5" }
 opt-level = 1
 
 [[example]]
-name = "geekorm-example-users"
-path = "./examples/users/src/main.rs"
-required-features = ["all"]
+name = "tfa"
+path = "./examples/tfa.rs"
+required-features = ["all", "tfa", "libsql"]
 
 [[example]]
-name = "geekorm-example-foreignkeys"
-path = "./examples/foreignkeys/src/main.rs"
-required-features = ["all"]
-
-[[example]]
-name = "geekorm-example-turso-libsql"
+name = "turso-libsql"
 path = "./examples/turso-libsql/src/main.rs"
 required-features = ["all", "libsql"]
 
 [[example]]
-name = "geekorm-example-rusqlite"
+name = "rusqlite"
 path = "./examples/rusqlite/src/main.rs"
 required-features = ["all", "rusqlite"]
 
 [[example]]
-name = "geekorm-example-rocket"
+name = "rocket"
 path = "./examples/server-rocket/src/main.rs"
 required-features = ["all", "libsql"]
 
