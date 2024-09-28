@@ -58,7 +58,7 @@ jobs:
         run: |
           cargo install --path geekorm-cli
           cargo run \
-            --example geekorm-example-turso-libsql \
+            --example turso-libsql \
             --features="all libsql"
 
           geekorm-cli --help
