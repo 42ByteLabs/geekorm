@@ -51,6 +51,7 @@ jobs:
           token: ${{ github.token }}
           commit-message: "[chore]: Create release for ${{ steps.version.outputs.version }}"
           title: "[chore]: Create release for ${{ steps.version.outputs.version }}"
+          assignees: GeekMasher
           branch: chore-release-${{ steps.version.outputs.version }}
           base: ${{ github.event.before }}
           labels: version
