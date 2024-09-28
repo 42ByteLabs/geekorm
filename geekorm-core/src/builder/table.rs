@@ -326,6 +326,35 @@ mod tests {
     }
 
     #[test]
+    fn test_count() {
+        let table = table();
+
+        let query = crate::QueryBuilder::select().table(table.clone()).count();
+        assert_eq!(
+            table.on_select(&query).unwrap(),
+            "SELECT COUNT(1) FROM Test;"
+        );
+
+        let query = crate::QueryBuilder::select()
+            .table(table.clone())
+            .count()
+            .where_eq("name", "this");
+        assert_eq!(
+            table.on_select(&query).unwrap(),
+            "SELECT COUNT(1) FROM Test WHERE name = ?;"
+        );
+
+        let query = crate::QueryBuilder::select()
+            .table(table.clone())
+            .count()
+            .where_ne("name", "this");
+        assert_eq!(
+            table.on_select(&query).unwrap(),
+            "SELECT COUNT(1) FROM Test WHERE name != ?;"
+        );
+    }
+
+    #[test]
     fn test_row_delete() {
         let table = table();
 
