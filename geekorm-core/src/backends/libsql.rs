@@ -43,10 +43,29 @@ impl GeekConnection for libsql::Connection {
             .prepare(query.to_str())
             .await
             .map_err(|e| crate::Error::LibSQLError(format!("Error preparing query: `{}`", e)))?;
-        let mut rows = statement
-            .query(())
-            .await
-            .map_err(|e| crate::Error::LibSQLError(e.to_string()))?;
+
+        let parameters: Vec<libsql::Value> = match convert_values(&query) {
+            Ok(parameters) => parameters,
+            Err(e) => {
+                #[cfg(feature = "log")]
+                {
+                    debug!("Error converting values: `{}`", e);
+                    debug!("Parameters :: {:?}", query.parameters);
+                }
+                return Err(crate::Error::LibSQLError(e.to_string()));
+            }
+        };
+
+        let mut rows = match statement.query(parameters).await {
+            Ok(rows) => rows,
+            Err(e) => {
+                #[cfg(feature = "log")]
+                {
+                    debug!("Error executing query: `{}`", query.to_str());
+                }
+                return Err(crate::Error::LibSQLError(e.to_string()));
+            }
+        };
 
         let row = match rows
             .next()
