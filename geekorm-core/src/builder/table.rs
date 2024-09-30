@@ -166,7 +166,7 @@ impl ToSqlite for Table {
 
             // Add to Values
             match value {
-                crate::Value::Identifier(_) | crate::Value::Text(_) => {
+                crate::Value::Identifier(_) | crate::Value::Text(_) | crate::Value::Json(_) => {
                     // Security: String values should never be directly inserted into the query
                     // This is to prevent SQL injection attacks
                     values.push(String::from("?"));
@@ -220,7 +220,10 @@ impl ToSqlite for Table {
 
             // Add to Values
             match value {
-                crate::Value::Identifier(_) | crate::Value::Text(_) | crate::Value::Blob(_) => {
+                crate::Value::Identifier(_)
+                | crate::Value::Text(_)
+                | crate::Value::Blob(_)
+                | crate::Value::Json(_) => {
                     // Security: String values should never be directly inserted into the query
                     // This is to prevent SQL injection attacks
                     columns.push(format!("{} = ?", column_name));
@@ -319,6 +322,35 @@ mod tests {
         assert_eq!(
             table.on_select(&query).unwrap(),
             "SELECT id, name FROM Test WHERE name = ?;"
+        );
+    }
+
+    #[test]
+    fn test_count() {
+        let table = table();
+
+        let query = crate::QueryBuilder::select().table(table.clone()).count();
+        assert_eq!(
+            table.on_select(&query).unwrap(),
+            "SELECT COUNT(1) FROM Test;"
+        );
+
+        let query = crate::QueryBuilder::select()
+            .table(table.clone())
+            .count()
+            .where_eq("name", "this");
+        assert_eq!(
+            table.on_select(&query).unwrap(),
+            "SELECT COUNT(1) FROM Test WHERE name = ?;"
+        );
+
+        let query = crate::QueryBuilder::select()
+            .table(table.clone())
+            .count()
+            .where_ne("name", "this");
+        assert_eq!(
+            table.on_select(&query).unwrap(),
+            "SELECT COUNT(1) FROM Test WHERE name != ?;"
         );
     }
 

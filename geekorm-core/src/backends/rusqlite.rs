@@ -201,9 +201,9 @@ impl ToSql for crate::Value {
             crate::Value::Integer(value) => Ok(rusqlite::types::ToSqlOutput::Owned(
                 rusqlite::types::Value::Integer(*value as i64),
             )),
-            crate::Value::Blob(value) => Ok(rusqlite::types::ToSqlOutput::Owned(
-                rusqlite::types::Value::Blob(value.clone()),
-            )),
+            crate::Value::Blob(value) | crate::Value::Json(value) => Ok(
+                rusqlite::types::ToSqlOutput::Owned(rusqlite::types::Value::Blob(value.clone())),
+            ),
             crate::Value::Boolean(value) => Ok(rusqlite::types::ToSqlOutput::Owned(
                 rusqlite::types::Value::Integer(*value as i64),
             )),

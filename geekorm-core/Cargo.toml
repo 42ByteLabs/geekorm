@@ -26,6 +26,10 @@ default = []
 uuid = ["dep:uuid"]
 chrono = ["dep:chrono"]
 semver = ["dep:semver"]
+# TFA (Two Factor Authentication)
+tfa = ["two-factor-auth", "two-factor-auth-qr"]
+two-factor-auth = ["dep:totp-rs"]
+two-factor-auth-qr = ["two-factor-auth", "totp-rs/qr"]
 # Random string / number generation
 rand = ["dep:rand"]
 # Logging
@@ -54,6 +58,8 @@ log = { version = "^0.4", features = ["std"], optional = true }
 uuid = { version = "^1.9", features = ["v4"], optional = true }
 chrono = { version = "^0.4", optional = true, features = ["serde"] }
 semver = { version = "^1.0", optional = true, features = ["serde"] }
+# Two Factor Authentication
+totp-rs = { version = "^5.5", features = ["serde_support", "gen_secret"], optional = true }
 # Random number generation
 rand = { version = "^0.8", optional = true }
 rand_core = { version = "^0.6", features = ["std"], optional = true }

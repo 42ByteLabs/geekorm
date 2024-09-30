@@ -4,9 +4,18 @@ on:
   push:
     branches: [ main ]
   workflow_dispatch:
+    inputs:
+      bump:
+        type: choice
+        description: "Version Bump"
+        options: 
+          - patch
+          - minor
+          - major
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   cargo-publish:
@@ -16,3 +25,37 @@ jobs:
     with:
       crate: geekorm
       crates: geekorm-core,geekorm-derive,geekorm,geekorm-cli
+
+  auto-release:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v3
+
+      - name: "Patch Release Me"
+        uses: 42ByteLabs/patch-release-me@0.3.0
+        with:
+          mode: ${{ github.event.inputs.bump }}
+
+      - name: "Get version from Cargo.toml"
+        id: version
+        run: |
+          set -e
+          CARGO_LOCATION="Cargo.toml"
+          current_version=$(grep -oP '^version = "(.*)"$' $CARGO_LOCATION | cut -d '"' -f 2)
+          echo "version=$current_version" >> $GITHUB_OUTPUT
+
+      - name: "Create Release"
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ github.token }}
+          commit-message: "[chore]: Create release for ${{ steps.version.outputs.version }}"
+          title: "[chore]: Create release for ${{ steps.version.outputs.version }}"
+          assignees: GeekMasher
+          branch: chore-release-${{ steps.version.outputs.version }}
+          base: ${{ github.event.before }}
+          labels: version
+          body: |
+            This is an automated PR to create a new release. The release will be created once this PR is merged.
+

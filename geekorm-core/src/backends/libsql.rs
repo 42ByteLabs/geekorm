@@ -43,18 +43,50 @@ impl GeekConnection for libsql::Connection {
             .prepare(query.to_str())
             .await
             .map_err(|e| crate::Error::LibSQLError(format!("Error preparing query: `{}`", e)))?;
-        let mut rows = statement
-            .query(())
-            .await
-            .map_err(|e| crate::Error::LibSQLError(e.to_string()))?;
 
-        let row = rows
+        let parameters: Vec<libsql::Value> = match convert_values(&query) {
+            Ok(parameters) => parameters,
+            Err(e) => {
+                #[cfg(feature = "log")]
+                {
+                    debug!("Error converting values: `{}`", e);
+                    debug!("Parameters :: {:?}", query.parameters);
+                }
+                return Err(crate::Error::LibSQLError(e.to_string()));
+            }
+        };
+
+        let mut rows = match statement.query(parameters).await {
+            Ok(rows) => rows,
+            Err(e) => {
+                #[cfg(feature = "log")]
+                {
+                    debug!("Error executing query: `{}`", query.to_str());
+                }
+                return Err(crate::Error::LibSQLError(e.to_string()));
+            }
+        };
+
+        let row = match rows
             .next()
             .await
             .map_err(|e| crate::Error::LibSQLError(e.to_string()))?
-            .unwrap();
+        {
+            Some(row) => row,
+            None => {
+                #[cfg(feature = "log")]
+                {
+                    error!("Error fetching row count");
+                }
+                return Err(crate::Error::LibSQLError(
+                    "Error fetching row count".to_string(),
+                ));
+            }
+        };
         // Get the first row
-        Ok(row.get(0).unwrap())
+        Ok(row
+            .get(0)
+            .map_err(|e| crate::Error::LibSQLError(e.to_string()))?)
     }
 
     async fn query<T>(
@@ -114,7 +146,13 @@ impl GeekConnection for libsql::Connection {
             .await
             .map_err(|e| crate::Error::LibSQLError(e.to_string()))?
         {
-            results.push(de::from_row::<T>(&row).unwrap());
+            results.push(de::from_row::<T>(&row).map_err(|e| {
+                #[cfg(feature = "log")]
+                {
+                    error!("Error deserializing row: `{}`", e);
+                }
+                crate::Error::SerdeError(e.to_string())
+            })?);
         }
 
         Ok(results)
@@ -197,7 +235,13 @@ impl GeekConnection for libsql::Connection {
             }
         };
 
-        Ok(de::from_row::<T>(&row).unwrap())
+        Ok(de::from_row::<T>(&row).map_err(|e| {
+            #[cfg(feature = "log")]
+            {
+                error!("Error deserializing row: `{}`", e);
+            }
+            crate::Error::SerdeError(e.to_string())
+        })?)
     }
 
     async fn execute<T>(
@@ -318,8 +362,9 @@ impl IntoValue for Value {
             Value::Text(value) => libsql::Value::Text(value),
             Value::Integer(value) => libsql::Value::Integer(value as i64),
             Value::Boolean(value) => libsql::Value::Text(value.to_string()),
+            // TODO: Identifier could be a Integer?
             Value::Identifier(value) => libsql::Value::Text(value),
-            Value::Blob(value) => libsql::Value::Blob(value),
+            Value::Blob(value) | Value::Json(value) => libsql::Value::Blob(value),
             Value::Null => libsql::Value::Null,
         })
     }
@@ -331,7 +376,15 @@ impl From<libsql::Value> for Value {
             libsql::Value::Text(value) => Value::Text(value),
             libsql::Value::Integer(value) => Value::Integer(value as i32),
             libsql::Value::Null => Value::Null,
-            libsql::Value::Blob(value) => Value::Blob(value),
+            libsql::Value::Blob(value) => {
+                // TODO: Is this the best way of doing this?
+                if let Some(start) = value.get(0) {
+                    if *start == b'{' || *start == b'[' {
+                        return Value::Json(value);
+                    }
+                }
+                Value::Blob(value)
+            }
             libsql::Value::Real(_) => {
                 todo!("Real values are not supported yet")
             }
