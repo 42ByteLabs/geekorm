@@ -31,7 +31,7 @@ jobs:
     if: ${{ github.event_name == 'workflow_dispatch' }}
     steps:
       - name: "Checkout"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: "Patch Release Me"
         uses: 42ByteLabs/patch-release-me@0.3.0
@@ -47,7 +47,7 @@ jobs:
           echo "version=$current_version" >> $GITHUB_OUTPUT
 
       - name: "Create Release"
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ github.token }}
           commit-message: "[chore]: Create release for ${{ steps.version.outputs.version }}"
