@@ -158,6 +158,7 @@ pub(crate) struct ColumnDerive {
     pub(crate) skip: bool,
     /// Update the column
     pub(crate) update: Option<String>,
+    pub(crate) save: Option<String>,
 
     pub(crate) mode: Option<ColumnMode>,
 }
@@ -178,11 +179,14 @@ impl ColumnDerive {
                         // If the column is unique, then it should be searchable by default
                         self.mode = Some(ColumnMode::Searchable { enabled: true });
                     }
-                    GeekAttributeKeys::Update => {
+                    GeekAttributeKeys::OnUpdate => {
                         if let Some(GeekAttributeValue::String(value)) = &attr.value {
                             self.update = Some(value.to_string());
-                        } else {
-                            self.update = Some("".to_string());
+                        }
+                    }
+                    GeekAttributeKeys::OnSave => {
+                        if let Some(GeekAttributeValue::String(value)) = &attr.value {
+                            self.save = Some(value.to_string());
                         }
                     }
                     GeekAttributeKeys::Searchable => {
@@ -685,6 +689,7 @@ impl Default for ColumnDerive {
             alias: String::new(),
             skip: false,
             update: None,
+            save: None,
             attributes: Vec::new(),
             identifier: Ident::new("column", Span::call_site()),
             itype: syn::parse_quote! { String },
@@ -764,6 +769,7 @@ impl TryFrom<&Field> for ColumnDerive {
             alias: String::from(""),
             skip: false,
             update: None,
+            save: None,
             mode: None,
         };
         col.apply_attributes()?;
@@ -796,6 +802,7 @@ mod tests {
             alias: String::from(""),
             skip: false,
             mode: None,
+            ..Default::default()
         };
         assert!(column.is_primary_key());
 
@@ -811,6 +818,7 @@ mod tests {
             alias: String::from(""),
             skip: false,
             mode: None,
+            ..Default::default()
         };
         assert!(column.is_primary_key());
 
@@ -826,6 +834,7 @@ mod tests {
             alias: String::from(""),
             skip: false,
             mode: None,
+            ..Default::default()
         };
         assert!(column.is_primary_key());
     }
