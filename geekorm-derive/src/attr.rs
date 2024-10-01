@@ -92,8 +92,9 @@ pub(crate) enum GeekAttributeKeys {
     HashAlgorithm,
     /// Searchable
     Searchable,
-    /// On Update
-    Update,
+    /// On Actions
+    OnUpdate,
+    OnSave,
     /// Skip this field
     Skip,
 }
@@ -138,20 +139,23 @@ impl GeekAttribute {
                     Ok(())
                 }
             }
-            Some(GeekAttributeKeys::Update) => {
-                if let Some(value) = &self.value {
-                    if let GeekAttributeValue::String(_) = value {
-                        Ok(())
-                    } else {
-                        Err(syn::Error::new(
-                            self.span.span(),
-                            "The `update` attribute requires a string value",
-                        ))
-                    }
+            Some(GeekAttributeKeys::OnUpdate) => {
+                if let Some(GeekAttributeValue::String(_)) = &self.value {
+                    Ok(())
                 } else {
                     Err(syn::Error::new(
                         self.span.span(),
-                        "The `update` attribute requires a value",
+                        "The `update` attribute requires a String value",
+                    ))
+                }
+            }
+            Some(GeekAttributeKeys::OnSave) => {
+                if let Some(GeekAttributeValue::String(_)) = &self.value {
+                    Ok(())
+                } else {
+                    Err(syn::Error::new(
+                        self.span.span(),
+                        "The `save` attribute requires a String value",
                     ))
                 }
             }
@@ -257,8 +261,10 @@ impl Parse for GeekAttribute {
             "unique" => Some(GeekAttributeKeys::Unique),
             // Foreign Key
             "foreign_key" => Some(GeekAttributeKeys::ForeignKey),
-            //
-            "update" | "on_update" => Some(GeekAttributeKeys::Update),
+            // Functions on action
+            "update" | "on_update" | "on_update_write" => Some(GeekAttributeKeys::OnUpdate),
+            "save" | "on_save" | "on_save_write" => Some(GeekAttributeKeys::OnSave),
+
             // New Constructor
             "new" => match cfg!(feature = "new") {
                 true => Some(GeekAttributeKeys::New),
