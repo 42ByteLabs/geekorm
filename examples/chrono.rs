@@ -1,3 +1,6 @@
+//! # Chrono Example
+//!
+//! This example demonstrates how to use the `chrono` crate with `geekorm`.
 use anyhow::Result;
 use geekorm::{prelude::*, GEEKORM_BANNER, GEEKORM_VERSION};
 
@@ -8,10 +11,11 @@ struct Projects {
     #[geekorm(unique)]
     pub name: String,
 
-    #[geekorm(new = "chrono::Utc::now()")]
+    pub release: String,
+
     pub published: chrono::DateTime<chrono::Utc>,
 
-    #[geekorm(update = "chrono::Utc::now()")]
+    #[geekorm(new = "chrono::Utc::now()", on_update = "chrono::Utc::now()")]
     pub updated: chrono::DateTime<chrono::Utc>,
 }
 
@@ -29,11 +33,33 @@ async fn main() -> Result<()> {
     let connection = db.connect()?;
     Projects::create_table(&connection).await?;
 
-    let now = chrono::Utc::now();
-    let mut gorm = Projects::new("geekorm", now);
+    // Three weeks ago
+    let three_weeks_ago = chrono::Utc::now() - chrono::Duration::weeks(3);
+    let mut gorm = Projects::new("geekorm", "0.1.0", three_weeks_ago);
     gorm.save(&connection).await?;
 
-    println!("Project :: {:?}", gorm);
+    assert_eq!(gorm.release, "0.1.0".to_string());
+    println!(
+        "Project :: {} v{} ({}, {})",
+        gorm.name, gorm.release, gorm.published, gorm.updated
+    );
+
+    // Get the project updated time
+    let updated = gorm.updated.clone();
+
+    // On update we will change the release version and
+    // automatically update the updated time (`update` attribute)
+    gorm.release = "0.2.0".to_string();
+    gorm.update(&connection).await?;
+
+    assert_eq!(gorm.release, "0.2.0".to_string());
+    // Confirm that the updated time has changed
+    assert_ne!(gorm.updated, updated);
+
+    println!(
+        "Project :: {} v{} ({}, {})",
+        gorm.name, gorm.release, gorm.published, gorm.updated
+    );
 
     Ok(())
 }
