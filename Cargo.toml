@@ -110,6 +110,11 @@ path = "./examples/tfa.rs"
 required-features = ["all", "tfa", "libsql"]
 
 [[example]]
+name = "chrono"
+path = "./examples/chrono.rs"
+required-features = ["all", "libsql"]
+
+[[example]]
 name = "turso-libsql"
 path = "./examples/turso-libsql/src/main.rs"
 required-features = ["all", "libsql"]
