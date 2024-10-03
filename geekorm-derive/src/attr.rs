@@ -92,6 +92,9 @@ pub(crate) enum GeekAttributeKeys {
     HashAlgorithm,
     /// Searchable
     Searchable,
+    /// On Actions
+    OnUpdate,
+    OnSave,
     /// Skip this field
     Skip,
 }
@@ -134,6 +137,26 @@ impl GeekAttribute {
                     ))
                 } else {
                     Ok(())
+                }
+            }
+            Some(GeekAttributeKeys::OnUpdate) => {
+                if let Some(GeekAttributeValue::String(_)) = &self.value {
+                    Ok(())
+                } else {
+                    Err(syn::Error::new(
+                        self.span.span(),
+                        "The `update` attribute requires a String value",
+                    ))
+                }
+            }
+            Some(GeekAttributeKeys::OnSave) => {
+                if let Some(GeekAttributeValue::String(_)) = &self.value {
+                    Ok(())
+                } else {
+                    Err(syn::Error::new(
+                        self.span.span(),
+                        "The `save` attribute requires a String value",
+                    ))
                 }
             }
             Some(GeekAttributeKeys::New) => {
@@ -238,6 +261,10 @@ impl Parse for GeekAttribute {
             "unique" => Some(GeekAttributeKeys::Unique),
             // Foreign Key
             "foreign_key" => Some(GeekAttributeKeys::ForeignKey),
+            // Functions on action
+            "update" | "on_update" | "on_update_write" => Some(GeekAttributeKeys::OnUpdate),
+            "save" | "on_save" | "on_save_write" => Some(GeekAttributeKeys::OnSave),
+
             // New Constructor
             "new" => match cfg!(feature = "new") {
                 true => Some(GeekAttributeKeys::New),
