@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     ".",
     "geekorm-core",
+    "geekorm-sqlgen",
     "geekorm-derive",
     "geekorm-cli",
 ]
