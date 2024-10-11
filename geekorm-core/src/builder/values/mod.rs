@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Display, str};
+use std::{fmt::Display, str};
 
 use serde::{Deserialize, Serialize, Serializer};
 
@@ -18,7 +18,7 @@ use crate::{
 #[derive(Debug, Clone, Default)]
 pub struct Values {
     /// List of values
-    pub(crate) values: HashMap<String, Value>,
+    pub(crate) values: Vec<Value>,
     /// List of columns in the order they were added
     pub(crate) order: Vec<String>,
 }
@@ -27,7 +27,7 @@ impl Values {
     /// Create a new instance of Values
     pub fn new() -> Self {
         Values {
-            values: HashMap::new(),
+            values: Vec::new(),
             order: Vec::new(),
         }
     }
@@ -35,12 +35,20 @@ impl Values {
     /// Push a value to the list of values
     pub fn push(&mut self, column: String, value: impl Into<Value>) {
         self.order.push(column.clone());
-        self.values.insert(column, value.into());
+        self.values.push(value.into());
     }
 
     /// Get a value by index from the list of values
     pub fn get(&self, column: &String) -> Option<&Value> {
-        self.values.get(column)
+        match self.order.iter().enumerate().find(|(_, o)| *o == column) {
+            Some((i, _)) => self.values.get(i),
+            None => None,
+        }
+    }
+
+    /// Length / Count of the values stored
+    pub fn len(&self) -> usize {
+        self.values.len()
     }
 }
 
@@ -51,7 +59,8 @@ impl IntoIterator for Values {
     fn into_iter(self) -> Self::IntoIter {
         self.order
             .into_iter()
-            .map(move |column| self.values[&column].clone())
+            .enumerate()
+            .map(move |(index, _)| self.values[index].clone())
             .collect::<Vec<Value>>()
             .into_iter()
     }
@@ -184,28 +193,13 @@ where
     }
 }
 
-impl From<&Option<String>> for Value {
-    fn from(value: &Option<String>) -> Self {
+impl<T> From<&Option<T>> for Value
+where
+    T: Into<Value> + Clone,
+{
+    fn from(value: &Option<T>) -> Self {
         match value {
-            Some(value) => Value::Text(value.to_string()),
-            None => Value::Null,
-        }
-    }
-}
-
-impl From<&Option<i32>> for Value {
-    fn from(value: &Option<i32>) -> Self {
-        match value {
-            Some(value) => Value::Integer(*value),
-            None => Value::Null,
-        }
-    }
-}
-
-impl From<&Option<bool>> for Value {
-    fn from(value: &Option<bool>) -> Self {
-        match value {
-            Some(value) => Value::Boolean(if *value { 1 } else { 0 }),
+            Some(value) => value.clone().into(),
             None => Value::Null,
         }
     }
@@ -373,5 +367,19 @@ impl<'de> Deserialize<'de> for Value {
         }
 
         deserializer.deserialize_any(ValueVisitor)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Values;
+
+    #[test]
+    fn test_values() {
+        let mut values = Values::new();
+        values.push("id".to_string(), 1);
+        values.push("name".to_string(), "Bob");
+
+        assert_eq!(values.len(), 2);
     }
 }
