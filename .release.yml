@@ -1,6 +1,6 @@
 name: "geekorm"
 repository: "42ByteLabs/geekorm"
-version: 0.6.9
+version: 0.6.10
 
 locations:
   - name: "Cargo - Workmembers"
