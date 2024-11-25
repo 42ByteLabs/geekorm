@@ -52,6 +52,7 @@ pub const GEEKORM_BANNER: &str = r#"   ______          __   ____  ____  __  ___
 / /_/ /  __/  __/ ,< / /_/ / _, _/ /  / /
 \____/\___/\___/_/|_|\____/_/ |_/_/  /_/"#;
 
+#[doc(hidden)]
 pub mod prelude {
     //! GeekORM prelude
     //!
@@ -89,6 +90,8 @@ pub mod prelude {
     pub use geekorm_core::builder::columns::{Column, Columns};
     pub use geekorm_core::builder::columntypes::{ColumnType, ColumnTypeOptions};
     pub use geekorm_core::builder::table::Table as BuilderTable;
+    #[cfg(feature = "pagination")]
+    pub use geekorm_core::queries::pages::Pagination;
 
     // Keys Modules
     pub use geekorm_core::builder::keys::foreign::{ForeignKey, ForeignKeyInteger};

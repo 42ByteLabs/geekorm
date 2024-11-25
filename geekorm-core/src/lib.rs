@@ -23,6 +23,8 @@ pub use crate::builder::columntypes::{ColumnType, ColumnTypeOptions};
 pub use crate::builder::keys::{ForeignKey, PrimaryKey};
 pub use crate::builder::table::Table;
 pub use crate::builder::values::{Value, Values};
+#[cfg(feature = "pagination")]
+pub use crate::queries::pages::Pagination;
 pub use crate::queries::{Query, QueryBuilder};
 #[cfg(feature = "two-factor-auth")]
 pub use crate::utils::tfa::TwoFactorAuth;

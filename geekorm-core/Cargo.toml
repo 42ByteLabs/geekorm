@@ -26,6 +26,7 @@ default = []
 uuid = ["dep:uuid"]
 chrono = ["dep:chrono"]
 semver = ["dep:semver"]
+pagination = []
 # TFA (Two Factor Authentication)
 tfa = ["two-factor-auth", "two-factor-auth-qr"]
 two-factor-auth = ["dep:totp-rs"]

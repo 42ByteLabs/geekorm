@@ -44,11 +44,12 @@ tag-name = "v{{version}}"
 [features]
 default = ["all", "backends"]
 # All features (minus backends)
-all = ["uuid", "chrono", "new", "helpers", "rand", "hash"]
+all = ["uuid", "chrono", "new", "pagination", "helpers", "rand", "hash"]
 
 uuid = ["geekorm-core/uuid"]
 chrono = ["geekorm-derive/chrono", "geekorm-core/chrono"]
 semver = ["geekorm-derive/semver", "geekorm-core/semver"]
+pagination = ["geekorm-core/pagination"]
 # Two Factor Authentication
 tfa = ["two-factor-auth", "two-factor-auth-qr"]
 two-factor-auth = ["geekorm-core/two-factor-auth"]

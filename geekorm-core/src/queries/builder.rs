@@ -9,6 +9,8 @@ use crate::{
     Error, Table, ToSqlite,
 };
 
+use super::pages::Pagination;
+
 /// The QueryBuilder is how you can build dynamically queries using the builder pattern.
 ///
 /// # Features
@@ -318,6 +320,14 @@ impl QueryBuilder {
     /// Add an offset to the query
     pub fn offset(mut self, offset: usize) -> Self {
         self.offset = Some(offset);
+        self
+    }
+
+    /// Add a page to the query
+    #[cfg(feature = "pagination")]
+    pub fn page(mut self, page: &Pagination) -> Self {
+        self.offset = Some(page.offset() as usize);
+        self.limit = Some(page.limit as usize);
         self
     }
 
