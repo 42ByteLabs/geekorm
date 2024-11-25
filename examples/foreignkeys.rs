@@ -30,15 +30,14 @@ fn main() {
 
     // Select all posts by a user
     let posts_by_user = Posts::query_select()
-        .columns(vec!["Posts.title", "Users.name"])
         .join(Users::table())
+        .where_eq("Users.name", "GeekMasher")
         .build()
         .expect("Failed to build query");
-
     println!("Posts by user query: {:?}", posts_by_user.query);
     assert_eq!(
         posts_by_user.query.as_str(),
-        "SELECT Posts.title, Users.name FROM Posts INNER JOIN Users ON Users.id = Posts.author;"
+        "SELECT Posts.id, Posts.title, Posts.author FROM Posts INNER JOIN Users ON Users.id = Posts.author WHERE Users.name = ?;"
     );
 
     // // Select all users and their posts

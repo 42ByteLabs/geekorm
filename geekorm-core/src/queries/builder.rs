@@ -1,5 +1,5 @@
 use crate::builder::{
-    joins::{TableJoin, TableJoins},
+    joins::{TableJoin, TableJoinOptions, TableJoins},
     models::{QueryCondition, QueryOrder, QueryType, WhereCondition},
 };
 use crate::queries::Query;
@@ -176,7 +176,28 @@ impl QueryBuilder {
 
     /// The underlying function to add a where clause
     fn add_where(&mut self, column: &str, condition: QueryCondition, value: Value) {
-        if self.table.is_valid_column(column) {
+        let mut column_name: &str = column;
+
+        // Check if there is a `.` in the column name
+        let table: &Table = if let Some((ftable, fcolumn)) = column.split_once('.') {
+            match self.joins.get(ftable) {
+                Some(TableJoin::InnerJoin(TableJoinOptions { child, .. })) => {
+                    column_name = fcolumn;
+                    child
+                }
+                _ => {
+                    self.error = Some(Error::QueryBuilderError(
+                        format!("Table `{}` does not exist", ftable),
+                        String::from("where_eq"),
+                    ));
+                    &self.table
+                }
+            }
+        } else {
+            &self.table
+        };
+
+        if table.is_valid_column(column_name) {
             // Check if the last condition was set
             if !self.where_clause.is_empty() && !self.where_condition_last {
                 // Use the default where condition
@@ -186,13 +207,13 @@ impl QueryBuilder {
 
             self.where_clause
                 .push(format!("{} {} ?", column, condition.to_sqlite()));
-            self.values.push(column.to_string(), value);
+            self.values.push(column_name.to_string(), value);
             self.where_condition_last = false;
         } else {
             self.error = Some(Error::QueryBuilderError(
                 format!(
                     "Column `{}` does not exist in table `{}`",
-                    column, self.table.name
+                    column_name, table.name
                 ),
                 String::from("where_eq"),
             ));
