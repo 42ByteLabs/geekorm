@@ -15,7 +15,7 @@ use crate::{
 };
 
 /// List of Values
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Values {
     /// List of values
     pub(crate) values: Vec<Value>,

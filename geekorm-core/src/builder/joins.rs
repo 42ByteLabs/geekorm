@@ -20,6 +20,13 @@ impl TableJoins {
         self.joins.push(join);
     }
 
+    /// Get the join by name
+    pub fn get(&self, name: &str) -> Option<&TableJoin> {
+        self.joins.iter().find(|join| match join {
+            TableJoin::InnerJoin(opts) => opts.child.name == name,
+        })
+    }
+
     /// Check if the joins are empty
     pub fn is_empty(&self) -> bool {
         self.joins.is_empty()
