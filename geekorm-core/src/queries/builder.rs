@@ -1,15 +1,14 @@
+#[cfg(feature = "pagination")]
+use super::pages::Pagination;
 use crate::builder::{
     joins::{TableJoin, TableJoinOptions, TableJoins},
     models::{QueryCondition, QueryOrder, QueryType, WhereCondition},
 };
-use crate::queries::Query;
-
 use crate::{
     builder::values::{Value, Values},
+    queries::Query,
     Error, Table, ToSqlite,
 };
-
-use super::pages::Pagination;
 
 /// The QueryBuilder is how you can build dynamically queries using the builder pattern.
 ///
