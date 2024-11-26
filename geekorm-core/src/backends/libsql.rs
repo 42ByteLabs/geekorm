@@ -96,6 +96,11 @@ impl GeekConnection for libsql::Connection {
     where
         T: serde::de::DeserializeOwned,
     {
+        #[cfg(feature = "log")]
+        {
+            debug!("Query :: {:?}", query.to_str());
+        }
+
         // TODO(geekmasher): Use different patterns for different query types
 
         let mut statement = match connection.prepare(query.to_str()).await {
@@ -109,6 +114,7 @@ impl GeekConnection for libsql::Connection {
                 return Err(crate::Error::LibSQLError(e.to_string()));
             }
         };
+
         // Convert the values to libsql::Value
         let parameters: Vec<libsql::Value> = match convert_values(&query) {
             Ok(parameters) => parameters,
@@ -124,7 +130,6 @@ impl GeekConnection for libsql::Connection {
 
         #[cfg(feature = "log")]
         {
-            debug!("Query :: {:?}", query.to_str());
             debug!("Parameters :: {:?}", parameters.clone());
         }
 
@@ -339,19 +344,35 @@ fn convert_values(query: &crate::Query) -> Result<Vec<libsql::Value>, crate::Err
         _ => query.values.clone(),
     };
 
-    // for (column_name, value) in query.values.values {
     for column_name in &values.order {
-        let value = values.get(&column_name.to_string()).unwrap();
-        let column = query.table.columns.get(column_name.as_str()).unwrap();
+        let value = values
+            .get(&column_name.to_string())
+            .ok_or(crate::Error::LibSQLError(format!(
+                "Error getting value for column - {}",
+                column_name
+            )))?;
 
-        // Skip auto increment columns if the query is an insert
-        if query.query_type == QueryType::Insert && column.column_type.is_auto_increment() {
-            continue;
-        } else if query.query_type == QueryType::Update && column.column_type.is_primary_key() {
-            continue;
+        // Check if the column exists in the table
+        // The column_name could be in another table not part of the query (joins)
+        if let Some(column) = query.table.columns.get(column_name.as_str()) {
+            // Skip auto increment columns if the query is an insert
+            if query.query_type == QueryType::Insert && column.column_type.is_auto_increment() {
+                continue;
+            } else if query.query_type == QueryType::Update && column.column_type.is_primary_key() {
+                continue;
+            }
         }
 
-        parameters.push(value.clone().into_value().unwrap());
+        #[cfg(feature = "log")]
+        {
+            log::debug!("LIBSQL - Column('{}', '{}')", column_name, value);
+        }
+
+        parameters.push(
+            value.clone().into_value().map_err(|e| {
+                crate::Error::LibSQLError(format!("Error converting value - {}", e))
+            })?,
+        );
     }
     Ok(parameters)
 }
