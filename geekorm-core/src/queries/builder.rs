@@ -208,7 +208,7 @@ impl QueryBuilder {
 
             self.where_clause
                 .push(format!("{} {} ?", column, condition.to_sqlite()));
-            self.values.push(column_name.to_string(), value);
+            self.values.push(column.to_string(), value);
             self.where_condition_last = false;
         } else {
             self.error = Some(Error::QueryBuilderError(
