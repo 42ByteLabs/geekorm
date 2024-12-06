@@ -79,10 +79,11 @@ async fn main() -> Result<()> {
         ),
     ];
     // Initialize an in-memory database
-    // let db = libsql::Builder::new_local(":memory:").build().await?;
-    let db = libsql::Builder::new_local("/tmp/turso-testing.sqlite")
-        .build()
-        .await?;
+    let db = libsql::Builder::new_local(":memory:").build().await?;
+    // Initialize a database in a file
+    // let db = libsql::Builder::new_local("/tmp/turso-testing.sqlite")
+    //     .build()
+    //     .await?;
     let conn = db.connect()?;
 
     // Create a table
@@ -109,7 +110,7 @@ async fn main() -> Result<()> {
     }
 
     // Count the number of projects in the table
-    let count = Projects::row_count(&conn, Projects::query_count().build().unwrap()).await?;
+    let count = Projects::total(&conn).await?;
     println!("Number of projects: {}\n", count);
 
     // Query all projects
@@ -148,6 +149,14 @@ async fn main() -> Result<()> {
         project_serde.name, project_serde.url
     );
     assert_eq!(project_serde.name, "SerDe");
+
+    // Delete the project
+    let id = project_serde.id.clone();
+    project_serde.delete(&conn).await?;
+    
+    // Check that the project has been deleted (by counting the number of projects)
+    let new_count = Projects::total(&conn).await?;
+    assert_eq!(count, new_count + 1);
 
     Ok(())
 }
