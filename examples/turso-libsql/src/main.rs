@@ -153,7 +153,7 @@ async fn main() -> Result<()> {
     // Delete the project
     let id = project_serde.id.clone();
     project_serde.delete(&conn).await?;
-    
+
     // Check that the project has been deleted (by counting the number of projects)
     let new_count = Projects::total(&conn).await?;
     assert_eq!(count, new_count + 1);
