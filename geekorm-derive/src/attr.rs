@@ -51,9 +51,10 @@
 use proc_macro2::{Span, TokenStream};
 use quote::{quote, ToTokens};
 use syn::{
-    parse::{Parse, ParseStream},
+    parse::{discouraged::AnyDelimiter, Parse, ParseStream},
     punctuated::Punctuated,
     spanned::Spanned,
+    token::{Bracket, Comma},
     Attribute, Ident, LitBool, LitInt, LitStr, Token,
 };
 
@@ -70,6 +71,8 @@ pub(crate) struct GeekAttribute {
 pub(crate) enum GeekAttributeKeys {
     /// Rename the field for the table
     Rename,
+    /// Key
+    Key,
     /// Unique value
     Unique,
     /// New Constructor
@@ -82,6 +85,8 @@ pub(crate) enum GeekAttributeKeys {
     NotNull,
     /// Foreign Key
     ForeignKey,
+    /// Aliases
+    Aliases,
     /// Random value
     Rand,
     RandLength,
@@ -93,17 +98,21 @@ pub(crate) enum GeekAttributeKeys {
     /// Searchable
     Searchable,
     /// On Actions
+    OnValidate,
     OnUpdate,
     OnSave,
     /// Skip this field
     Skip,
+    /// Disable features
+    Disable,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub(crate) enum GeekAttributeValue {
     String(String),
     Int(i64),
     Bool(bool),
+    Vec(Vec<String>),
 }
 
 impl GeekAttribute {
@@ -240,7 +249,16 @@ impl GeekAttribute {
                     Ok(())
                 }
             }
-
+            Some(GeekAttributeKeys::Key) => {
+                if self.value.is_none() {
+                    Err(syn::Error::new(
+                        self.span.span(),
+                        "The `key` attribute requires a string or int value",
+                    ))
+                } else {
+                    Ok(())
+                }
+            }
             _ => Ok(()),
         }
     }
@@ -253,7 +271,10 @@ impl Parse for GeekAttribute {
 
         let key: Option<GeekAttributeKeys> = match name_str.as_str() {
             "skip" => Some(GeekAttributeKeys::Skip),
+            "disable" => Some(GeekAttributeKeys::Disable),
             "rename" => Some(GeekAttributeKeys::Rename),
+            "key" | "name" => Some(GeekAttributeKeys::Key),
+            "aliases" => Some(GeekAttributeKeys::Aliases),
             // Primary Keys
             "primary_key" => Some(GeekAttributeKeys::PrimaryKey),
             "auto_increment" => Some(GeekAttributeKeys::AutoIncrement),
@@ -262,6 +283,7 @@ impl Parse for GeekAttribute {
             // Foreign Key
             "foreign_key" => Some(GeekAttributeKeys::ForeignKey),
             // Functions on action
+            "validate" | "on_validate" => Some(GeekAttributeKeys::OnValidate),
             "update" | "on_update" | "on_update_write" => Some(GeekAttributeKeys::OnUpdate),
             "save" | "on_save" | "on_save_write" => Some(GeekAttributeKeys::OnSave),
 
