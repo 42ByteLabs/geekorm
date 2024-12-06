@@ -74,6 +74,7 @@ pub fn depricated_table_derive(input: TokenStream) -> TokenStream {
 /// enum Role {
 ///     Admin,
 ///     Moderator,
+///     #[geekorm(key = "UserAccounts")]
 ///     User,
 ///     #[default]
 ///     Guest,
@@ -92,8 +93,13 @@ pub fn depricated_table_derive(input: TokenStream) -> TokenStream {
 /// # assert_eq!(geekmasher.role, Role::Admin);
 /// # assert_eq!(Value::from(geekmasher.role), Value::Text("Admin".to_string()));
 /// # assert_eq!(Role::from(Value::Text("Admin".to_string())), Role::Admin);
+/// # assert_eq!(Role::from(Value::Text("UserAccounts".to_string())), Role::User);
+///
+/// let role = Role::from("UserAccounts");
+/// # assert_eq!(role, Role::User);
+/// # assert_eq!(role.to_string(), String::from("UserAccounts"));
 /// ```
-#[proc_macro_derive(Data)]
+#[proc_macro_derive(Data, attributes(geekorm))]
 pub fn data_derive(input: TokenStream) -> TokenStream {
     let ast: DeriveInput = parse_macro_input!(input as DeriveInput);
 

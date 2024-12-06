@@ -258,8 +258,6 @@ pub fn generate_backend(
             })?;
 
             auto_update.extend(quote! {
-                #[cfg(feature = "log")]
-                ::log::debug!("Auto updating field: '{}'", stringify!(#ident));
                 self.#ident = #auto;
             });
         }

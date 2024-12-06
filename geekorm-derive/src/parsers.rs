@@ -8,7 +8,7 @@ use syn::{
 #[cfg(feature = "rand")]
 use geekorm_core::utils::generate_random_string;
 use geekorm_core::{Columns, Table};
-use values::{generate_from_value, generate_serde};
+use values::{generate_from_value, generate_serde, generate_strings};
 
 mod helpers;
 mod tablebuilder;
@@ -74,12 +74,20 @@ pub(crate) fn derive_parser(ast: &DeriveInput) -> Result<TokenStream, syn::Error
 pub(crate) fn enum_parser(ast: &DeriveInput) -> Result<TokenStream, syn::Error> {
     let name = &ast.ident;
 
+    let attributes = GeekAttribute::parse_all(&ast.attrs)?;
+
     match &ast.data {
         Data::Enum(DataEnum { variants, .. }) => {
             let mut tokens = TokenStream::new();
 
             tokens.extend(generate_from_value(name, variants, &ast.generics)?);
             tokens.extend(generate_serde(name, variants, &ast.generics)?);
+            tokens.extend(generate_strings(
+                name,
+                variants,
+                &ast.generics,
+                &attributes,
+            )?);
 
             Ok(tokens)
         }

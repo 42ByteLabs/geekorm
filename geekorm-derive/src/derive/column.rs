@@ -179,6 +179,12 @@ impl ColumnDerive {
                         // If the column is unique, then it should be searchable by default
                         self.mode = Some(ColumnMode::Searchable { enabled: true });
                     }
+                    GeekAttributeKeys::OnValidate => {
+                        if let Some(GeekAttributeValue::Bool(validate)) = &attr.value {
+                            self.save = Some(validate.to_string());
+                            self.update = Some(validate.to_string());
+                        }
+                    }
                     GeekAttributeKeys::OnUpdate => {
                         if let Some(GeekAttributeValue::String(value)) = &attr.value {
                             self.update = Some(value.to_string());
@@ -339,6 +345,11 @@ impl ColumnDerive {
                     }
                     GeekAttributeKeys::HashAlgorithm => {
                         // Skip
+                    }
+                    GeekAttributeKeys::Key
+                    | GeekAttributeKeys::Disable
+                    | GeekAttributeKeys::Aliases => {
+                        // Skip (enum keys)
                     }
                 }
             } else {
