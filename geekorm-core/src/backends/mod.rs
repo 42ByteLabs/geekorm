@@ -53,6 +53,8 @@
 //!     let last_user = Users::last(&connection).await?;
 //!     # assert_eq!(last_user.username, "trent");
 //!
+//!     // Delete the user
+//!     geek.delete(&connection).await?;
 //!
 //!     Ok(())
 //! }
@@ -129,7 +131,7 @@ where
     /// Delete the current object from the database
     #[allow(async_fn_in_trait, unused_variables)]
     async fn delete(&self, connection: &'a C) -> Result<(), crate::Error> {
-        Err(crate::Error::NotImplemented)
+        C::execute::<Self>(connection, Self::query_delete(self)).await
     }
 
     /// Fetches all of the foreign key values for the current object

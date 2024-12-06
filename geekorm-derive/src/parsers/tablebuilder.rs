@@ -397,6 +397,7 @@ pub fn generate_backend(
                 Ok(())
             }
 
+            /// Update the item in the database.
             #[allow(async_fn_in_trait, unused_variables)]
             async fn update(&mut self, connection: &'a T) -> Result<(), geekorm::Error> {
                 #auto_update
