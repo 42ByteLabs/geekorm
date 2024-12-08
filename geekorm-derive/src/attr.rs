@@ -71,6 +71,9 @@ pub(crate) struct GeekAttribute {
 pub(crate) enum GeekAttributeKeys {
     /// Rename the field for the table
     Rename,
+    /// ToString
+    ToString,
+    FromString,
     /// Key
     Key,
     /// Unique value
@@ -112,8 +115,10 @@ pub(crate) enum GeekAttributeValue {
     String(String),
     Int(i64),
     Bool(bool),
-    Vec(Vec<String>),
+    List(Vec<String>),
 }
+
+const TO_STRING_KEYS: [&str; 1] = ["lowercase"];
 
 impl GeekAttribute {
     pub(crate) fn parse_all(all_attrs: &[Attribute]) -> Result<Vec<Self>, syn::Error> {
@@ -259,10 +264,53 @@ impl GeekAttribute {
                     Ok(())
                 }
             }
+            Some(GeekAttributeKeys::ToString) => {
+                if let Some(value) = &self.value {
+                    if let GeekAttributeValue::String(value_str) = value {
+                        if TO_STRING_KEYS.contains(&value_str.as_str()) {
+                            Ok(())
+                        } else {
+                            Err(syn::Error::new(
+                                self.span.span(),
+                                "The `to_string` attribute only supports `lowercase`",
+                            ))
+                        }
+                    } else {
+                        Err(syn::Error::new(
+                            self.span.span(),
+                            "The `to_string` attribute requires a string value",
+                        ))
+                    }
+                } else {
+                    Err(syn::Error::new(
+                        self.span.span(),
+                        "The `to_string` attribute requires a value",
+                    ))
+                }
+            }
+            Some(GeekAttributeKeys::Disable) => {
+                if let Some(value) = &self.value {
+                    if let GeekAttributeValue::List(_) = value {
+                        Ok(())
+                    } else {
+                        Err(syn::Error::new(
+                            self.span.span(),
+                            "The `disable` attribute requires a list of strings",
+                        ))
+                    }
+                } else {
+                    Err(syn::Error::new(
+                        self.span.span(),
+                        "The `key` attribute requires a string or int value",
+                    ))
+                }
+            }
             _ => Ok(()),
         }
     }
 }
+
+const VEC_KEYS: [&str; 2] = ["aliases", "disable"];
 
 impl Parse for GeekAttribute {
     fn parse(input: ParseStream) -> syn::Result<Self> {
@@ -273,6 +321,8 @@ impl Parse for GeekAttribute {
             "skip" => Some(GeekAttributeKeys::Skip),
             "disable" => Some(GeekAttributeKeys::Disable),
             "rename" => Some(GeekAttributeKeys::Rename),
+            "to_str" | "to_string" => Some(GeekAttributeKeys::ToString),
+            "from_str" | "from_string" => Some(GeekAttributeKeys::FromString),
             "key" | "name" => Some(GeekAttributeKeys::Key),
             "aliases" => Some(GeekAttributeKeys::Aliases),
             // Primary Keys
@@ -376,7 +426,15 @@ impl Parse for GeekAttribute {
                 let lit: LitStr = input.parse()?;
                 value_span = Some(lit.span());
 
-                Some(GeekAttributeValue::String(lit.value()))
+                let strings = lit.value();
+
+                if VEC_KEYS.contains(&name_str.as_str()) {
+                    Some(GeekAttributeValue::List(
+                        strings.split(',').map(|s| s.trim().to_string()).collect(),
+                    ))
+                } else {
+                    Some(GeekAttributeValue::String(strings))
+                }
             } else if input.peek(LitInt) {
                 let lit: LitInt = input.parse()?;
                 value_span = Some(lit.span());
