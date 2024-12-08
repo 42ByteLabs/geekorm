@@ -31,6 +31,10 @@ pub enum Error {
     #[error("Serde Error: {0}")]
     SerdeError(String),
 
+    /// Unknown Variant
+    #[error("Unknown Variant {0}")]
+    UnknownVariant(String),
+
     /// Unknown / Generic Error
     #[error("Unknown Error / Generic Error occurred")]
     Unknown,
