@@ -134,50 +134,6 @@ pub(crate) fn generate_from_value(
 /// // This will use the default value
 /// assert_eq!(unknown, UserRole::Guest);
 /// ```
-///
-/// ### Disabling Features
-///
-/// ```rust
-/// # use geekorm::prelude::*;
-///
-/// # #[derive(Eq, PartialEq, Debug)]
-/// #[derive(Data, Default, Clone)]
-/// #[geekorm(disable = "from_string")]     // Disable parsing from string
-/// enum UserRole {
-///     Admin,
-///     Moderator,
-///     User,
-///     #[default]
-///     Guest,
-/// }
-///
-/// // I can now implement the parsing myself
-/// impl From<&str> for UserRole {
-///     fn from(value: &str) -> Self {
-///         match value.to_string().to_lowercase().as_str() {
-///             "admin" | "root" => UserRole::Admin,
-///             "moderator" | "mod" => UserRole::Moderator,
-///             "user" => UserRole::User,
-///             "guest" => UserRole::Guest,
-///             // Defaults
-///             _ => UserRole::Guest,
-///         }
-///     }
-/// }
-///
-/// impl From<String> for UserRole {
-///     fn from(value: String) -> Self {
-///         Self::from(value.as_str())
-///     }
-/// }
-///
-/// // Try our parsing
-/// let user = UserRole::from("mod");
-/// # assert_eq!(user, UserRole::Moderator);
-/// # let user_string = UserRole::from(String::from("mod"));
-/// # assert_eq!(user_string, UserRole::Moderator);
-///
-/// ```
 pub(crate) fn generate_strings(
     ident: &syn::Ident,
     variants: &syn::punctuated::Punctuated<syn::Variant, syn::token::Comma>,
@@ -198,7 +154,7 @@ pub(crate) fn generate_strings(
     // This is an advanced feature to disable the parsing from strings
     let disabled_from_strings = attributes.iter().any(|attr| {
         attr.key == Some(crate::attr::GeekAttributeKeys::Disable)
-            && attr.value == Some(GeekAttributeValue::String("from_str".to_string()))
+            && attr.value == Some(GeekAttributeValue::String("from_string".to_string()))
     });
 
     for variant in variants {
