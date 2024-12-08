@@ -4,7 +4,7 @@ use geekorm::prelude::*;
 
 mod models;
 
-use models::{Projects, ProjectType, Repository, PROJECTS};
+use models::{ProjectType, Projects, Repository, PROJECTS};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -56,7 +56,10 @@ async fn main() -> Result<()> {
     let all_projects = Projects::fetch_all(&conn).await?;
 
     for project in all_projects {
-        println!("Project: {:<10} ({:<12}) - {}", project.name, project.project_type, project.url);
+        println!(
+            "Project: {:<10} ({:<12}) - {}",
+            project.name, project.project_type, project.url
+        );
     }
 
     let mut project_serde = Projects::fetch_by_name(&conn, "serde").await?;
