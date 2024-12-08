@@ -1,83 +1,15 @@
 #![allow(dead_code, unused_variables, unused_imports)]
 use anyhow::Result;
-
 use geekorm::prelude::*;
 
-#[derive(Debug, Clone, Default, Table, serde::Serialize, serde::Deserialize)]
-pub struct Repository {
-    #[geekorm(primary_key, auto_increment)]
-    pub id: PrimaryKeyInteger,
-    pub url: String,
-}
+mod models;
 
-#[derive(Data, Debug, Clone, Default)]
-pub enum ProjectType {
-    #[default]
-    Library,
-    Application,
-    Framework,
-    Tool,
-}
-
-#[derive(Debug, Clone, Default, Table, serde::Serialize, serde::Deserialize)]
-pub struct Projects {
-    #[geekorm(primary_key, auto_increment)]
-    pub id: PrimaryKeyInteger,
-
-    #[geekorm(unique)]
-    pub name: String,
-
-    #[geekorm(new = "ProjectType::Library")]
-    pub project_type: ProjectType,
-
-    #[geekorm(search)]
-    pub url: String,
-
-    #[geekorm(foreign_key = "Repository.id")]
-    pub repository: ForeignKey<i32, Repository>,
-}
+use models::{Projects, ProjectType, Repository, PROJECTS};
 
 #[tokio::main]
 async fn main() -> Result<()> {
     init();
 
-    let projects = vec![
-        (
-            "serde",
-            "https://serde.rs/",
-            "https://github.com/serde-rs/serde",
-        ),
-        (
-            "tokio",
-            "https://tokio.rs/",
-            "https://github.com/tokio-rs/tokio",
-        ),
-        (
-            "actix",
-            "https://actix.rs/",
-            "https://github.com/actix/actix-web",
-        ),
-        (
-            "rocket",
-            "https://rocket.rs/",
-            "https://github.com/rwf2/Rocket",
-        ),
-        (
-            "reqwest",
-            "https://docs.rs/reqwest/latest/reqwest/",
-            "https://github.com/seanmonstar/reqwest",
-        ),
-        (
-            "hyper",
-            "https://hyper.rs/",
-            "https://github.com/hyperium/hyper",
-        ),
-        (
-            "rust",
-            "https://rust-lang.org/",
-            "https://github.com/rust-lang/rust/",
-        ),
-    ];
     // Initialize an in-memory database
     let db = libsql::Builder::new_local(":memory:").build().await?;
     // Initialize a database in a file
@@ -92,7 +24,7 @@ async fn main() -> Result<()> {
     Projects::create_table(&conn).await?;
 
     println!("Inserting data into the table...");
-    for (name, url, repo) in projects {
+    for (name, typ, url, repo) in PROJECTS.iter() {
         // Use the Repository::new() constructor to create a new repository and
         // insert it into the database.
         let mut repository = Repository::new(repo.to_string());
@@ -101,6 +33,13 @@ async fn main() -> Result<()> {
         // Use the Projects::new() constructor to create a new project.
         // This is provided by the Table derive macro when the `new` feature is enabled.
         let mut project = Projects::new(name.to_string(), url.to_string(), repository.id);
+
+        // You can also set the values of the struct directly before saving it.
+        if project.project_type != *typ {
+            // ProjectType isn't set using `.new()` and set to Library by default
+            project.project_type = typ.clone();
+        }
+
         project.save(&conn).await?;
 
         println!(
@@ -117,7 +56,7 @@ async fn main() -> Result<()> {
     let all_projects = Projects::fetch_all(&conn).await?;
 
     for project in all_projects {
-        println!("Project: {:<10} - {}", project.name, project.url);
+        println!("Project: {:<10} ({:<12}) - {}", project.name, project.project_type, project.url);
     }
 
     let mut project_serde = Projects::fetch_by_name(&conn, "serde").await?;
