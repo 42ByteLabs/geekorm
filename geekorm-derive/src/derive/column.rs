@@ -335,21 +335,11 @@ impl ColumnDerive {
 
                         self.mode = Some(ColumnMode::Rand { len, prefix, env });
                     }
-                    GeekAttributeKeys::RandLength
-                    | GeekAttributeKeys::RandEnv
-                    | GeekAttributeKeys::RandPrefix => {
-                        // Skip
-                    }
                     GeekAttributeKeys::Hash => {
                         self.mode = Some(ColumnMode::Hash(HashingAlgorithm::Pbkdf2));
                     }
-                    GeekAttributeKeys::HashAlgorithm => {
+                    _ => {
                         // Skip
-                    }
-                    GeekAttributeKeys::Key
-                    | GeekAttributeKeys::Disable
-                    | GeekAttributeKeys::Aliases => {
-                        // Skip (enum keys)
                     }
                 }
             } else {

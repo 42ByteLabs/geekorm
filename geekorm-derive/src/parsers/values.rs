@@ -187,9 +187,18 @@ pub(crate) fn generate_strings(
     let mut stream = TokenStream::new();
     let mut str_to = TokenStream::new();
 
+    let from_lowercase: bool = attributes.iter().any(|attr| {
+        attr.key == Some(crate::attr::GeekAttributeKeys::FromString)
+            && attr.value == Some(GeekAttributeValue::String("lowercase".to_string()))
+    });
+    let to_lowercase: bool = attributes.iter().any(|attr| {
+        attr.key == Some(crate::attr::GeekAttributeKeys::ToString)
+            && attr.value == Some(GeekAttributeValue::String("lowercase".to_string()))
+    });
+    // This is an advanced feature to disable the parsing from strings
     let disabled_from_strings = attributes.iter().any(|attr| {
         attr.key == Some(crate::attr::GeekAttributeKeys::Disable)
-            && attr.value == Some(GeekAttributeValue::String("from_string".to_string()))
+            && attr.value == Some(GeekAttributeValue::String("from_str".to_string()))
     });
 
     for variant in variants {
@@ -211,12 +220,13 @@ pub(crate) fn generate_strings(
         let variant_ident = variant.ident.clone();
 
         // Support `key` or `rename` attribute
+        // We do not lowercase the value here, as we want to keep the original
         let variant_str = if let Some(attr) = attrs
             .iter()
             .find(|&attr| attr.key == Some(crate::attr::GeekAttributeKeys::Key))
         {
             if let Some(GeekAttributeValue::String(value)) = &attr.value {
-                syn::LitStr::new(value, value.span())
+                syn::LitStr::new(&value, value.span())
             } else if let Some(GeekAttributeValue::Int(value)) = &attr.value {
                 syn::LitStr::new(value.to_string().as_str(), value.span())
             } else {
@@ -227,32 +237,77 @@ pub(crate) fn generate_strings(
             }
         } else {
             // TODO: Handle r# prefix better
-            let variant_string = variant_ident.to_string().replace("r#", "");
+            let mut variant_string = variant_ident.to_string().replace("r#", "");
+            if to_lowercase {
+                variant_string = variant_string.to_lowercase();
+            }
             syn::LitStr::new(&variant_string, variant.span())
         };
+
+        // The list of &str values to match against
+        let mut variants: Vec<syn::LitStr> = vec![variant_str.clone()];
+
+        if let Some(aliases) = attrs
+            .iter()
+            .find(|&attr| attr.key == Some(crate::attr::GeekAttributeKeys::Aliases))
+        {
+            match &aliases.value {
+                Some(GeekAttributeValue::String(value)) => {
+                    variants.push(syn::LitStr::new(&value, aliases.span.span()));
+                }
+                Some(GeekAttributeValue::List(values)) => {
+                    for value in values {
+                        variants.push(syn::LitStr::new(&value, value.span()));
+                    }
+                }
+                _ => {}
+            }
+        }
 
         stream.extend(quote! {
             #ident::#variant_ident => String::from(#variant_str),
         });
-        if !disabled_from_strings {
-            str_to.extend(quote! {
-                #variant_str => #ident::#variant_ident,
-            });
-        }
+        // key | aliases*
+        str_to.extend(quote! {
+            #(#variants)|* => #ident::#variant_ident,
+        });
     }
+
+    // The parsing is case-sensitive
+    let str_from = if from_lowercase {
+        quote! {
+            match s.to_lowercase().as_str() {
+                #str_to
+                _ => return Err(::geekorm::Error::UnknownVariant(s.to_string())),
+            }
+        }
+    } else {
+        quote! {
+            match s {
+                #str_to
+                _ => return Err(::geekorm::Error::UnknownVariant(s.to_string())),
+            }
+        }
+    };
 
     let strings_tokens = if !disabled_from_strings {
         quote! {
+            #[automatically_derived]
+            impl ::std::str::FromStr for #ident {
+                type Err = ::geekorm::Error;
+
+                fn from_str(s: &str) -> Result<Self, Self::Err> {
+                    Ok( #str_from )
+                }
+            }
             #[automatically_derived]
             impl From<&str> for #ident
             where
                 Self: Default
             {
                 fn from(value: &str) -> Self {
-                    match value {
-                        #str_to
-                        _ => #ident::default(),
-                    }
+                    use ::std::str::FromStr;
+                    Self::from_str(value).unwrap_or_default()
                 }
             }
             #[automatically_derived]
@@ -261,7 +316,8 @@ pub(crate) fn generate_strings(
                 Self: Default
             {
                 fn from(value: String) -> Self {
-                    Self::from(value.as_str())
+                    use ::std::str::FromStr;
+                    Self::from_str(value.as_str()).unwrap_or_default()
                 }
             }
             #[automatically_derived]
@@ -270,7 +326,8 @@ pub(crate) fn generate_strings(
                 Self: Default
             {
                 fn from(value: &String) -> Self {
-                    Self::from(value.as_str())
+                    use ::std::str::FromStr;
+                    Self::from_str(value.as_str()).unwrap_or_default()
                 }
             }
         }
@@ -349,10 +406,9 @@ pub(crate) fn generate_serde(
             where
                 D: ::serde::Deserializer<'de>,
             {
-                match String::deserialize(deserializer)?.as_str() {
-                    #tokens
-                    _ => Err(serde::de::Error::custom("Unknown user type")),
-                }
+                use ::std::str::FromStr;
+                Self::from_str(String::deserialize(deserializer)?.as_str())
+                    .map_err(::serde::de::Error::custom)
             }
         }
     });
