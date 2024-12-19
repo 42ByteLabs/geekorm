@@ -14,6 +14,8 @@ use crate::{
     PrimaryKey, TableBuilder, TablePrimaryKey,
 };
 
+use super::keys::{foreign::ForeignKeyIntegerOld, primary::PrimaryKeyIntegerOld};
+
 /// List of Values
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Values {
@@ -65,13 +67,13 @@ impl IntoIterator for Values {
 pub enum Value {
     /// A text (String) value
     Text(String),
-    /// An integer (i32) value
-    Integer(i32),
-    /// A boolean (i32) value (0 or 1)
+    /// An integer (i64) values so the values can be positive or negative
+    Integer(i64),
+    /// A boolean (i64) value (0 or 1)
     /// This is because SQLite does not have a boolean type
-    Boolean(i32),
-    /// Identifier Key type (Primary / Forigen Key) which is a UUID
-    Identifier(String),
+    Boolean(u8),
+    /// Identifier Key type (Primary / Forigen Key) which is a u64
+    Identifier(u64),
     /// A binary blob value (vector of bytes)
     Blob(Vec<u8>),
     /// JSON blob
@@ -103,25 +105,37 @@ impl Display for Value {
 
 impl From<PrimaryKey<String>> for Value {
     fn from(value: PrimaryKey<String>) -> Self {
-        Value::Identifier(value.into())
+        Value::Text(value.into())
     }
 }
 
 impl From<&PrimaryKey<String>> for Value {
     fn from(value: &PrimaryKey<String>) -> Self {
-        Value::Identifier(value.clone().into())
+        Value::Text(value.clone().into())
     }
 }
 
 impl From<PrimaryKeyInteger> for Value {
     fn from(value: PrimaryKeyInteger) -> Self {
-        Value::Integer(value.into())
+        Value::Identifier(u64::from(value))
     }
 }
 
 impl From<&PrimaryKeyInteger> for Value {
     fn from(value: &PrimaryKeyInteger) -> Self {
-        Value::Integer((*value).into())
+        Value::Identifier((*value).into())
+    }
+}
+
+impl From<PrimaryKeyIntegerOld> for Value {
+    fn from(value: PrimaryKeyIntegerOld) -> Self {
+        Value::Identifier(value.value as u64)
+    }
+}
+
+impl From<&PrimaryKeyIntegerOld> for Value {
+    fn from(value: &PrimaryKeyIntegerOld) -> Self {
+        Value::Identifier(value.value as u64)
     }
 }
 
@@ -132,7 +146,7 @@ where
     T: TableBuilder + TablePrimaryKey,
 {
     fn from(value: ForeignKeyInteger<T>) -> Self {
-        Value::Integer(value.key)
+        Value::Identifier(value.key)
     }
 }
 
@@ -141,7 +155,16 @@ where
     T: TableBuilder + TablePrimaryKey,
 {
     fn from(value: &ForeignKeyInteger<T>) -> Self {
-        Value::Integer(value.key)
+        Value::Identifier(value.key)
+    }
+}
+
+impl<T> From<&ForeignKeyIntegerOld<T>> for Value
+where
+    T: TableBuilder + TablePrimaryKey,
+{
+    fn from(value: &ForeignKeyIntegerOld<T>) -> Self {
+        Value::Identifier(value.key as u64)
     }
 }
 
@@ -199,27 +222,40 @@ where
     }
 }
 
+/// This is to make sure we are backwards compatible
 impl From<i32> for Value {
     fn from(value: i32) -> Self {
-        Value::Integer(value)
+        Value::Integer(value as i64)
+    }
+}
+/// This is to make sure we are backwards compatible
+impl From<&i32> for Value {
+    fn from(value: &i32) -> Self {
+        Value::Integer(*value as i64)
     }
 }
 
-impl From<&i32> for Value {
-    fn from(value: &i32) -> Self {
-        Value::Integer(*value)
+impl From<u64> for Value {
+    fn from(value: u64) -> Self {
+        Value::Integer(value as i64)
+    }
+}
+
+impl From<&u64> for Value {
+    fn from(value: &u64) -> Self {
+        Value::Integer(*value as i64)
     }
 }
 
 impl From<i64> for Value {
     fn from(value: i64) -> Self {
-        Value::Integer(value as i32)
+        Value::Integer(value as i64)
     }
 }
 
 impl From<usize> for Value {
     fn from(value: usize) -> Self {
-        Value::Integer(value as i32)
+        Value::Integer(value as i64)
     }
 }
 
@@ -255,9 +291,9 @@ impl Serialize for Value {
     {
         match self {
             Value::Text(value) => serializer.serialize_str(value),
-            Value::Integer(value) => serializer.serialize_i32(*value),
-            Value::Boolean(value) => serializer.serialize_i32(*value),
-            Value::Identifier(value) => serializer.serialize_str(value),
+            Value::Integer(value) => serializer.serialize_i64(*value),
+            Value::Boolean(value) => serializer.serialize_u8(*value),
+            Value::Identifier(value) => serializer.serialize_u64(*value),
             // TODO(geekmasher): This might not be the correct way to serialize a blob
             Value::Blob(value) => serializer.serialize_bytes(value),
             // JSON
@@ -302,21 +338,27 @@ impl<'de> Deserialize<'de> for Value {
             where
                 E: serde::de::Error,
             {
-                Ok(Value::Integer(value))
+                Ok(Value::Integer(value as i64))
+            }
+            fn visit_u32<E>(self, v: u32) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                Ok(Value::Integer(v as i64))
             }
 
             fn visit_i64<E>(self, value: i64) -> Result<Self::Value, E>
             where
                 E: serde::de::Error,
             {
-                Ok(Value::Integer(value as i32))
+                Ok(Value::Integer(value as i64))
             }
 
             fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
             where
                 E: serde::de::Error,
             {
-                Ok(Value::Integer(value as i32))
+                Ok(Value::Integer(value as i64))
             }
 
             fn visit_bool<E>(self, value: bool) -> Result<Self::Value, E>
