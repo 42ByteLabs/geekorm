@@ -57,7 +57,10 @@ where
 }
 
 /// Foreign Key as an Integer
-pub type ForeignKeyInteger<T> = ForeignKey<i32, T>;
+pub type ForeignKeyInteger<T> = ForeignKey<u64, T>;
+
+/// Old Foreign Key as an Integer
+pub(crate) type ForeignKeyIntegerOld<T> = ForeignKey<i32, T>;
 
 /// Foreign Key as a String
 pub type ForeignKeyString<T> = ForeignKey<String, T>;
@@ -86,7 +89,7 @@ where
     }
 }
 
-impl<D> Default for ForeignKey<i32, D>
+impl<D> Default for ForeignKey<u64, D>
 where
     D: TableBuilder + Default,
 {
@@ -109,6 +112,32 @@ where
         }
     }
 }
+
+impl<D> Default for ForeignKey<i32, D>
+where
+    D: TableBuilder + Default,
+{
+    fn default() -> Self {
+        Self {
+            key: Default::default(),
+            data: Default::default(),
+        }
+    }
+}
+
+impl<D> ForeignKey<u64, D>
+where
+    D: TableBuilder + Default,
+{
+    /// Create a new foreign key with an integer
+    pub fn new(value: u64) -> Self {
+        Self {
+            key: value,
+            data: Default::default(),
+        }
+    }
+}
+
 impl<D> ForeignKey<i32, D>
 where
     D: TableBuilder + Default,
@@ -132,6 +161,15 @@ where
             key: value,
             data: Default::default(),
         }
+    }
+}
+
+impl<D> From<u64> for ForeignKey<u64, D>
+where
+    D: TableBuilder + Default,
+{
+    fn from(value: u64) -> Self {
+        Self::new(value)
     }
 }
 
@@ -162,11 +200,38 @@ where
     }
 }
 
+impl<D> From<ForeignKey<u64, D>> for u64
+where
+    D: TableBuilder,
+{
+    fn from(value: ForeignKey<u64, D>) -> Self {
+        value.key
+    }
+}
+
+impl<D> From<PrimaryKey<u64>> for ForeignKey<u64, D>
+where
+    D: TableBuilder + Default,
+{
+    fn from(value: PrimaryKey<u64>) -> Self {
+        Self::new(value.value)
+    }
+}
+
 impl<D> From<ForeignKey<i32, D>> for i32
 where
     D: TableBuilder,
 {
     fn from(value: ForeignKey<i32, D>) -> Self {
+        value.key
+    }
+}
+
+impl<D> From<&ForeignKeyIntegerOld<D>> for i32
+where
+    D: TableBuilder,
+{
+    fn from(value: &ForeignKeyIntegerOld<D>) -> Self {
         value.key
     }
 }
@@ -197,6 +262,17 @@ where
     where
         S: Serializer,
     {
+        serializer.serialize_u64(self.key)
+    }
+}
+impl<D> Serialize for ForeignKeyIntegerOld<D>
+where
+    D: TableBuilder + Default,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
         serializer.serialize_i32(self.key)
     }
 }
@@ -209,9 +285,60 @@ where
     where
         D: serde::Deserializer<'de>,
     {
-        struct PrimaryKeyVisitor;
+        struct ForeignKeyVisitor;
 
-        impl<'de> Visitor<'de> for PrimaryKeyVisitor {
+        impl<'de> Visitor<'de> for ForeignKeyVisitor {
+            type Value = u64;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("an integer representing a foreign key")
+            }
+
+            fn visit_i32<E>(self, value: i32) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                Ok(value as u64)
+            }
+            fn visit_u32<E>(self, v: u32) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                Ok(v as u64)
+            }
+
+            fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                Ok(v as u64)
+            }
+
+            fn visit_i64<E>(self, v: i64) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                Ok(v as u64)
+            }
+        }
+
+        Ok(ForeignKey::from(
+            deserializer.deserialize_u64(ForeignKeyVisitor)?,
+        ))
+    }
+}
+
+impl<'de, T> Deserialize<'de> for ForeignKeyIntegerOld<T>
+where
+    T: TableBuilder + Default + Serialize + Deserialize<'de>,
+{
+    fn deserialize<D>(deserializer: D) -> Result<ForeignKeyIntegerOld<T>, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        struct ForeignKeyVisitor;
+
+        impl<'de> Visitor<'de> for ForeignKeyVisitor {
             type Value = i32;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
@@ -223,6 +350,12 @@ where
                 E: serde::de::Error,
             {
                 Ok(value)
+            }
+            fn visit_u32<E>(self, v: u32) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                Ok(v as i32)
             }
 
             fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E>
@@ -240,8 +373,8 @@ where
             }
         }
 
-        Ok(ForeignKey::from(
-            deserializer.deserialize_i32(PrimaryKeyVisitor)?,
+        Ok(ForeignKeyIntegerOld::from(
+            deserializer.deserialize_i32(ForeignKeyVisitor)?,
         ))
     }
 }

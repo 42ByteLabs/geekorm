@@ -80,9 +80,9 @@ where
     }
 }
 
-impl PrimaryKey<i32> {
+impl PrimaryKey<u64> {
     /// Create a new primary key with an integer
-    pub fn new(value: i32) -> Self {
+    pub fn new(value: u64) -> Self {
         Self { value }
     }
 }
@@ -94,7 +94,9 @@ impl PrimaryKey<String> {
     }
 }
 
-/// Primary Key as an Integer
+/// Primary Key as an Integer (u64)
+///
+/// This is the default primary key type for GeekORM.
 ///
 /// ```rust
 /// use geekorm::prelude::*;
@@ -112,9 +114,17 @@ impl PrimaryKey<String> {
 /// # assert_eq!(user.id.clone(), PrimaryKeyInteger::from(1));
 /// # assert_eq!(user.username.clone(), String::from("JohnDoe"));
 /// ```
-pub type PrimaryKeyInteger = PrimaryKey<i32>;
+pub type PrimaryKeyInteger = PrimaryKey<u64>;
 
 impl Default for PrimaryKeyInteger {
+    fn default() -> Self {
+        PrimaryKey { value: 0 }
+    }
+}
+
+pub(crate) type PrimaryKeyIntegerOld = PrimaryKey<i32>;
+
+impl Default for PrimaryKeyIntegerOld {
     fn default() -> Self {
         PrimaryKey { value: 0 }
     }
@@ -202,9 +212,32 @@ impl ToSqlite for PrimaryKey<String> {
     }
 }
 
+impl From<u64> for PrimaryKeyInteger {
+    fn from(value: u64) -> Self {
+        PrimaryKey { value }
+    }
+}
+impl From<i64> for PrimaryKeyInteger {
+    fn from(value: i64) -> Self {
+        PrimaryKey {
+            value: value as u64,
+        }
+    }
+}
+
+/// This is to make sure we are backwards compatible
 impl From<i32> for PrimaryKeyInteger {
     fn from(value: i32) -> Self {
-        PrimaryKey { value }
+        PrimaryKey {
+            value: value as u64,
+        }
+    }
+}
+impl From<u32> for PrimaryKeyInteger {
+    fn from(value: u32) -> Self {
+        PrimaryKey {
+            value: value as u64,
+        }
     }
 }
 
@@ -270,13 +303,38 @@ impl From<PrimaryKey<String>> for String {
     }
 }
 
+impl From<PrimaryKeyInteger> for u64 {
+    fn from(value: PrimaryKeyInteger) -> Self {
+        value.value
+    }
+}
+/// This is to make sure we are backwards compatible
 impl From<PrimaryKeyInteger> for i32 {
     fn from(value: PrimaryKeyInteger) -> Self {
+        value.value as i32
+    }
+}
+impl From<PrimaryKeyIntegerOld> for i32 {
+    fn from(value: PrimaryKeyIntegerOld) -> Self {
+        value.value
+    }
+}
+impl From<&PrimaryKeyIntegerOld> for i32 {
+    fn from(value: &PrimaryKeyIntegerOld) -> Self {
         value.value
     }
 }
 
 impl Serialize for PrimaryKeyInteger {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_u64(self.value)
+    }
+}
+
+impl Serialize for PrimaryKey<i32> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -305,26 +363,32 @@ impl<'de> Deserialize<'de> for PrimaryKeyInteger {
             {
                 Ok(PrimaryKeyInteger::from(v))
             }
+            fn visit_u32<E>(self, v: u32) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                Ok(PrimaryKeyInteger::from(v))
+            }
 
             fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E>
             where
                 E: serde::de::Error,
             {
-                Ok(PrimaryKeyInteger::from(v as i32))
+                Ok(PrimaryKeyInteger::from(v))
             }
 
             fn visit_i64<E>(self, v: i64) -> Result<Self::Value, E>
             where
                 E: serde::de::Error,
             {
-                Ok(PrimaryKeyInteger::from(v as i32))
+                Ok(PrimaryKeyInteger::from(v as u64))
             }
 
             fn visit_str<E>(self, value: &str) -> Result<PrimaryKeyInteger, E>
             where
                 E: serde::de::Error,
             {
-                match value.parse::<i32>() {
+                match value.parse::<u64>() {
                     Ok(value) => Ok(PrimaryKeyInteger::from(value)),
                     Err(_) => Err(serde::de::Error::custom("Invalid integer value")),
                 }
@@ -334,8 +398,77 @@ impl<'de> Deserialize<'de> for PrimaryKeyInteger {
             where
                 E: serde::de::Error,
             {
-                match v.parse::<i32>() {
+                match v.parse::<u64>() {
                     Ok(value) => Ok(PrimaryKeyInteger::from(value)),
+                    Err(_) => Err(serde::de::Error::custom("Invalid integer value")),
+                }
+            }
+        }
+
+        deserializer.deserialize_u64(PrimaryKeyVisitor)
+    }
+}
+
+/// For backwards compatibility
+impl<'de> Deserialize<'de> for PrimaryKeyIntegerOld {
+    fn deserialize<D>(deserializer: D) -> Result<PrimaryKeyIntegerOld, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        struct PrimaryKeyVisitor;
+
+        impl<'de> Visitor<'de> for PrimaryKeyVisitor {
+            type Value = PrimaryKeyIntegerOld;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("an integer representing a primary key")
+            }
+
+            fn visit_i32<E>(self, v: i32) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                Ok(PrimaryKeyIntegerOld { value: v })
+            }
+            fn visit_u32<E>(self, v: u32) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                Ok(PrimaryKeyIntegerOld { value: v as i32 })
+            }
+
+            fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                Ok(PrimaryKeyIntegerOld { value: v as i32 })
+            }
+
+            fn visit_i64<E>(self, v: i64) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                Ok(PrimaryKeyIntegerOld { value: v as i32 })
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<PrimaryKeyIntegerOld, E>
+            where
+                E: serde::de::Error,
+            {
+                match value.parse::<i32>() {
+                    Ok(value) => Ok(PrimaryKeyIntegerOld { value }),
+                    Err(_) => Err(serde::de::Error::custom("Invalid integer value")),
+                }
+            }
+
+            fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                match v.parse::<u64>() {
+                    Ok(value) => Ok(PrimaryKeyIntegerOld {
+                        value: value as i32,
+                    }),
                     Err(_) => Err(serde::de::Error::custom("Invalid integer value")),
                 }
             }
