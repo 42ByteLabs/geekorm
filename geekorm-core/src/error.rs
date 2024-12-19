@@ -16,8 +16,8 @@ pub enum Error {
     ColumnSkipped,
 
     /// No Rows was found in the database for the query
-    #[error("No Rows Found in the database for the query")]
-    NoRowsFound,
+    #[error("No Rows Found - Query: '{0}'")]
+    NoRowsFound(String),
 
     /// Not Implemented
     #[error("Not Implemented")]
