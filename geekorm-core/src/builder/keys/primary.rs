@@ -241,6 +241,19 @@ impl From<u32> for PrimaryKeyInteger {
     }
 }
 
+impl From<i32> for PrimaryKeyIntegerOld {
+    fn from(value: i32) -> Self {
+        PrimaryKey { value }
+    }
+}
+impl From<u32> for PrimaryKeyIntegerOld {
+    fn from(value: u32) -> Self {
+        PrimaryKey {
+            value: value as i32,
+        }
+    }
+}
+
 impl From<String> for PrimaryKeyInteger {
     fn from(value: String) -> Self {
         PrimaryKey {
