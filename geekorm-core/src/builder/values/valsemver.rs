@@ -8,7 +8,7 @@
 //! #[derive(Table, Clone, serde::Serialize, serde::Deserialize)]
 //! struct Project {
 //!     #[geekorm(primary_key, auto_increment)]
-//!     id: PrimaryKey<i32>,
+//!     id: PrimaryKey<u64>,
 //!     /// Name of the project
 //!     #[geekorm(unique)]
 //!     name: String,

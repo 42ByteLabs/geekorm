@@ -4,12 +4,12 @@ use crate::builder::keys::primary::PrimaryKeyUuid;
 
 impl From<PrimaryKeyUuid> for Value {
     fn from(value: PrimaryKeyUuid) -> Self {
-        Value::Identifier(value.value.to_string())
+        Value::Text(value.value.to_string())
     }
 }
 
 impl From<&PrimaryKeyUuid> for Value {
     fn from(value: &PrimaryKeyUuid) -> Self {
-        Value::Identifier(value.value.to_string())
+        Value::Text(value.value.to_string())
     }
 }

@@ -236,7 +236,7 @@ impl GeekConnection for libsql::Connection {
                 {
                     error!("No rows found for query: `{}`", query.to_str());
                 }
-                return Err(crate::Error::NoRowsFound);
+                return Err(crate::Error::NoRowsFound(query.to_string()));
             }
         };
 
@@ -381,10 +381,10 @@ impl IntoValue for Value {
     fn into_value(self) -> libsql::Result<libsql::Value> {
         Ok(match self {
             Value::Text(value) => libsql::Value::Text(value),
-            Value::Integer(value) => libsql::Value::Integer(value as i64),
+            Value::Integer(value) => libsql::Value::Integer(value),
             Value::Boolean(value) => libsql::Value::Text(value.to_string()),
             // TODO: Identifier could be a Integer?
-            Value::Identifier(value) => libsql::Value::Text(value),
+            Value::Identifier(value) => libsql::Value::Integer(value as i64),
             Value::Blob(value) | Value::Json(value) => libsql::Value::Blob(value),
             Value::Null => libsql::Value::Null,
         })
@@ -395,7 +395,7 @@ impl From<libsql::Value> for Value {
     fn from(value: libsql::Value) -> Self {
         match value {
             libsql::Value::Text(value) => Value::Text(value),
-            libsql::Value::Integer(value) => Value::Integer(value as i32),
+            libsql::Value::Integer(value) => Value::Integer(value),
             libsql::Value::Null => Value::Null,
             libsql::Value::Blob(value) => {
                 // TODO: Is this the best way of doing this?
