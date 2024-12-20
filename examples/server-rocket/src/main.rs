@@ -3,10 +3,12 @@ extern crate rocket;
 
 use anyhow::Result;
 use geekorm::prelude::*;
-use rocket::routes;
+use rocket::{routes, State};
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 pub struct AppState {
-    db: libsql::Database,
+    connection: Arc<Mutex<libsql::Connection>>,
 }
 
 #[derive(Table, Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
@@ -18,12 +20,11 @@ pub struct Users {
 }
 
 #[get("/?<name>")]
-pub async fn index(config: &rocket::State<AppState>, name: Option<String>) -> String {
+pub async fn index(config: &State<AppState>, name: Option<String>) -> String {
     if let Some(name) = &name {
-        let connection: libsql::Connection = config.db.connect().unwrap();
-
         println!("Fetching user by username: {}", name);
-        let user = match Users::fetch_by_username(&connection, name).await {
+
+        let user = match Users::fetch_by_username(&config.connection, name).await {
             Ok(user) => user,
             Err(err) => {
                 println!("Error fetching user: {:?}", err);
@@ -61,7 +62,9 @@ async fn main() -> Result<()> {
 
     println!("Starting Rocket server...");
     rocket::build()
-        .manage(AppState { db })
+        .manage(AppState {
+            connection: Arc::new(Mutex::new(connection)),
+        })
         .mount("/", routes![index])
         .launch()
         .await?;

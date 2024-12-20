@@ -9,10 +9,10 @@ categories.workspace = true
 authors.workspace = true
 
 [dependencies]
-geekorm = { path = "../../" }
+geekorm = { path = "../../", features = ["all", "libsql", "backends-tokio"] }
 anyhow = "1"
 
 rocket = { version = "^0.5", features = ["json"] }
-libsql = "^0.5"
+libsql = "^0.6"
 serde = "1"
 tokio = { version = "1", features = ["full"] }
