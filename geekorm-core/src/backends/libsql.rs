@@ -412,7 +412,7 @@ where
             }
         }
         Err(crate::Error::LibSQLError(
-            "Error getting write lock on connection".to_string(),
+            "Error getting write lock on connection in row_count".to_string(),
         ))
     }
 
