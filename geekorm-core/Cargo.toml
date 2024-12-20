@@ -46,9 +46,10 @@ hash-sha512 = ["dep:sha-crypt", "dep:rand_core"]
 
 # Backends
 backends = ["search"]
+backends-tokio = ["dep:tokio"]
 search = []
 
-libsql = ["backends", "dep:libsql"]
+libsql = ["backends", "dep:libsql", "dep:tokio"]
 rusqlite = ["backends", "dep:rusqlite", "dep:serde_rusqlite"]
 # sqlite = ["backends", "dep:sqlite"]
 
@@ -80,6 +81,8 @@ sha-crypt = { version = "^0.5", optional = true }
 libsql = { version = "^0.6", optional = true }
 rusqlite = { version = "0.32", features = ["bundled"], optional = true }
 serde_rusqlite = { version = "^0.36", optional = true }
+
+tokio = { version = "^1.40", features = ["full"], optional = true }
 
 [dev-dependencies]
 geekorm = { path = ".." }

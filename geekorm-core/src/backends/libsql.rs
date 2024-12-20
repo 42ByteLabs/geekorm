@@ -35,14 +35,16 @@
 //! }
 //! # }
 //! ```
+
 use libsql::{de, params::IntoValue};
 #[cfg(feature = "log")]
 use log::{debug, error};
 use serde::{de::DeserializeOwned, Serialize};
-use std::{
-    collections::HashMap,
-    sync::{Arc, RwLock},
-};
+#[cfg(not(feature = "backends-tokio"))]
+use std::sync::Mutex;
+use std::{collections::HashMap, sync::Arc};
+#[cfg(feature = "backends-tokio")]
+use tokio::sync::Mutex;
 
 use crate::{
     builder::models::QueryType, GeekConnection, QueryBuilderTrait, TableBuilder, Value, Values,
@@ -373,12 +375,12 @@ impl GeekConnection for libsql::Connection {
 
 const TIMEOUT: std::time::Duration = std::time::Duration::from_secs(5);
 
-impl<C> GeekConnection for Arc<RwLock<C>>
+impl<C> GeekConnection for Arc<tokio::sync::Mutex<C>>
 where
-    Self: std::marker::Sync + std::marker::Send,
+    Self: Sync + Send + 'static,
     C: GeekConnection<Connection = libsql::Connection>,
 {
-    type Connection = Arc<RwLock<libsql::Connection>>;
+    type Connection = Arc<Mutex<libsql::Connection>>;
 
     async fn create_table<T>(connection: &Self::Connection) -> Result<(), crate::Error>
     where
@@ -386,7 +388,7 @@ where
     {
         let start = std::time::Instant::now();
         while start.elapsed() < TIMEOUT {
-            match connection.try_write() {
+            match connection.try_lock() {
                 Ok(conn) => return C::create_table::<T>(&conn).await,
                 Err(_) => {
                     std::thread::sleep(std::time::Duration::from_millis(100));
@@ -404,7 +406,7 @@ where
     ) -> Result<i64, crate::Error> {
         let start = std::time::Instant::now();
         while start.elapsed() < TIMEOUT {
-            match connection.try_write() {
+            match connection.try_lock() {
                 Ok(conn) => return C::row_count(&conn, query).await,
                 Err(_) => {
                     std::thread::sleep(std::time::Duration::from_millis(100));
@@ -425,7 +427,7 @@ where
     {
         let start = std::time::Instant::now();
         while start.elapsed() < TIMEOUT {
-            match connection.try_write() {
+            match connection.try_lock() {
                 Ok(conn) => return C::query::<T>(&conn, query).await,
                 Err(_) => {
                     std::thread::sleep(std::time::Duration::from_millis(100));
@@ -447,7 +449,7 @@ where
     {
         let start = std::time::Instant::now();
         while start.elapsed() < TIMEOUT {
-            match connection.try_write() {
+            match connection.try_lock() {
                 Ok(conn) => return C::query_first::<T>(&conn, query).await,
                 Err(_) => {
                     std::thread::sleep(std::time::Duration::from_millis(100));
@@ -468,7 +470,7 @@ where
     {
         let start = std::time::Instant::now();
         while start.elapsed() < TIMEOUT {
-            match connection.try_write() {
+            match connection.try_lock() {
                 Ok(conn) => return C::execute::<T>(&conn, query).await,
                 Err(_) => {
                     std::thread::sleep(std::time::Duration::from_millis(100));
