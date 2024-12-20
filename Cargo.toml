@@ -8,7 +8,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.8.1"
+version = "0.8.2"
 license = "MIT"
 edition = "2021"
 rust-version = "1.74"
@@ -46,6 +46,8 @@ default = ["all", "backends"]
 # All features (minus backends)
 all = ["uuid", "chrono", "new", "pagination", "helpers", "rand", "hash"]
 
+utils = ["geekorm-core/utils"]
+
 uuid = ["geekorm-core/uuid"]
 chrono = ["geekorm-derive/chrono", "geekorm-core/chrono"]
 semver = ["geekorm-derive/semver", "geekorm-core/semver"]
@@ -82,8 +84,8 @@ rusqlite = ["backends", "geekorm-derive/rusqlite", "geekorm-core/rusqlite"]
 # sqlite = ["backends", "geekorm-derive/sqlite", "geekorm-core/sqlite"]
 
 [dependencies]
-geekorm-core = { version = "^0.8.1", path = "geekorm-core" }
-geekorm-derive = { version = "^0.8.1", path = "geekorm-derive" }
+geekorm-core = { version = "^0.8.3", path = "geekorm-core" }
+geekorm-derive = { version = "^0.8.3", path = "geekorm-derive" }
 
 [dev-dependencies]
 geekorm = { path = ".", features = ["all", "semver", "tfa"] }
