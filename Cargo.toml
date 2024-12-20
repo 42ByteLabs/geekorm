@@ -84,8 +84,8 @@ rusqlite = ["backends", "geekorm-derive/rusqlite", "geekorm-core/rusqlite"]
 # sqlite = ["backends", "geekorm-derive/sqlite", "geekorm-core/sqlite"]
 
 [dependencies]
-geekorm-core = { version = "^0.8.3", path = "geekorm-core" }
-geekorm-derive = { version = "^0.8.3", path = "geekorm-derive" }
+geekorm-core = { version = "^0.8.2", path = "geekorm-core" }
+geekorm-derive = { version = "^0.8.2", path = "geekorm-derive" }
 
 [dev-dependencies]
 geekorm = { path = ".", features = ["all", "semver", "tfa"] }
