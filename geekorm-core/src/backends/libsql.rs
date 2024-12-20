@@ -1,6 +1,40 @@
 //! # libsql
 //!
 //! This module contains the implementation for the `GeekConnection` trait for the `libsql` crate.
+//!
+//! ## LibSQL with timeout and retry
+//!
+//! Wrapper for a `libsql::Connection` that implements the `GeekConnection` trait.
+//!
+//! ```no_run
+//! # #[cfg(feature = "libsql")] {
+//! use std::sync::{Arc, RwLock};
+//! use geekorm::prelude::*;
+//!
+//! #[derive(Table, Clone, Default, serde::Serialize, serde::Deserialize)]
+//! struct Users {
+//!     #[geekorm(primary_key, auto_increment)]
+//!     id: PrimaryKey<i32>,
+//!     #[geekorm(unique)]
+//!     username: String,
+//! }
+//!
+//! #[tokio::main]
+//! async fn main() -> anyhow::Result<()> {
+//!     let database = libsql::Builder::new_local(":memory:").build().await?;
+//!     let connection = Arc::new(RwLock::new(database.connect().unwrap()));
+//!
+//!     Users::create_table(&connection).await?;
+//!
+//!     let users = vec!["geekmasher", "bob", "alice", "eve", "mallory", "trent"];
+//!     for user in users {
+//!         let mut new_user = Users::new(user);
+//!         new_user.save(&connection).await?;
+//!     }
+//!     Ok(())
+//! }
+//! # }
+//! ```
 use libsql::{de, params::IntoValue};
 #[cfg(feature = "log")]
 use log::{debug, error};

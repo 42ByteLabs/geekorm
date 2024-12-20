@@ -11,6 +11,6 @@ authors.workspace = true
 [dependencies]
 geekorm = { path = "../../", features = ["new", "helpers", "libsql"] }
 serde = { version = "1", features = ["derive"] }
-libsql = "^0.5"
+libsql = "^0.6"
 tokio = { version = "1.36.0", features = ["full"] }
 anyhow = "1"
