@@ -1,12 +1,14 @@
 //! # libsql
 //!
 //! This module contains the implementation for the `GeekConnection` trait for the `libsql` crate.
-use std::collections::HashMap;
-
 use libsql::{de, params::IntoValue};
 #[cfg(feature = "log")]
 use log::{debug, error};
 use serde::{de::DeserializeOwned, Serialize};
+use std::{
+    collections::HashMap,
+    sync::{Arc, RwLock},
+};
 
 use crate::{
     builder::models::QueryType, GeekConnection, QueryBuilderTrait, TableBuilder, Value, Values,
@@ -332,6 +334,116 @@ impl GeekConnection for libsql::Connection {
         }
 
         Ok(results)
+    }
+}
+
+const TIMEOUT: std::time::Duration = std::time::Duration::from_secs(5);
+
+impl<C> GeekConnection for Arc<RwLock<C>>
+where
+    Self: std::marker::Sync + std::marker::Send,
+    C: GeekConnection<Connection = libsql::Connection>,
+{
+    type Connection = Arc<RwLock<libsql::Connection>>;
+
+    async fn create_table<T>(connection: &Self::Connection) -> Result<(), crate::Error>
+    where
+        T: TableBuilder + QueryBuilderTrait + Sized + Serialize + DeserializeOwned,
+    {
+        let start = std::time::Instant::now();
+        while start.elapsed() < TIMEOUT {
+            match connection.try_write() {
+                Ok(conn) => return C::create_table::<T>(&conn).await,
+                Err(_) => {
+                    std::thread::sleep(std::time::Duration::from_millis(100));
+                }
+            }
+        }
+        Err(crate::Error::LibSQLError(
+            "Error getting write lock on connection".to_string(),
+        ))
+    }
+
+    async fn row_count(
+        connection: &Self::Connection,
+        query: crate::Query,
+    ) -> Result<i64, crate::Error> {
+        let start = std::time::Instant::now();
+        while start.elapsed() < TIMEOUT {
+            match connection.try_write() {
+                Ok(conn) => return C::row_count(&conn, query).await,
+                Err(_) => {
+                    std::thread::sleep(std::time::Duration::from_millis(100));
+                }
+            }
+        }
+        Err(crate::Error::LibSQLError(
+            "Error getting write lock on connection".to_string(),
+        ))
+    }
+
+    async fn query<T>(
+        connection: &Self::Connection,
+        query: crate::Query,
+    ) -> Result<Vec<T>, crate::Error>
+    where
+        T: serde::de::DeserializeOwned,
+    {
+        let start = std::time::Instant::now();
+        while start.elapsed() < TIMEOUT {
+            match connection.try_write() {
+                Ok(conn) => return C::query::<T>(&conn, query).await,
+                Err(_) => {
+                    std::thread::sleep(std::time::Duration::from_millis(100));
+                }
+            }
+        }
+
+        Err(crate::Error::LibSQLError(
+            "Error getting write lock on connection".to_string(),
+        ))
+    }
+
+    async fn query_first<T>(
+        connection: &Self::Connection,
+        query: crate::Query,
+    ) -> Result<T, crate::Error>
+    where
+        T: serde::de::DeserializeOwned,
+    {
+        let start = std::time::Instant::now();
+        while start.elapsed() < TIMEOUT {
+            match connection.try_write() {
+                Ok(conn) => return C::query_first::<T>(&conn, query).await,
+                Err(_) => {
+                    std::thread::sleep(std::time::Duration::from_millis(100));
+                }
+            }
+        }
+        Err(crate::Error::LibSQLError(
+            "Error getting write lock on connection".to_string(),
+        ))
+    }
+
+    async fn execute<T>(
+        connection: &Self::Connection,
+        query: crate::Query,
+    ) -> Result<(), crate::Error>
+    where
+        T: serde::de::DeserializeOwned,
+    {
+        let start = std::time::Instant::now();
+        while start.elapsed() < TIMEOUT {
+            match connection.try_write() {
+                Ok(conn) => return C::execute::<T>(&conn, query).await,
+                Err(_) => {
+                    std::thread::sleep(std::time::Duration::from_millis(100));
+                }
+            }
+        }
+        Err(crate::Error::LibSQLError(
+            "Error getting write lock on connection".to_string(),
+        ))
     }
 }
 
