@@ -168,8 +168,7 @@ pub fn generate_query_builder(
 /// let user = Users::new(String::from("John Doe"), 30);
 ///
 /// # assert_eq!(Users::primary_key(), "id");
-/// # assert_eq!(Users::primary_key_value(&user), Value::from(0));
-///
+/// # assert_eq!(Users::primary_key_value(&user), Value::Identifier(0));
 /// ```
 pub fn generate_table_primary_key(
     ident: &syn::Ident,
