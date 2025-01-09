@@ -391,7 +391,7 @@ where
             match connection.try_lock() {
                 Ok(conn) => return C::create_table::<T>(&conn).await,
                 Err(_) => {
-                    std::thread::sleep(std::time::Duration::from_millis(100));
+                    std::thread::sleep(std::time::Duration::from_millis(10));
                 }
             }
         }
@@ -409,7 +409,7 @@ where
             match connection.try_lock() {
                 Ok(conn) => return C::row_count(&conn, query).await,
                 Err(_) => {
-                    std::thread::sleep(std::time::Duration::from_millis(100));
+                    std::thread::sleep(std::time::Duration::from_millis(10));
                 }
             }
         }
@@ -430,7 +430,7 @@ where
             match connection.try_lock() {
                 Ok(conn) => return C::query::<T>(&conn, query).await,
                 Err(_) => {
-                    std::thread::sleep(std::time::Duration::from_millis(100));
+                    std::thread::sleep(std::time::Duration::from_millis(10));
                 }
             }
         }
@@ -452,7 +452,7 @@ where
             match connection.try_lock() {
                 Ok(conn) => return C::query_first::<T>(&conn, query).await,
                 Err(_) => {
-                    std::thread::sleep(std::time::Duration::from_millis(100));
+                    std::thread::sleep(std::time::Duration::from_millis(10));
                 }
             }
         }
@@ -473,7 +473,7 @@ where
             match connection.try_lock() {
                 Ok(conn) => return C::execute::<T>(&conn, query).await,
                 Err(_) => {
-                    std::thread::sleep(std::time::Duration::from_millis(100));
+                    std::thread::sleep(std::time::Duration::from_millis(10));
                 }
             }
         }
