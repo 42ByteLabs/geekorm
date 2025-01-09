@@ -14,7 +14,14 @@ pub struct Table {
 impl Table {
     /// Function to check if a column name is valid
     pub fn is_valid_column(&self, column: &str) -> bool {
-        self.columns.is_valid_column(column)
+        if let Some((table, column)) = column.split_once('.') {
+            if table != self.name {
+                return false;
+            }
+            self.columns.is_valid_column(column)
+        } else {
+            self.columns.is_valid_column(column)
+        }
     }
 
     /// Get the name of the primary key column
@@ -364,5 +371,17 @@ mod tests {
         let (delete_query, _) = table.on_delete(&query).unwrap();
 
         assert_eq!(delete_query, "DELETE FROM Test WHERE id = ?;");
+    }
+
+    #[test]
+    fn test_is_valid_column() {
+        let table = table();
+
+        assert!(table.is_valid_column("id"));
+        assert!(table.is_valid_column("name"));
+        assert!(!table.is_valid_column("name2"));
+        // Test with table name
+        assert!(table.is_valid_column("Test.name"));
+        assert!(!table.is_valid_column("Tests.name"));
     }
 }
