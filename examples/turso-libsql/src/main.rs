@@ -53,7 +53,7 @@ async fn main() -> Result<()> {
     println!("Number of projects: {}\n", count);
 
     // Query all projects
-    let all_projects = Projects::fetch_all(&conn).await?;
+    let all_projects = Projects::all(&conn).await?;
 
     for project in all_projects {
         println!(
