@@ -91,7 +91,9 @@ pub mod prelude {
     pub use geekorm_core::builder::columntypes::{ColumnType, ColumnTypeOptions};
     pub use geekorm_core::builder::table::Table as BuilderTable;
     #[cfg(feature = "pagination")]
-    pub use geekorm_core::queries::pages::Pagination;
+    pub use geekorm_core::queries::pages::Page;
+    #[cfg(feature = "pagination")]
+    pub use geekorm_core::queries::pagination::Pagination;
 
     // Keys Modules
     pub use geekorm_core::builder::keys::foreign::{ForeignKey, ForeignKeyInteger};

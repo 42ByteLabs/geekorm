@@ -1,5 +1,5 @@
 #[cfg(feature = "pagination")]
-use super::pages::Pagination;
+use super::pages::Page;
 use crate::builder::{
     joins::{TableJoin, TableJoinOptions, TableJoins},
     models::{QueryCondition, QueryOrder, QueryType, WhereCondition},
@@ -324,7 +324,7 @@ impl QueryBuilder {
 
     /// Add a page to the query
     #[cfg(feature = "pagination")]
-    pub fn page(mut self, page: &Pagination) -> Self {
+    pub fn page(mut self, page: &Page) -> Self {
         self.offset = Some(page.offset() as usize);
         self.limit = Some(page.limit as usize);
         self
