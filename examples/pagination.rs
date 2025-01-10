@@ -24,12 +24,9 @@ async fn main() -> Result<()> {
 
     let mut page = Projects::paginate(&connection).await?;
 
-    /// Get the first page of projects
+    // Get the first page of projects
     let mut projects = page.next(&connection).await?;
     assert_eq!(page.page(), 0);
-    for project in &projects {
-        println!("Project: {}", project.name);
-    }
 
     projects = page.next(&connection).await?;
     assert_eq!(projects.len(), 100);
