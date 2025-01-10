@@ -3,7 +3,9 @@
 /// Default limit for max page size
 const DEFAULT_LIMIT: u32 = 100;
 
-/// Pagination struct
+/// Page struct for pagination.
+///
+/// This is a simple struct to handle pagination for queries.
 ///
 /// ```rust
 /// # use geekorm::prelude::*;
@@ -17,9 +19,8 @@ const DEFAULT_LIMIT: u32 = 100;
 /// }
 ///
 /// # fn main() {
-/// // Create a new Pagination instance
-/// let mut page = Pagination::new();
-/// # assert_eq!(page.page(), 0);
+/// // Create a new Page instance
+/// let mut page = Page::new();
 /// # assert_eq!(page.limit(), 100);
 /// # assert_eq!(page.offset(), 0);
 ///
@@ -45,10 +46,10 @@ const DEFAULT_LIMIT: u32 = 100;
 /// #     "SELECT id, username, age, postcode FROM Users WHERE username = ? ORDER BY age ASC LIMIT 100 OFFSET 100;"
 /// # );
 ///
-/// let page_max = Pagination::from((1, 10_000));
+/// let page_max = Page::from((1, 10_000));
 /// # assert_eq!(page_max.limit(), 100);
 ///
-/// let option_page = Pagination::from((Some(5), Some(10)));
+/// let option_page = Page::from((Some(5), Some(10)));
 /// # assert_eq!(option_page.page(), 5);
 /// # assert_eq!(option_page.limit(), 10);
 /// # assert_eq!(option_page.offset(), 50);
@@ -56,22 +57,29 @@ const DEFAULT_LIMIT: u32 = 100;
 /// # }
 /// ```
 #[derive(Debug)]
-pub struct Pagination {
+pub struct Page {
     pub(crate) page: u32,
     pub(crate) limit: u32,
+    pub(crate) total: u32,
 }
 
-impl Pagination {
-    /// Create a new Pagination instance
+impl Page {
+    /// Create a new Page instance
     pub fn new() -> Self {
-        Pagination {
+        Page {
             page: 0,
             limit: DEFAULT_LIMIT,
+            total: 0,
         }
     }
     /// Update current page to the next page
     pub fn next(&mut self) {
-        self.page += 1;
+        // Don't overflow the page number, reset to 0
+        if self.page == u32::MAX {
+            self.page = 0;
+        } else {
+            self.page += 1;
+        }
     }
     /// Update current page to the previous page
     pub fn prev(&mut self) {
@@ -89,33 +97,63 @@ impl Pagination {
     }
     /// Offset for the query
     pub fn offset(&self) -> u32 {
-        self.page * self.limit
+        if self.page == u32::MAX {
+            0
+        } else {
+            self.page * self.limit
+        }
     }
-}
+    /// Total number of pages
+    pub fn pages(&self) -> u32 {
+        if self.total == 0 {
+            0
+        } else {
+            (self.total as f64 / self.limit as f64).ceil() as u32
+        }
+    }
+    /// Set the total number of rows
+    pub fn set_total(&mut self, total: u32) {
+        self.total = total;
+    }
 
-impl Default for Pagination {
-    fn default() -> Self {
-        Pagination {
-            page: 0,
-            limit: DEFAULT_LIMIT,
+    /// Get the maximum number of pages based on the total number of rows
+    pub fn max(&self) -> u32 {
+        if self.total == 0 {
+            0
+        } else {
+            (self.total as f64 / self.limit as f64).ceil() as u32
         }
     }
 }
 
-impl From<(u32, u32)> for Pagination {
+impl Default for Page {
+    fn default() -> Self {
+        Page {
+            page: u32::MAX,
+            limit: DEFAULT_LIMIT,
+            total: 0,
+        }
+    }
+}
+
+impl From<(u32, u32)> for Page {
     fn from(p: (u32, u32)) -> Self {
         let limit = if p.1 > DEFAULT_LIMIT {
             DEFAULT_LIMIT
         } else {
             p.1
         };
-        Pagination { page: p.0, limit }
+        Page {
+            page: p.0,
+            limit,
+            ..Default::default()
+        }
     }
 }
 
-impl From<(Option<u32>, Option<u32>)> for Pagination {
+impl From<(Option<u32>, Option<u32>)> for Page {
     fn from(value: (Option<u32>, Option<u32>)) -> Self {
-        let mut page = Pagination::new();
+        let mut page = Page::new();
         if let Some(p) = value.0 {
             page.page = p;
         }
@@ -130,11 +168,31 @@ impl From<(Option<u32>, Option<u32>)> for Pagination {
     }
 }
 
-impl From<u32> for Pagination {
+/// Implement From for Page (page, limit, total)
+impl From<(Option<u32>, Option<u32>, u32)> for Page {
+    fn from(value: (Option<u32>, Option<u32>, u32)) -> Self {
+        let mut page = Page::new();
+        if let Some(p) = value.0 {
+            page.page = p;
+        }
+        if let Some(l) = value.1 {
+            if l > DEFAULT_LIMIT {
+                page.limit = DEFAULT_LIMIT;
+            } else {
+                page.limit = l;
+            }
+        }
+        page.total = value.2;
+        page
+    }
+}
+
+impl From<u32> for Page {
     fn from(value: u32) -> Self {
-        Pagination {
+        Page {
             page: value,
             limit: DEFAULT_LIMIT,
+            ..Default::default()
         }
     }
 }

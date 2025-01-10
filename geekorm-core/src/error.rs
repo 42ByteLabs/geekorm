@@ -19,6 +19,11 @@ pub enum Error {
     #[error("No Rows Found in the database for the query")]
     NoRowsFound,
 
+    /// Pagination Error
+    #[cfg(feature = "pagination")]
+    #[error("Pagination Error: {0}")]
+    PaginationError(String),
+
     /// Not Implemented
     #[error("Not Implemented")]
     NotImplemented,

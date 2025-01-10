@@ -118,6 +118,40 @@ where
         .await
     }
 
+    /// Fetch all rows from the table
+    #[allow(async_fn_in_trait, unused_variables)]
+    async fn all(connection: &'a C) -> Result<Vec<Self>, crate::Error> {
+        C::query::<Self>(
+            connection,
+            Self::query_select().table(Self::table()).build()?,
+        )
+        .await
+    }
+
+    /// Fetch by Page
+    #[cfg(feature = "pagination")]
+    #[allow(async_fn_in_trait, unused_variables)]
+    async fn page(connection: &'a C, page: &crate::Page) -> Result<Vec<Self>, crate::Error> {
+        C::query::<Self>(
+            connection,
+            QueryBuilder::select()
+                .table(Self::table())
+                .page(page)
+                .build()?,
+        )
+        .await
+    }
+
+    /// Create a new Pagination instance with the current table and fetch
+    /// total number of rows
+    #[cfg(feature = "pagination")]
+    #[allow(async_fn_in_trait, unused_variables)]
+    async fn paginate(connection: &'a C) -> Result<crate::Pagination<Self>, crate::Error> {
+        let mut page = crate::Pagination::new();
+        page.set_total(Self::total(connection).await? as u32);
+        Ok(page)
+    }
+
     /// Update the current object in the database
     #[allow(async_fn_in_trait, unused_variables)]
     async fn update(&mut self, connection: &'a C) -> Result<(), crate::Error> {
@@ -139,6 +173,10 @@ where
     async fn fetch(&mut self, connection: &'a C) -> Result<(), crate::Error>;
 
     /// Fetch all rows from the database
+    #[deprecated(
+        since = "0.8.4",
+        note = "Please use the `all` method instead of `fetch_all`"
+    )]
     #[allow(async_fn_in_trait, unused_variables)]
     async fn fetch_all(connection: &'a C) -> Result<Vec<Self>, crate::Error> {
         C::query::<Self>(
