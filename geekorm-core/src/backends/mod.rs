@@ -172,6 +172,40 @@ where
     #[allow(async_fn_in_trait, unused_variables)]
     async fn fetch(&mut self, connection: &'a C) -> Result<(), crate::Error>;
 
+    /// Filter the rows in the table based on specific criteria passed as a tuple of (&str, Value).
+    ///
+    /// You can use prefix operators to define the type of comparison to use:
+    ///
+    /// - `=`: Equal
+    /// - `~`: Like
+    /// - `!`: Not equal
+    ///
+    /// If no prefix is used, the default comparison is equal.
+    #[allow(async_fn_in_trait, unused_variables)]
+    async fn filter(
+        connection: &'a C,
+        fields: Vec<(&str, impl Into<Value>)>,
+    ) -> Result<Vec<Self>, crate::Error> {
+        let mut query = Self::query_select().table(Self::table());
+
+        for (field, value) in fields {
+            if field.starts_with("=") {
+                let field = &field[1..];
+                query = query.where_eq(field, value.into());
+            } else if field.starts_with("~") {
+                let field = &field[1..];
+                query = query.where_like(field, value.into());
+            } else if field.starts_with("!") {
+                let field = &field[1..];
+                query = query.where_ne(field, value.into());
+            } else {
+                // Default to WHERE field = value with an OR operator
+                query = query.where_eq(field, value.into()).or();
+            }
+        }
+        Self::query(connection, query.build()?).await
+    }
+
     /// Fetch all rows from the database
     #[deprecated(
         since = "0.8.4",
