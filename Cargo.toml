@@ -124,6 +124,11 @@ path = "./examples/pagination.rs"
 required-features = ["all", "libsql", "pagination"]
 
 [[example]]
+name = "filter"
+path = "./examples/filter.rs"
+required-features = ["all", "libsql"]
+
+[[example]]
 name = "turso-libsql"
 path = "./examples/turso-libsql/src/main.rs"
 required-features = ["all", "libsql"]
