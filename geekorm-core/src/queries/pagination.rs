@@ -21,16 +21,21 @@ use crate::{GeekConnection, QueryBuilderTrait, TableBuilder};
 ///
 /// pub type UserPage = Pagination<Users>;
 ///
-/// # fn main() {
-/// // Create a new Page instance
-/// let mut page = UserPage::new();
+/// #[tokio::main]
+/// async fn main() -> anyhow::Result<()> {
+///     let database = libsql::Builder::new_local(":memory:").build().await?;
+///     let connection = database.connect().unwrap();
+///     
+///     // Create a new Page instance
+///     let mut page = UserPage::new();
 ///
-/// // Update the page to the next page
-/// let results = page.next();
-/// # assert_eq!(page.limit(), 100);
-/// # assert_eq!(page.page(), 0);
+///     // Update the page to the next page
+///     let results = page.next(&connection).await?;
+///     # assert_eq!(page.limit(), 100);
+///     # assert_eq!(page.page(), 0);
 ///
-/// # }
+///    # Ok(())
+/// }
 /// # }
 /// ```
 pub struct Pagination<T>

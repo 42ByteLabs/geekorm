@@ -186,24 +186,33 @@ where
         connection: &'a C,
         fields: Vec<(&str, impl Into<Value>)>,
     ) -> Result<Vec<Self>, crate::Error> {
-        let mut query = Self::query_select().table(Self::table());
+        Self::query(
+            connection,
+            Self::query_select()
+                .table(Self::table())
+                .filter(fields)
+                .build()?,
+        )
+        .await
+    }
 
-        for (field, value) in fields {
-            if field.starts_with("=") {
-                let field = &field[1..];
-                query = query.where_eq(field, value.into());
-            } else if field.starts_with("~") {
-                let field = &field[1..];
-                query = query.where_like(field, value.into());
-            } else if field.starts_with("!") {
-                let field = &field[1..];
-                query = query.where_ne(field, value.into());
-            } else {
-                // Default to WHERE field = value with an OR operator
-                query = query.where_eq(field, value.into()).or();
-            }
-        }
-        Self::query(connection, query.build()?).await
+    /// Filter with Pagination
+    #[cfg(feature = "pagination")]
+    #[allow(async_fn_in_trait, unused_variables)]
+    async fn filter_page(
+        connection: &'a C,
+        fields: Vec<(&str, impl Into<Value>)>,
+        page: &crate::Page,
+    ) -> Result<Vec<Self>, crate::Error> {
+        Self::query(
+            connection,
+            Self::query_select()
+                .table(Self::table())
+                .filter(fields)
+                .page(page)
+                .build()?,
+        )
+        .await
     }
 
     /// Fetch all rows from the database

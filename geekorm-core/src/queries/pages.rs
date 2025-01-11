@@ -111,6 +111,10 @@ impl Page {
             (self.total as f64 / self.limit as f64).ceil() as u32
         }
     }
+    /// Get total number of rows
+    pub fn total(&self) -> u32 {
+        self.total
+    }
     /// Set the total number of rows
     pub fn set_total(&mut self, total: u32) {
         self.total = total;
