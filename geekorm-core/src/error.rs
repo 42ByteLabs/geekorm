@@ -61,4 +61,10 @@ pub enum Error {
     #[cfg(feature = "rusqlite")]
     #[error("RuSQLite Error occurred: {0}")]
     RuSQLiteError(String),
+
+    /// Query Syntax Error
+    #[error(
+        "Query Syntax Error: {0}\n -> {1}\nPlease report this error to the GeekORM developers"
+    )]
+    QuerySyntaxError(String, String),
 }

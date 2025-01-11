@@ -153,7 +153,7 @@ impl ToSqlite for Table {
         let mut values: Vec<String> = Vec::new();
         let mut parameters = Values::new();
 
-        for cname in query.values.order.iter() {
+        for (cname, value) in query.values.values.iter() {
             let column = query.table.columns.get(cname.as_str()).unwrap();
 
             // Get the column (might be an alias)
@@ -161,8 +161,6 @@ impl ToSqlite for Table {
             if !column.alias.is_empty() {
                 column_name = column.alias.to_string();
             }
-
-            let value = query.values.get(cname).unwrap();
 
             // Skip auto increment columns
             if column.column_type.is_auto_increment() {
@@ -210,7 +208,7 @@ impl ToSqlite for Table {
         let mut columns: Vec<String> = Vec::new();
         let mut parameters = Values::new();
 
-        for cname in query.values.order.iter() {
+        for (cname, value) in query.values.values.iter() {
             let column = query.table.columns.get(cname.as_str()).unwrap();
 
             // Skip if primary key
@@ -222,8 +220,6 @@ impl ToSqlite for Table {
             if !column.alias.is_empty() {
                 column_name = column.alias.to_string();
             }
-
-            let value = query.values.get(cname).unwrap();
 
             // Add to Values
             match value {
