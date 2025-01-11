@@ -263,6 +263,26 @@ impl QueryBuilder {
         self
     }
 
+    /// Filter the query by multiple fields
+    pub fn filter(mut self, fields: Vec<(&str, impl Into<Value>)>) -> Self {
+        for (field, value) in fields {
+            if field.starts_with("=") {
+                let field = &field[1..];
+                self = self.where_eq(field, value.into());
+            } else if field.starts_with("~") {
+                let field = &field[1..];
+                self = self.where_like(field, value.into());
+            } else if field.starts_with("!") {
+                let field = &field[1..];
+                self = self.where_ne(field, value.into());
+            } else {
+                // Default to WHERE field = value with an OR operator
+                self = self.where_eq(field, value.into()).or();
+            }
+        }
+        self
+    }
+
     /// Order the query by a particular column
     pub fn order_by(mut self, column: &str, order: QueryOrder) -> Self {
         if self.table.is_valid_column(column) {
