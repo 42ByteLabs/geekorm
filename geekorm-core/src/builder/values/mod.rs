@@ -18,32 +18,27 @@ use crate::{
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Values {
     /// List of values
-    pub(crate) values: Vec<Value>,
-    /// List of columns in the order they were added
-    pub(crate) order: Vec<String>,
+    pub(crate) values: Vec<(String, Value)>,
+    // /// List of columns in the order they were added
+    // pub(crate) order: Vec<String>,
 }
 
 impl Values {
     /// Create a new instance of Values
     pub fn new() -> Self {
-        Values {
-            values: Vec::new(),
-            order: Vec::new(),
-        }
+        Values { values: Vec::new() }
     }
 
     /// Push a value to the list of values
     pub fn push(&mut self, column: String, value: impl Into<Value>) {
-        self.order.push(column.clone());
-        self.values.push(value.into());
+        self.values.push((column, value.into()));
     }
 
     /// Get a value by index from the list of values
     pub fn get(&self, column: &String) -> Option<&Value> {
-        match self.order.iter().enumerate().find(|(_, o)| *o == column) {
-            Some((i, _)) => self.values.get(i),
-            None => None,
-        }
+        self.values
+            .iter()
+            .find_map(|(c, o)| if c == column { Some(o) } else { None })
     }
 
     /// Length / Count of the values stored
@@ -57,10 +52,9 @@ impl IntoIterator for Values {
     type IntoIter = std::vec::IntoIter<Value>;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.order
+        self.values
             .into_iter()
-            .enumerate()
-            .map(move |(index, _)| self.values[index].clone())
+            .map(|(_, v)| v)
             .collect::<Vec<Value>>()
             .into_iter()
     }

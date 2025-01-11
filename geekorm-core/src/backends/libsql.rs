@@ -65,7 +65,7 @@ impl GeekConnection for libsql::Connection {
         connection
             .execute(query.to_str(), ())
             .await
-            .map_err(|e| crate::Error::LibSQLError(e.to_string()))?;
+            .map_err(|e| crate::Error::QuerySyntaxError(e.to_string(), query.to_string()))?;
         Ok(())
     }
 
@@ -80,7 +80,7 @@ impl GeekConnection for libsql::Connection {
         let mut statement = connection
             .prepare(query.to_str())
             .await
-            .map_err(|e| crate::Error::LibSQLError(format!("Error preparing query: `{}`", e)))?;
+            .map_err(|e| crate::Error::QuerySyntaxError(e.to_string(), query.to_string()))?;
 
         let parameters: Vec<libsql::Value> = match convert_values(&query) {
             Ok(parameters) => parameters,
@@ -149,7 +149,10 @@ impl GeekConnection for libsql::Connection {
                     debug!("Error preparing query: `{}`", query.to_str());
                     debug!("Parameters :: {:?}", query.parameters);
                 }
-                return Err(crate::Error::LibSQLError(e.to_string()));
+                return Err(crate::Error::QuerySyntaxError(
+                    e.to_string(),
+                    query.to_string(),
+                ));
             }
         };
 
@@ -229,7 +232,10 @@ impl GeekConnection for libsql::Connection {
                     debug!("Error preparing query: `{}`", query.to_str());
                     debug!("Parameters :: {:?}", query.parameters);
                 }
-                return Err(crate::Error::LibSQLError(e.to_string()));
+                return Err(crate::Error::QuerySyntaxError(
+                    e.to_string(),
+                    query.to_string(),
+                ));
             }
         };
         // Convert the values to libsql::Value
@@ -310,7 +316,7 @@ impl GeekConnection for libsql::Connection {
                 {
                     error!("Error executing query: `{}`", e);
                 }
-                crate::Error::LibSQLError(e.to_string())
+                crate::Error::QuerySyntaxError(e.to_string(), query.to_string())
             })?;
         Ok(())
     }
@@ -334,7 +340,10 @@ impl GeekConnection for libsql::Connection {
                 {
                     error!("Error preparing query: `{}`", query.to_str());
                 }
-                return Err(crate::Error::LibSQLError(e.to_string()));
+                return Err(crate::Error::QuerySyntaxError(
+                    e.to_string(),
+                    query.to_string(),
+                ));
             }
         };
 
@@ -487,19 +496,12 @@ fn convert_values(query: &crate::Query) -> Result<Vec<libsql::Value>, crate::Err
     let mut parameters: Vec<libsql::Value> = Vec::new();
 
     // TODO(geekmasher): This is awful, need to refactor this
-    let values: Values = match query.query_type {
-        QueryType::Insert | QueryType::Update => query.parameters.clone(),
-        _ => query.values.clone(),
+    let values: &Values = match query.query_type {
+        QueryType::Insert | QueryType::Update => &query.parameters,
+        _ => &query.values,
     };
 
-    for column_name in &values.order {
-        let value = values
-            .get(&column_name.to_string())
-            .ok_or(crate::Error::LibSQLError(format!(
-                "Error getting value for column - {}",
-                column_name
-            )))?;
-
+    for (column_name, value) in &values.values {
         // Check if the column exists in the table
         // The column_name could be in another table not part of the query (joins)
         if let Some(column) = query.table.columns.get(column_name.as_str()) {

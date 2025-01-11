@@ -86,7 +86,7 @@ pub struct QueryBuilder {
 
     pub(crate) joins: TableJoins,
 
-    /// The values to use (where / insert)
+    /// The values are used for data inserted into the database
     pub(crate) values: Values,
 
     pub(crate) error: Option<Error>,
@@ -331,10 +331,23 @@ impl QueryBuilder {
     }
 
     /// Build a Query from the QueryBuilder and perform some checks
-    pub fn build(&self) -> Result<Query, crate::Error> {
+    pub fn build(&mut self) -> Result<Query, crate::Error> {
         if let Some(ref error) = self.error {
             return Err(error.clone());
         }
+
+        // Check the last where condition
+        let mut pop_where_condition = false;
+        if let Some(last) = self.where_clause.last() {
+            if last == &WhereCondition::Or.to_sqlite() || last == &WhereCondition::And.to_sqlite() {
+                pop_where_condition = true;
+            }
+        }
+        // Pop the last where condition
+        if pop_where_condition {
+            self.where_clause.pop();
+        }
+
         match self.query_type {
             QueryType::Create => {
                 let query = self.table.on_create(self)?;
