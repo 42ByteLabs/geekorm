@@ -5,20 +5,29 @@ use std::path::PathBuf;
 use crate::utils::cargo::Cargo;
 
 /// Configuration struct
-#[derive(Debug, Default, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Config {
+    #[serde(skip)]
+    pub new: bool,
     #[serde(skip)]
     pub working_dir: PathBuf,
 
     /// GeekORM mode
+    #[serde(skip_serializing_if = "String::is_empty")]
     pub mode: String,
     /// Crate/Module name
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) name: Option<String>,
 
     /// Database
+    #[serde(skip_serializing_if = "String::is_empty")]
     pub(crate) database: String,
     /// Database Driver
-    pub(crate) driver: String,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub(crate) drivers: Vec<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) geekorm: Option<String>,
 
     #[serde(skip)]
     pub(crate) version: String,
@@ -27,17 +36,35 @@ pub struct Config {
 impl Config {
     /// Load the configuration from the specified path
     pub async fn load(path: &PathBuf) -> Result<Self> {
-        if path.is_dir() {
-            return Err(anyhow::anyhow!("Configuration file is a directory"));
+        let mut config = if path.is_dir() {
+            log::warn!("Configuration file is a directory");
+            Config::default()
+        } else if !path.exists() {
+            log::warn!("Configuration file does not exist");
+            Config::default()
+        } else {
+            Config::load_file(path).await?
+        };
+
+        // Set default working directory
+        config.working_dir = path.parent().unwrap().to_path_buf();
+
+        if config.working_dir.join("Cargo.toml").exists() {
+            let cargo = Cargo::read(&config.working_dir.join("Cargo.toml")).await?;
+            config.version = cargo.package.version;
+            log::debug!("Set version to `{}`", config.version);
+        } else {
+            log::warn!("Cargo.toml not found in working directory");
         }
-        if !path.exists() {
-            return Err(anyhow::anyhow!("Configuration file does not exist"));
-        }
+
+        Ok(config)
+    }
+
+    async fn load_file(path: &PathBuf) -> Result<Self> {
         log::debug!("Loading configuration from `{}`", path.display());
         let data = tokio::fs::read_to_string(path).await?;
-
         // Based off extension, we can determine the format of the configuration file
-        let mut config: Self = if path
+        let config: Self = if path
             .extension()
             .map_or(false, |ext| ext == "yml" || ext == "yaml")
         {
@@ -49,15 +76,6 @@ impl Config {
         } else {
             return Err(anyhow::anyhow!("Configuration file is not valid"));
         };
-
-        // Set default working directory
-        config.working_dir = path.parent().unwrap().to_path_buf();
-
-        if config.working_dir.join("Cargo.toml").exists() {
-            let cargo = Cargo::read(&config.working_dir.join("Cargo.toml")).await?;
-            config.version = cargo.package.version;
-        }
-
         Ok(config)
     }
 
@@ -115,6 +133,21 @@ impl Config {
             Ok(migrations_dir.join(format!("v{}", self.version())))
         } else {
             Err(anyhow::anyhow!("No mode selected"))
+        }
+    }
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            new: true,
+            working_dir: PathBuf::from("."),
+            mode: "".to_string(),
+            name: None,
+            database: "".to_string(),
+            drivers: Vec::new(),
+            geekorm: None,
+            version: "0.1.0".to_string(),
         }
     }
 }

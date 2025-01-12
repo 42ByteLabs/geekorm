@@ -1,7 +1,8 @@
 use anyhow::Result;
-use quote::quote;
+use geekorm::QueryBuilder;
 use std::path::PathBuf;
 
+use crate::codegen;
 use crate::utils::database::Database;
 use crate::utils::{prompt_select_many, prompt_select_with_default, Config};
 
@@ -40,15 +41,17 @@ pub async fn create_migrations(config: &Config) -> Result<()> {
         create_schema_migration(config, &path).await?;
     }
 
-    create_mod(config, &mod_path, selected.contains(&"Data Migrations")).await?;
+    codegen::create_mod(config, &mod_path, selected.contains(&"Data Migrations")).await?;
 
-    super::init::lib_generation(config, &config.migrations_path()?).await?;
+    codegen::lib_generation(config, &config.migrations_path()?).await?;
 
     Ok(())
 }
 
-async fn create_schema_migration(_config: &Config, path: &PathBuf) -> Result<()> {
+async fn create_schema_migration(config: &Config, path: &PathBuf) -> Result<()> {
     log::info!("Creating a schema migration...");
+
+    let database = Database::find_database(config)?;
 
     // Update the schema
     let upgrade_path = path.join("upgrade.sql");
@@ -60,76 +63,22 @@ async fn create_schema_migration(_config: &Config, path: &PathBuf) -> Result<()>
 
     // Create database
     let create_path = path.join("create.sql");
-    tokio::fs::write(&create_path, b"").await?;
-
-    println!("Path: {}", path.display());
+    generate_create_sql(&database, &create_path).await?;
 
     Ok(())
 }
 
-async fn create_mod(config: &Config, path: &PathBuf, data: bool) -> Result<()> {
-    log::info!("Creating a mod file...");
+/// Creates the `create.sql` file for the schema migration
+async fn generate_create_sql(database: &Database, path: &PathBuf) -> Result<()> {
+    let mut data = String::new();
+    data += "-- GeekORM Database Migrations\n\n";
 
-    let database = Database::find_database(config)?;
-    log::debug!("Database: {:#?}", database);
+    for table in &database.tables {
+        let query = QueryBuilder::create().table(table.clone()).build()?;
+        data += query.to_str();
+        data += "\n\n";
+    }
 
-    let tables = database.tables;
-
-    let doctitle = format!("GeekORM Database Migrations - {}", chrono::Utc::now());
-    let version = config.version.to_string();
-
-    let data = if data {
-        quote! {
-            async fn migrate<'a, C>(connection: &'a C) -> Result<(), geekorm::Error>
-            where
-                C: geekorm::GeekConnection<Connection = C> + 'a,
-            {
-                todo!("Migrate data...");
-            }
-        }
-    } else {
-        quote! {}
-    };
-
-    let database_ast = quote! {
-        pub static ref Database: geekorm::Database = geekorm::Database {
-            tables: Vec::from([
-                #(#tables),*
-            ])
-        };
-    };
-
-    let ast = quote! {
-        #![doc = #doctitle]
-
-        pub struct Migration;
-
-        impl geekorm::Migration for Migration {
-            fn version() -> &'static str {
-                #version
-            }
-
-            #data
-
-            fn create_query() -> &'static str {
-                include_str!("create.sql")
-            }
-            fn upgrade_query() -> &'static str {
-                include_str!("upgrade.sql")
-            }
-            fn rollback_query() -> &'static str {
-                include_str!("rollback.sql")
-            }
-        }
-
-        // Static Database Tables
-        lazy_static::lazy_static! {
-            #database_ast
-        }
-
-    };
-
-    tokio::fs::write(path, ast.to_string().as_bytes()).await?;
-
+    tokio::fs::write(path, data.as_bytes()).await?;
     Ok(())
 }
