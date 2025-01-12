@@ -137,13 +137,10 @@ impl GeekConnection for rusqlite::Connection {
         }
     }
 
-    async fn execute<T>(
+    async fn execute(
         connection: &Self::Connection,
         query: crate::Query,
-    ) -> std::result::Result<(), crate::Error>
-    where
-        T: serde::de::DeserializeOwned,
-    {
+    ) -> std::result::Result<(), crate::Error> {
         #[cfg(feature = "log")]
         {
             debug!("Execute :: {:?}", query.to_str());
