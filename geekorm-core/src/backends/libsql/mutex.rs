@@ -12,7 +12,7 @@ const TIMEOUT: std::time::Duration = std::time::Duration::from_secs(5);
 
 impl<C> GeekConnection for Arc<Mutex<C>>
 where
-    Self: Sync + Send + 'static,
+    // Self: Sized + Sync + Send + 'static,
     C: GeekConnection<Connection = libsql::Connection>,
 {
     type Connection = Arc<Mutex<libsql::Connection>>;
@@ -96,17 +96,14 @@ where
         ))
     }
 
-    async fn execute<T>(
+    async fn execute(
         connection: &Self::Connection,
         query: crate::Query,
-    ) -> Result<(), crate::Error>
-    where
-        T: serde::de::DeserializeOwned,
-    {
+    ) -> Result<(), crate::Error> {
         let start = std::time::Instant::now();
         while start.elapsed() < TIMEOUT {
             match connection.try_lock() {
-                Ok(conn) => return C::execute::<T>(&conn, query).await,
+                Ok(conn) => return C::execute(&conn, query).await,
                 Err(_) => {
                     std::thread::sleep(std::time::Duration::from_millis(10));
                 }

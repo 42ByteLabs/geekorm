@@ -93,7 +93,7 @@ where
     /// Execute a query on the database and do not return any rows
     #[allow(async_fn_in_trait, unused_variables)]
     async fn execute(connection: &'a C, query: Query) -> Result<(), crate::Error> {
-        C::execute::<Self>(connection, query).await
+        C::execute(connection, query).await
     }
 
     /// Create a table in the database
@@ -155,7 +155,7 @@ where
     /// Update the current object in the database
     #[allow(async_fn_in_trait, unused_variables)]
     async fn update(&mut self, connection: &'a C) -> Result<(), crate::Error> {
-        C::execute::<Self>(connection, Self::query_update(self)).await
+        C::execute(connection, Self::query_update(self)).await
     }
 
     /// Save the current object to the database
@@ -165,7 +165,7 @@ where
     /// Delete the current object from the database
     #[allow(async_fn_in_trait, unused_variables)]
     async fn delete(&self, connection: &'a C) -> Result<(), crate::Error> {
-        C::execute::<Self>(connection, Self::query_delete(self)).await
+        C::execute(connection, Self::query_delete(self)).await
     }
 
     /// Fetches all of the foreign key values for the current object
@@ -309,10 +309,7 @@ pub trait GeekConnection {
 
     /// Execute a query on the database and do not return any rows
     #[allow(async_fn_in_trait, unused_variables)]
-    async fn execute<T>(connection: &Self::Connection, query: Query) -> Result<(), crate::Error>
-    where
-        T: serde::de::DeserializeOwned,
-    {
+    async fn execute(connection: &Self::Connection, query: Query) -> Result<(), crate::Error> {
         Err(crate::Error::NotImplemented)
     }
 
