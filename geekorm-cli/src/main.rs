@@ -1,22 +1,47 @@
 use anyhow::Result;
 
 mod cli;
+mod display;
+mod init;
+mod migrations;
 mod utils;
-mod workflows;
 
 use crate::cli::*;
-use crate::workflows::*;
+use crate::utils::{prompt_select, Config};
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     let arguments = init();
 
     match arguments.commands {
-        Some(ArgumentCommands::Display) => display_database(&arguments)?,
-        None => {
-            println!("No subcommand selected...");
-            println!("Use --help for more information.\n");
+        Some(ArgumentCommands::Init) => {
+            init::init(&arguments.config).await?;
+        }
+        Some(ArgumentCommands::Migrate) => {
+            println!("Migrating the database...");
+            let config = Config::load(&arguments.config).await?;
+            log::debug!("Config: {:#?}", config);
 
-            println!("Thank you for trying out / using GeekORM!");
+            migrations::create_migrations(&config).await?;
+        }
+        Some(ArgumentCommands::Display) => {
+            let config = Config::load(&arguments.config).await?;
+            display::display_database(&config)?
+        }
+        None => {
+            let options = vec!["Migrate", "Init", "Display"];
+            let (selected, _) = prompt_select("Select an option:", &options)?;
+
+            println!("You selected: {}", selected);
+            match selected {
+                "Init" => {
+                    println!("Initializing GeekORM...");
+                    init::init(&arguments.config).await?;
+                }
+                _ => {
+                    log::error!("Invalid command");
+                }
+            }
         }
     }
 

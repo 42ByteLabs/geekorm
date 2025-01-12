@@ -1,10 +1,10 @@
 #![allow(dead_code)]
 use anyhow::Result;
-use geekorm::Table;
+use geekorm::prelude::BuilderTable;
 use glob::glob;
 use std::path::PathBuf;
 
-use crate::Arguments;
+use super::Config;
 
 /// This struct represents a database and is based on the `internal`
 /// module of the `geekorm_derive` crate.
@@ -12,19 +12,16 @@ use crate::Arguments;
 pub(crate) struct Database {
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
-    pub tables: Vec<Table>,
+    pub tables: Vec<BuilderTable>,
 }
 
 impl Database {
-    pub fn find_database(arguments: &Arguments) -> Result<Self> {
+    pub fn find_database(config: &Config) -> Result<Self> {
         let target_path = "target/*/build/geekorm-derive-*/out/geekorm-*.json";
 
-        let path = arguments.working_dir.join(target_path);
+        let path = config.working_dir.join(target_path);
         let path_str = path.to_str().ok_or_else(|| {
-            anyhow::anyhow!(
-                "Failed to convert path to string: {:?}",
-                arguments.working_dir
-            )
+            anyhow::anyhow!("Failed to convert path to string: {:?}", config.working_dir)
         })?;
 
         // Find the latest database file based on the creation date
