@@ -7,7 +7,7 @@
 //! Wrapper for a `libsql::Connection` that implements the `GeekConnection` trait.
 //!
 //! ```no_run
-//! # #[cfg(feature = "libsql")] {
+//! # #[cfg(all(feature = "libsql", feature = "backends-tokio"))] {
 //! use std::sync::Arc;
 //! use geekorm::prelude::*;
 //!
