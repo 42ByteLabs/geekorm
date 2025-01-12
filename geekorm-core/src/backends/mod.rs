@@ -342,4 +342,75 @@ pub trait GeekConnection {
     ) -> Result<Vec<HashMap<String, Value>>, crate::Error> {
         Err(crate::Error::NotImplemented)
     }
+
+    /// Get Table Names
+    #[cfg(feature = "migrations")]
+    #[allow(async_fn_in_trait, unused_variables)]
+    async fn table_names(connection: &Self::Connection) -> Result<Vec<String>, crate::Error> {
+        // TODO: This only works for SQLite
+        let results: Vec<TableNames> = Self::query(
+            connection,
+            Query {
+                query: format!("SELECT name FROM sqlite_master WHERE type='table'"),
+                query_type: crate::builder::models::QueryType::Select,
+                ..Default::default()
+            },
+        )
+        .await?;
+
+        // Make sure to not include `sqlite_sequence` table
+        Ok(results
+            .iter()
+            .filter_map(|table| {
+                if table.name != "sqlite_sequence" {
+                    Some(table.name.clone())
+                } else {
+                    None
+                }
+            })
+            .collect())
+    }
+
+    /// Pragma table info
+    #[cfg(feature = "migrations")]
+    #[allow(async_fn_in_trait, unused_variables)]
+    async fn pragma_info(
+        connection: &Self::Connection,
+        table: &str,
+    ) -> Result<Vec<TableInfo>, crate::Error> {
+        Self::query(
+            connection,
+            Query {
+                query: format!("PRAGMA table_info({})", table),
+                query_type: crate::builder::models::QueryType::Select,
+                ..Default::default()
+            },
+        )
+        .await
+    }
+}
+
+/// Table Info
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+pub struct TableInfo {
+    /// The column ID
+    pub cid: i32,
+    /// The column name
+    pub name: String,
+    /// The column type
+    #[serde(rename = "type")]
+    pub coltype: String,
+    /// The column notnull value
+    pub notnull: i32,
+    /// The column default value
+    pub dflt_value: Option<String>,
+    /// The column primary key value
+    pub pk: i32,
+}
+
+/// Table Names
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+struct TableNames {
+    /// The table name
+    pub name: String,
 }

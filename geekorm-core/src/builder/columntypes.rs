@@ -123,6 +123,30 @@ impl ColumnType {
         matches!(self, ColumnType::Identifier(_))
     }
 
+    /// Check if the column type is nullable
+    pub fn is_not_null(&self) -> bool {
+        match self {
+            ColumnType::Identifier(_) => false,
+            ColumnType::ForeignKey(_) => false,
+            ColumnType::Text(opts) => opts.not_null,
+            ColumnType::Integer(opts) => opts.not_null,
+            ColumnType::Boolean(opts) => opts.not_null,
+            ColumnType::Blob(opts) => opts.not_null,
+        }
+    }
+
+    /// Check if the column type is unique
+    pub fn is_unique(&self) -> bool {
+        match self {
+            ColumnType::Identifier(_) => true,
+            ColumnType::ForeignKey(_) => false,
+            ColumnType::Text(opts) => opts.unique,
+            ColumnType::Integer(opts) => opts.unique,
+            ColumnType::Boolean(opts) => opts.unique,
+            ColumnType::Blob(opts) => opts.unique,
+        }
+    }
+
     /// Check if the column type is an auto increment
     pub fn is_auto_increment(&self) -> bool {
         match self {
