@@ -84,6 +84,8 @@ libsql = ["backends", "geekorm-derive/libsql", "geekorm-core/libsql"]
 rusqlite = ["backends", "geekorm-derive/rusqlite", "geekorm-core/rusqlite"]
 # sqlite = ["backends", "geekorm-derive/sqlite", "geekorm-core/sqlite"]
 
+migrations = ["geekorm-core/migrations"]
+
 [dependencies]
 geekorm-core = { version = "^0.8.4", path = "geekorm-core" }
 geekorm-derive = { version = "^0.8.4", path = "geekorm-derive" }

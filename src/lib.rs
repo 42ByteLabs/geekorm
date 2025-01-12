@@ -7,6 +7,7 @@
 // Builder Modules
 pub use geekorm_core::builder::columns::{Column, Columns};
 pub use geekorm_core::builder::columntypes::{ColumnType, ColumnTypeOptions};
+pub use geekorm_core::builder::database::Database;
 pub use geekorm_core::builder::table::Table;
 pub use geekorm_core::Error;
 // Keys Modules
@@ -29,6 +30,9 @@ pub mod utils {
     #[cfg(feature = "two-factor-auth")]
     pub use geekorm_core::TwoFactorAuth;
 }
+
+#[cfg(feature = "migrations")]
+pub use geekorm_core::migrations::{Migration, MigrationState};
 
 // Derive Crate
 pub use geekorm_derive::Data;
@@ -102,6 +106,10 @@ pub mod prelude {
     pub use geekorm_core::builder::keys::primary::{
         PrimaryKey, PrimaryKeyInteger, PrimaryKeyString,
     };
+
+    // Migrations Module
+    #[cfg(feature = "migrations")]
+    pub use geekorm_core::migrations::{Migration, MigrationState};
 
     // Helper Modules
     #[cfg(feature = "two-factor-auth")]
