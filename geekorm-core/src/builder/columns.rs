@@ -74,6 +74,20 @@ impl From<Vec<Column>> for Columns {
     }
 }
 
+#[cfg(feature = "migrations")]
+impl quote::ToTokens for Columns {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let columns = &self.columns;
+        tokens.extend(quote::quote! {
+            geekorm::Columns {
+                columns: Vec::from([
+                    #(#columns),*
+                ])
+            }
+        });
+    }
+}
+
 impl ToSqlite for Columns {
     fn on_create(&self, query: &crate::QueryBuilder) -> Result<String, crate::Error> {
         let mut sql = Vec::new();
@@ -175,6 +189,25 @@ impl Default for Column {
             alias: String::new(),
             skip: false,
         }
+    }
+}
+
+#[cfg(feature = "migrations")]
+impl quote::ToTokens for Column {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let name = &self.name;
+        let coltype = &self.column_type;
+        let alias = &self.alias;
+        let skip = &self.skip;
+
+        tokens.extend(quote::quote! {
+            geekorm::Column {
+                name: String::from(#name),
+                column_type: #coltype,
+                alias: String::from(#alias),
+                skip: #skip,
+            }
+        });
     }
 }
 
