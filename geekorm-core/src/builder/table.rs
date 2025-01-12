@@ -58,6 +58,21 @@ impl Table {
     }
 }
 
+/// Implement the `ToTokens` trait for the `Table` struct
+#[cfg(feature = "migrations")]
+impl quote::ToTokens for Table {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let name = &self.name;
+        let columns = &self.columns;
+        tokens.extend(quote::quote! {
+            geekorm::Table {
+                name: String::from(#name),
+                columns: #columns
+            }
+        });
+    }
+}
+
 impl ToSqlite for Table {
     fn on_create(&self, query: &QueryBuilder) -> Result<String, crate::Error> {
         Ok(format!(

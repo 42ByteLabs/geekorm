@@ -1,6 +1,7 @@
-use std::fmt::Display;
-
+#[cfg(feature = "migrations")]
+use quote::quote;
 use serde::{Deserialize, Serialize};
+use std::fmt::Display;
 
 use crate::ToSqlite;
 
@@ -30,6 +31,42 @@ impl Display for ColumnType {
             ColumnType::Integer(_) => write!(f, "Integer"),
             ColumnType::Boolean(_) => write!(f, "Boolean"),
             ColumnType::Blob(_) => write!(f, "Blob"),
+        }
+    }
+}
+
+#[cfg(feature = "migrations")]
+impl quote::ToTokens for ColumnType {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        match self {
+            ColumnType::Identifier(options) => {
+                tokens.extend(quote! {
+                    geekorm::ColumnType::Identifier(#options)
+                });
+            }
+            ColumnType::Text(options) => {
+                tokens.extend(quote! {
+                    geekorm::ColumnType::Text(#options)
+                });
+            }
+            ColumnType::Integer(options) => {
+                tokens.extend(quote! {
+                    geekorm::ColumnType::Integer(#options)
+                });
+            }
+            ColumnType::Boolean(options) => {
+                tokens.extend(quote! {
+                    geekorm::ColumnType::Boolean(#options)
+                });
+            }
+            ColumnType::Blob(options) => {
+                tokens.extend(quote! {
+                    geekorm::ColumnType::Blob(#options)
+                });
+            }
+            ColumnType::ForeignKey(options) => tokens.extend(quote! {
+                geekorm::ColumnType::ForeignKey(#options)
+            }),
         }
     }
 }
@@ -167,6 +204,27 @@ impl Display for ColumnTypeOptions {
             return write!(f, "{}", self.foreign_key);
         }
         Err(std::fmt::Error)
+    }
+}
+
+#[cfg(feature = "migrations")]
+impl quote::ToTokens for ColumnTypeOptions {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let primary_key = &self.primary_key;
+        let foreign_key = &self.foreign_key;
+        let unique = &self.unique;
+        let not_null = &self.not_null;
+        let auto_increment = &self.auto_increment;
+
+        tokens.extend(quote! {
+            geekorm::ColumnTypeOptions {
+                primary_key: #primary_key,
+                unique: #unique,
+                not_null: #not_null,
+                foreign_key: String::from(#foreign_key),
+                auto_increment: #auto_increment,
+            }
+        });
     }
 }
 

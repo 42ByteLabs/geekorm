@@ -4,6 +4,7 @@
 pub mod columns;
 /// Column types module
 pub mod columntypes;
+pub mod database;
 /// Join module
 pub mod joins;
 /// Primary and Foreign key module
