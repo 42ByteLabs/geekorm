@@ -292,13 +292,10 @@ impl GeekConnection for libsql::Connection {
         })?)
     }
 
-    async fn execute<T>(
+    async fn execute(
         connection: &Self::Connection,
         query: crate::Query,
-    ) -> Result<(), crate::Error>
-    where
-        T: serde::de::DeserializeOwned,
-    {
+    ) -> Result<(), crate::Error> {
         // Convert the values to libsql::Value
         let parameters: Vec<libsql::Value> = convert_values(&query).map_err(|e| {
             #[cfg(feature = "log")]
