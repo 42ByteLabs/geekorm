@@ -179,6 +179,15 @@ impl Column {
     pub fn is_primary_key(&self) -> bool {
         self.column_type.is_primary_key()
     }
+
+    /// Check if the column is nullable
+    pub fn is_not_null(&self) -> bool {
+        self.column_type.is_not_null()
+    }
+    /// If the column unique
+    pub fn is_unique(&self) -> bool {
+        self.column_type.is_unique()
+    }
 }
 
 impl Default for Column {

@@ -2,6 +2,8 @@
 //!
 //! This module contains the migration logic for the database.
 
+mod validate;
+
 use crate::builder::models::QueryType;
 use crate::{Database, GeekConnection, Query, Table, Values};
 
@@ -14,7 +16,7 @@ pub enum MigrationState {
     /// The database is up to date
     UpToDate,
     /// The database is out of date
-    OutOfDate,
+    OutOfDate(String),
 }
 
 /// Migration trait
@@ -30,31 +32,37 @@ pub trait Migration {
 
     /// Validate the database schema is correct
     #[allow(async_fn_in_trait)]
-    async fn validate<'a, C>(connection: &'a C) -> Result<MigrationState, crate::Error>
+    async fn validate<'a, C>(
+        connection: &'a C,
+        database: &Database,
+    ) -> Result<MigrationState, crate::Error>
     where
         C: GeekConnection<Connection = C> + 'a,
     {
-        Ok(MigrationState::Initialized)
+        validate::validate_database(connection, database).await
     }
 
     /// Create the database if it does not exist
     ///
     /// Assumes the database is already created but the tables are not
     #[allow(async_fn_in_trait)]
-    async fn create<'a, C>(connection: &'a C, database: &Database) -> Result<(), crate::Error>
+    async fn create<'a, C>(connection: &'a C, _database: &Database) -> Result<(), crate::Error>
     where
         C: GeekConnection<Connection = C> + 'a,
     {
-        let query_str = Self::create_query().to_string();
-        let query = Query::new(
-            QueryType::Create,
-            query_str,
-            Values::new(),
-            Values::new(),
-            Vec::new(),
-            Table::default(),
-        );
-        C::execute(connection, query).await
+        // TODO: Create the database if it does not exist
+        C::execute(
+            connection,
+            Query::new(
+                QueryType::Update,
+                Self::create_query().to_string(),
+                Values::new(),
+                Values::new(),
+                Vec::new(),
+                Table::default(),
+            ),
+        )
+        .await
     }
 
     /// Migrate the database to the latest version
@@ -63,7 +71,18 @@ pub trait Migration {
     where
         C: GeekConnection<Connection = C> + 'a,
     {
-        todo!("Migrate database");
+        C::execute(
+            connection,
+            Query::new(
+                QueryType::Update,
+                Self::upgrade_query().to_string(),
+                Values::new(),
+                Values::new(),
+                Vec::new(),
+                Table::default(),
+            ),
+        )
+        .await
     }
 
     /// Downgrade the database to the previous version
@@ -72,7 +91,18 @@ pub trait Migration {
     where
         C: GeekConnection<Connection = C> + 'a,
     {
-        todo!("Downgrade database");
+        C::execute(
+            connection,
+            Query::new(
+                QueryType::Update,
+                Self::rollback_query().to_string(),
+                Values::new(),
+                Values::new(),
+                Vec::new(),
+                Table::default(),
+            ),
+        )
+        .await
     }
 
     /// Migrating data from one version to another

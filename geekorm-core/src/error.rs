@@ -24,6 +24,11 @@ pub enum Error {
     #[error("Pagination Error: {0}")]
     PaginationError(String),
 
+    /// Migration Error
+    #[cfg(feature = "migrations")]
+    #[error("Migration Error: {0}")]
+    MigrationError(String),
+
     /// Not Implemented
     #[error("Not Implemented")]
     NotImplemented,
