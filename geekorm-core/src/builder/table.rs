@@ -56,6 +56,19 @@ impl Table {
         };
         Ok(format!("{}.{}", self.name, name))
     }
+
+    /// Get dependencies for the table
+    ///
+    /// This is a list of tables that the table depends on
+    pub fn get_dependencies(&self) -> Vec<String> {
+        let mut dependencies = Vec::new();
+        for column in &self.columns.columns {
+            if let Some(ftable) = column.column_type.foreign_key_table_name() {
+                dependencies.push(ftable);
+            }
+        }
+        dependencies
+    }
 }
 
 /// Implement the `ToTokens` trait for the `Table` struct

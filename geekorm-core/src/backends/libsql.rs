@@ -317,6 +317,20 @@ impl GeekConnection for libsql::Connection {
         Ok(())
     }
 
+    async fn batch(connection: &Self::Connection, query: crate::Query) -> Result<(), crate::Error> {
+        connection
+            .execute_batch(query.to_str())
+            .await
+            .map_err(|e| {
+                #[cfg(feature = "log")]
+                {
+                    error!("Error executing query: `{}`", e);
+                }
+                crate::Error::QuerySyntaxError(e.to_string(), query.to_string())
+            })?;
+        Ok(())
+    }
+
     async fn query_raw(
         connection: &Self::Connection,
         query: crate::Query,
