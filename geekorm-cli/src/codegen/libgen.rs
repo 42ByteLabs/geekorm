@@ -22,25 +22,13 @@ pub async fn lib_generation(config: &Config) -> Result<()> {
     let mut latest = format_ident!("v0_0_0");
     let mut imports = vec![];
 
-    // Get a list of dirs that start with "v"
-    let mut dirs = tokio::fs::read_dir(&src_dir).await?;
-
-    while let Some(dir) = dirs.next_entry().await? {
-        if dir.file_type().await?.is_dir() {
-            let name = dir.file_name();
-            if let Some(name) = name.to_str() {
-                if name.starts_with("v") {
-                    // Latest == last version
-                    latest = format_ident!("{}", name);
-
-                    let impstmt = quote! {
-                        mod #latest;
-                    };
-                    imports.push(impstmt);
-                }
-            }
-        }
-    }
+    // Generate the imports for each version
+    config.versions.iter().for_each(|v| {
+        latest = format_ident!("{}", v);
+        imports.push(quote! {
+            mod #latest;
+        });
+    });
 
     let ast = if !imports.is_empty() {
         quote! {
