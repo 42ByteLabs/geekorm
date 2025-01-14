@@ -160,6 +160,17 @@ impl ColumnType {
     pub fn is_foreign_key(&self) -> bool {
         matches!(self, ColumnType::ForeignKey(_))
     }
+    /// Get the foreign key table by name
+    pub fn foreign_key_table_name(&self) -> Option<String> {
+        match self {
+            ColumnType::ForeignKey(opts) => {
+                let (t, _) = opts.foreign_key.split_once('.').unwrap();
+                Some(t.to_string())
+            }
+            _ => None,
+        }
+    }
+
     /// Get the foreign key table & column name
     pub fn is_foreign_key_table(&self, table: &String) -> bool {
         match self {

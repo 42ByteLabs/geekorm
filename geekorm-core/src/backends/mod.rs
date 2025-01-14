@@ -313,6 +313,12 @@ pub trait GeekConnection {
         Err(crate::Error::NotImplemented)
     }
 
+    /// Execute a batch query on the database and do not return any rows
+    #[allow(async_fn_in_trait, unused_variables)]
+    async fn batch(connection: &Self::Connection, query: Query) -> Result<(), crate::Error> {
+        Err(crate::Error::NotImplemented)
+    }
+
     /// Query the database with an active Connection and Query
     #[allow(async_fn_in_trait, unused_variables)]
     async fn query<T>(connection: &Self::Connection, query: Query) -> Result<Vec<T>, crate::Error>

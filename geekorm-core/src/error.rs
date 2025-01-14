@@ -3,6 +3,9 @@
 /// Error type for the crate
 #[derive(Debug, thiserror::Error, Clone)]
 pub enum Error {
+    /// Database Connection Error
+    #[error("Connection Error: {0}")]
+    ConnectionError(String),
     /// Query Builder Error
     #[error("QueryBuilderError: {0} ({1})")]
     QueryBuilderError(String, String),
