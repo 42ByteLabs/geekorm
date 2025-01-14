@@ -1,19 +1,23 @@
 use anyhow::Result;
-use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
-use std::path::PathBuf;
 
 use crate::utils::Config;
 
-pub async fn lib_generation(config: &Config, path: &PathBuf) -> Result<()> {
+pub async fn lib_generation(config: &Config) -> Result<()> {
+    let path = config.migrations_path()?;
     log::info!("Generating the lib file...");
-    let src_dir = path.join("src");
+    let src_dir = if config.crate_mode() {
+        path.join("src")
+    } else {
+        path.clone()
+    };
 
     let lib_file = if config.mode == "crate" {
         src_dir.join("lib.rs")
     } else {
-        src_dir.join("mod.rs")
+        path.join("mod.rs")
     };
+    log::debug!("Lib File: {}", lib_file.display());
 
     let mut latest = format_ident!("v0_0_0");
     let mut imports = vec![];
@@ -38,100 +42,50 @@ pub async fn lib_generation(config: &Config, path: &PathBuf) -> Result<()> {
         }
     }
 
-    let drivers = drivers_gen(config)?;
+    let ast = if !imports.is_empty() {
+        quote! {
+            //! GeekORM Database Migrations
+            #[allow(unused_imports, unused_variables)]
+            use geekorm::prelude::*;
 
-    let ast = quote! {
-        //! GeekORM Database Migrations
-        #[allow(unused_imports, unused_variables)]
-        use geekorm::prelude::*;
+            #( #imports )*
 
-        #( #imports )*
+            pub use #latest::{Database, Migration as LatestMigration};
 
-        pub use #latest::{Database, Migration as LatestMigration};
+            pub async fn init<'a, T>(connection: &'a T) -> Result<(), geekorm::Error>
+            where
+                T: geekorm::GeekConnection<Connection = T> + 'a,
+            {
+                let database = &Database;
+                let latest = &LatestMigration;
 
-        pub async fn init<'a, T>(connection: &'a T) -> Result<(), geekorm::Error>
-        where
-            T: geekorm::GeekConnection<Connection = T> + 'a,
-        {
-            let database = &Database;
+                latest.validate_database(connection, database).await?;
 
-            match LatestMigration::validate(connection, database).await {
-                Ok(MigrationState::Initialized) => {
-                    LatestMigration::create(connection, database).await?;
-                }
-                Ok(MigrationState::OutOfDate(reason)) => {
-                    eprintln!("Database is out of date: {}", reason);
-                    // LatestMigration::upgrade(connection).await?;
-                    Err(geekorm::Error::MigrationError(reason))?;
-                }
-                Ok(MigrationState::UpToDate) => {}
-                Err(err) => {
-                    eprintln!("Error validating database: {}", err);
-                    return Err(err);
-                }
+                Ok(())
             }
-
-            Ok(())
         }
-
-
-        pub async fn connect<'a, T>(connection: impl Into<String>) -> Result<T, geekorm::Error>
-        where
-            T: geekorm::GeekConnection<Connection = T> + 'a,
-        {
-            let connection = connection.into();
-
-            match connection.as_str() {
-                #drivers
+    } else {
+        quote! {
+            //! # GeekORM Database Migrations
+            #[allow(unused_imports, unused_variables)]
+            use geekorm::prelude::*;
+            pub async fn init<'a, T>(connection: &'a T) -> Result<(), geekorm::Error>
+            where
+                T: geekorm::GeekConnection<Connection = T> + 'a,
+            {
+                Ok(())
             }
         }
     };
 
-    log::debug!("Updating the src/lib.rs file...");
-
+    log::debug!("Writing the lib/mod file...");
     tokio::fs::write(&lib_file, ast.to_string().as_bytes()).await?;
 
-    tokio::process::Command::new("cargo")
-        .arg("fmt")
-        .current_dir(&src_dir)
-        .status()
-        .await?;
-
-    Ok(())
-}
-
-fn drivers_gen(config: &Config) -> Result<TokenStream> {
-    let mut drivers = quote! {};
-    if config.drivers.contains(&"libsql".to_string()) {
-        drivers.extend(quote! {
-            ":memory:" => {
-                let db = libsql::Builder::new_local(":memory:").build().await?;
-                Ok(db.connect())
-            }
-            // libsql database
-            path if path.starts_with("libsql:") => {
-                let token = self.token.clone().ok_or_else(|| {
-                    Error::UnknownError("libsql database requires a token".to_string())
-                })?;
-
-                let db = libsql::Builder::new_remote(path.to_string(), token)
-                    .build()
-                    .await?;
-                Ok(db.connect())
-            }
-
-        });
-    } else if config.drivers.contains(&"rustqlite".to_string()) {
-        drivers.extend(quote! {
-            ":memory:" => {
-                Ok(Connection::open_in_memory()?)
-            }
-            path if path.starts_with("rusqlite") => {
-                let connection = T::connect("sqlite://:memory:").await?;
-                Ok(connection)
-            }
-        });
+    if config.module_mode() {
+        log::warn!("The module must be manually added to our lib.rs/main.rs file.");
     }
 
-    Ok(drivers)
+    log::debug!("Updated {}", lib_file.display());
+
+    Ok(())
 }

@@ -1,7 +1,7 @@
 use crate::migrations;
 use crate::utils::{
-    prompt_input_with_default, prompt_select, prompt_select_many, prompt_select_with_default,
-    Config,
+    prompt_confirm, prompt_input_with_default, prompt_select, prompt_select_many,
+    prompt_select_with_default, Config,
 };
 use anyhow::Result;
 
@@ -16,8 +16,7 @@ pub async fn init(config: &mut Config) -> Result<()> {
             config.mode = "crate".to_string();
         }
         "Module" => {
-            log::error!("Module mode is not yet supported");
-            return Err(anyhow::anyhow!("Module mode is not yet supported"));
+            config.mode = "module".to_string();
         }
         _ => {
             log::error!("Invalid mode selected");
@@ -36,9 +35,7 @@ pub async fn init(config: &mut Config) -> Result<()> {
         .map(|d| d.to_string())
         .collect();
 
-    if config.mode == "crate" {
-        init_crate(config).await?;
-    }
+    initalise(config).await?;
 
     // Create new migration?
     let (new_migration, _) =
@@ -55,7 +52,7 @@ pub async fn init(config: &mut Config) -> Result<()> {
 ///
 /// - Create the `migrations` directory
 /// - Create the `migrations` rust project with the `migrations` directory as the workspace
-pub async fn init_crate(config: &Config) -> Result<()> {
+pub async fn initalise(config: &Config) -> Result<()> {
     log::info!("Initializing the crate mode...");
 
     let name = config.name();
@@ -64,14 +61,30 @@ pub async fn init_crate(config: &Config) -> Result<()> {
     log::debug!("Migrations directory: {}", migrations_dir.display());
 
     // Setup the migrations project
-    if !migrations_dir.exists() {
-        log::info!("Creating the migrations project...");
-        std::fs::create_dir_all(&migrations_dir)?;
-        tokio::process::Command::new("cargo")
-            .args(&["init", "--name", name.as_str(), "--lib", "--vcs", "none"])
-            .current_dir(&migrations_dir)
-            .status()
-            .await?;
+    if config.crate_mode() {
+        if !migrations_dir.exists() {
+            log::info!("Creating the migrations project...");
+            std::fs::create_dir_all(&migrations_dir)?;
+            tokio::process::Command::new("cargo")
+                .args(&["init", "--name", name.as_str(), "--lib", "--vcs", "none"])
+                .current_dir(&migrations_dir)
+                .status()
+                .await?;
+        }
+    } else if config.module_mode() {
+        log::info!("Creating the migrations module...");
+        if !migrations_dir.exists() {
+            std::fs::create_dir_all(&migrations_dir)?;
+        } else {
+            log::warn!("The {} module already exists", config.name());
+            if !prompt_confirm("Overwrite the module?")? {
+                log::info!("The module will not be overwritten");
+                return Ok(());
+            }
+        }
+    } else {
+        log::error!("Invalid mode");
+        return Err(anyhow::anyhow!("Invalid mode"));
     }
 
     let mut features = vec!["migrations", "backends"];
@@ -98,14 +111,25 @@ pub async fn init_crate(config: &Config) -> Result<()> {
     log::debug!("GeekORM Library: {:?}", geekorm_lib);
 
     // Add dependencies
-    tokio::process::Command::new("cargo")
-        .arg("add")
-        .args(geekorm_lib)
-        .arg("-F")
-        .arg(features.join(","))
-        .current_dir(&migrations_dir)
-        .status()
-        .await?;
+    if config.crate_mode() {
+        tokio::process::Command::new("cargo")
+            .arg("add")
+            .args(geekorm_lib)
+            .arg("-F")
+            .arg(features.join(","))
+            .current_dir(&migrations_dir)
+            .status()
+            .await?;
+    } else if config.module_mode() {
+        tokio::process::Command::new("cargo")
+            .arg("add")
+            .args(geekorm_lib)
+            .arg("-F")
+            .arg(features.join(","))
+            .current_dir(&config.working_dir)
+            .status()
+            .await?;
+    }
 
     // Dependencies
     for crt in crates {
@@ -119,7 +143,7 @@ pub async fn init_crate(config: &Config) -> Result<()> {
     }
 
     if config.mode == "crate" {
-        // Add the migrations directory as a dependency
+        log::info!("Adding the migrations project to the workspace...");
         tokio::process::Command::new("cargo")
             .args(&["add", "--path", name.as_str()])
             .status()

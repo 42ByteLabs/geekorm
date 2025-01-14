@@ -56,6 +56,24 @@ pub fn init() -> Arguments {
     env_logger::builder()
         .parse_default_env()
         .filter_level(log_level)
+        .format(|buf, record| {
+            use std::io::Write;
+
+            let color = match record.level() {
+                log::Level::Error => console::Color::Red,
+                log::Level::Warn => console::Color::Yellow,
+                log::Level::Info => console::Color::Green,
+                log::Level::Debug => console::Color::Blue,
+                log::Level::Trace => console::Color::Cyan,
+            };
+
+            writeln!(
+                buf,
+                "[{:<5}] {}",
+                style(record.level()).fg(color),
+                record.args()
+            )
+        })
         .init();
 
     if !arguments.disable_banner {
