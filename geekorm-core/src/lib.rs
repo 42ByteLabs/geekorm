@@ -158,10 +158,11 @@ pub trait ToSqlite {
     }
 
     /// Convert to SQLite for altering a table
+    #[allow(unused_variables)]
     #[cfg(feature = "migrations")]
-    fn on_alter(&self, _query: &AlterQuery) -> Result<(String, Values), crate::Error> {
+    fn on_alter(&self, query: &AlterQuery) -> Result<String, crate::Error> {
         Err(Error::QueryBuilderError(
-            format!("on_alter not implemented for table"),
+            "on_alter not implemented for table".to_string(),
             String::from("on_alter"),
         ))
     }

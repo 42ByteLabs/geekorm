@@ -1,3 +1,5 @@
+#[cfg(feature = "migrations")]
+use super::alter::{AlterMode, AlterQuery};
 use crate::{ColumnType, ToSqlite};
 use serde::{Deserialize, Serialize};
 
@@ -233,6 +235,50 @@ impl ToSqlite for Column {
         };
         Ok(format!("{} {}", name, self.column_type.on_create(query)?))
     }
+
+    #[cfg(feature = "migrations")]
+    fn on_alter(&self, query: &AlterQuery) -> Result<String, crate::Error> {
+        Ok(match query.mode {
+            AlterMode::AddTable => {
+                format!("ALTER TABLE {} ADD COLUMN {};", query.table, query.column)
+            }
+            AlterMode::RenameTable => {
+                format!("ALTER TABLE {} RENAME TO {};", query.table, query.column)
+            }
+            AlterMode::DropTable => {
+                format!("ALTER TABLE {} DROP COLUMN {};", query.table, query.column)
+            }
+            AlterMode::AddColumn => {
+                format!(
+                    "ALTER TABLE {} ADD COLUMN {} {};",
+                    query.table,
+                    query.column,
+                    self.column_type.on_alter(query)?
+                )
+            }
+            AlterMode::RenameColumn => {
+                format!(
+                    "ALTER TABLE {} RENAME COLUMN {} TO {};",
+                    query.table,
+                    query.column,
+                    query.rename.as_ref().unwrap_or(&query.column)
+                )
+            }
+            AlterMode::DropColumn => {
+                format!("ALTER TABLE {} DROP COLUMN {};", query.table, query.column)
+            }
+            AlterMode::Skip => {
+                if query.column.is_empty() {
+                    format!("-- Skipping {} this migration", query.table)
+                } else {
+                    format!(
+                        "-- Skipping {}.{} this migration",
+                        query.table, query.column
+                    )
+                }
+            }
+        })
+    }
 }
 
 #[cfg(test)]
@@ -296,5 +342,30 @@ mod tests {
         let columns = query.table.columns.on_create(&query).unwrap();
 
         assert_eq!(columns, "(user_id INTEGER, name TEXT, image_id INTEGER, FOREIGN KEY (image_id) REFERENCES images(id))");
+    }
+
+    #[test]
+    fn test_alter_to_sql() {
+        let query = crate::AlterQuery::new(AlterMode::AddColumn, "Table", "colname");
+
+        let column = Column::new(
+            String::from("name"),
+            ColumnType::Text(ColumnTypeOptions::default()),
+        );
+        assert_eq!(
+            column.on_alter(&query).unwrap(),
+            "ALTER TABLE Table ADD COLUMN colname TEXT;"
+        );
+        let column = Column::new(
+            String::from("name"),
+            ColumnType::Text(ColumnTypeOptions {
+                not_null: true,
+                ..Default::default()
+            }),
+        );
+        assert_eq!(
+            column.on_alter(&query).unwrap(),
+            "ALTER TABLE Table ADD COLUMN colname TEXT NOT NULL DEFAULT '';"
+        );
     }
 }

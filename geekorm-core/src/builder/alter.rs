@@ -24,11 +24,14 @@ pub enum AlterMode {
 /// Alter query builder
 #[derive(Debug)]
 pub struct AlterQuery {
-    mode: AlterMode,
-    table: String,
-    column: String,
+    pub(crate) mode: AlterMode,
 
-    rename: Option<String>,
+    /// Table name
+    pub(crate) table: String,
+    /// Column name
+    pub(crate) column: String,
+    /// Rename column (if applicable)
+    pub(crate) rename: Option<String>,
 }
 
 impl AlterQuery {

@@ -1,4 +1,6 @@
 #[cfg(feature = "migrations")]
+use crate::AlterQuery;
+#[cfg(feature = "migrations")]
 use quote::quote;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
@@ -114,6 +116,34 @@ impl ToSqlite for ColumnType {
                 format!("BLOB {}", options.on_create(query)?)
             }
         })
+    }
+
+    #[cfg(feature = "migrations")]
+    fn on_alter(&self, _query: &AlterQuery) -> Result<String, crate::Error> {
+        match self {
+            ColumnType::Text(opts) => {
+                if opts.not_null {
+                    Ok("TEXT NOT NULL DEFAULT ''".to_string())
+                } else {
+                    Ok("TEXT".to_string())
+                }
+            }
+            ColumnType::Integer(opts) | ColumnType::Boolean(opts) => {
+                if opts.not_null {
+                    Ok("INTEGER NOT NULL DEFAULT 0".to_string())
+                } else {
+                    Ok("INTEGER".to_string())
+                }
+            }
+            ColumnType::Blob(opts) => {
+                if opts.not_null {
+                    Ok("BLOB NOT NULL DEFAULT ''".to_string())
+                } else {
+                    Ok("BLOB".to_string())
+                }
+            }
+            _ => Ok("BEANS".to_string()),
+        }
     }
 }
 
@@ -285,6 +315,8 @@ impl ToSqlite for ColumnTypeOptions {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(feature = "migrations")]
+    use crate::builder::alter::AlterMode;
 
     fn query() -> crate::QueryBuilder {
         crate::QueryBuilder::default()
@@ -331,5 +363,25 @@ mod tests {
             column_type_options.on_create(&query).unwrap(),
             "PRIMARY KEY AUTOINCREMENT"
         );
+    }
+
+    #[test]
+    fn test_alter_table_to_sql() {
+        let query = crate::AlterQuery::new(AlterMode::AddColumn, "Table", "colname");
+
+        let column_type = ColumnType::Text(ColumnTypeOptions::default());
+        assert_eq!(column_type.on_alter(&query).unwrap(), "TEXT");
+
+        let column_type = ColumnType::Text(ColumnTypeOptions {
+            not_null: true,
+            ..Default::default()
+        });
+        assert_eq!(
+            column_type.on_alter(&query).unwrap(),
+            "TEXT NOT NULL DEFAULT ''"
+        );
+
+        let column_type = ColumnType::Integer(ColumnTypeOptions::default());
+        assert_eq!(column_type.on_alter(&query).unwrap(), "INTEGER");
     }
 }
