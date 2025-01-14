@@ -15,6 +15,8 @@ pub mod queries;
 pub mod utils;
 
 pub use crate::backends::{GeekConnection, GeekConnector};
+#[cfg(feature = "migrations")]
+pub use crate::builder::alter::AlterQuery;
 pub use crate::builder::columns::{Column, Columns};
 pub use crate::builder::columntypes::{ColumnType, ColumnTypeOptions};
 pub use crate::builder::database::Database;
@@ -152,6 +154,15 @@ pub trait ToSqlite {
         Err(Error::QueryBuilderError(
             format!("on_delete not implemented for table: {}", query.table),
             String::from("on_delete"),
+        ))
+    }
+
+    /// Convert to SQLite for altering a table
+    #[cfg(feature = "migrations")]
+    fn on_alter(&self, _query: &AlterQuery) -> Result<(String, Values), crate::Error> {
+        Err(Error::QueryBuilderError(
+            format!("on_alter not implemented for table"),
+            String::from("on_alter"),
         ))
     }
 }

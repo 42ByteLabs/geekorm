@@ -2,15 +2,19 @@
 //!
 //! This module contains the migration logic for the database.
 
-mod validate;
+pub mod validate;
 
 use crate::backends::TableInfo;
 use crate::builder::models::QueryType;
+use crate::error::MigrationError;
 use crate::{Database, GeekConnection, Query, Table, Values};
+
+use self::validate::Validator;
 
 /// Migration state
 ///
 /// Represents the state of the database schema
+#[derive(Debug)]
 pub enum MigrationState {
     /// The database is initialized but no tables have been created
     Initialized,
@@ -61,7 +65,7 @@ where
 
     /// This function is called to validate the database schema
     /// by comparing the live database to the migration database
-    #[allow(async_fn_in_trait)]
+    #[allow(async_fn_in_trait, unused_variables)]
     async fn validate_database<'a, C>(
         &self,
         connection: &'a C,
@@ -71,30 +75,50 @@ where
         Self: Sized,
         C: GeekConnection<Connection = C> + 'a,
     {
-        println!("Validating database schema...");
         // Get all the data from live database
         let database_tables = C::table_names(connection).await?;
+
+        // If the database is empty, then it is initialized
+        if database_tables.is_empty() {
+            return Ok(MigrationState::Initialized);
+        }
+
         let mut database_table_columns: DatabaseTables = Vec::new();
         for table in database_tables {
             let dbcolumns = C::pragma_info(connection, table.as_str()).await?;
             database_table_columns.push((table, dbcolumns));
         }
-        // TODO: Validation
-        let mut migrations: Vec<Box<dyn Migration>> = Vec::new();
 
-        Self::validate(&mut migrations, database, &database_table_columns)?;
+        let mut migrations: Vec<Box<dyn Migration>> = Vec::new();
+        #[cfg(feature = "log")]
+        {
+            log::debug!("Validating database schema");
+        }
+
+        let state = Self::validate(&mut migrations, database, &database_table_columns)?;
+        println!("State: {:?}", state);
 
         for migration in migrations {
-            let v = migration.version();
-            println!("Running migration: {}", v);
+            #[cfg(feature = "log")]
+            {
+                let v = migration.version();
+                log::info!("Upgrading database to version {}", v);
+            }
             Self::upgrade(connection).await?;
-            // migration.upgrade(connection).await?;
+        }
+        if matches!(state, MigrationState::OutOfDate(_)) {
+            #[cfg(feature = "log")]
+            {
+                log::info!("Upgrading database to version {}", self.version());
+            }
+            Self::upgrade(connection).await?;
         }
 
         Ok(MigrationState::UpToDate)
     }
 
     /// Validate the database schema is correct
+    #[allow(unused_variables)]
     fn validate(
         migrations: &mut Vec<Box<dyn Migration>>,
         migration_database: &Database,
@@ -103,16 +127,24 @@ where
     where
         Self: Sized,
     {
-        let result = validate::validate_database(live_database, migration_database)?;
+        let mut validator = Validator {
+            errors: Vec::new(),
+            quick: true,
+        };
+        let result =
+            validate::validate_database(live_database, migration_database, &mut validator)?;
 
         match result {
             MigrationState::OutOfDate(reason) => {
-                println!("Database is out of date: {}", reason);
+                #[cfg(feature = "log")]
+                {
+                    log::info!("Database is out of date: {}", reason);
+                }
                 if let Some(prev) = Self::previous() {
                     migrations.push(prev);
                 }
 
-                Ok(MigrationState::UpToDate)
+                Ok(MigrationState::OutOfDate(reason))
             }
             _ => Ok(MigrationState::UpToDate),
         }
@@ -154,15 +186,17 @@ where
         if query.is_empty() {
             #[cfg(feature = "log")]
             {
-                log::debug!("No upgrade query found");
+                log::warn!("No upgrade query found");
             }
-            return Ok(());
+            return Err(crate::Error::MigrationError(MigrationError::UpgradeError(
+                "No upgrade is avalible".to_string(),
+            )));
         }
         #[cfg(feature = "log")]
         {
             log::debug!("Executing upgrade query: {}", query);
         }
-        C::execute(
+        C::batch(
             connection,
             Query::new(
                 QueryType::Update,

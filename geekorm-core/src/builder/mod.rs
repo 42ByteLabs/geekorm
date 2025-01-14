@@ -1,5 +1,7 @@
 //! Query builder module
 
+#[cfg(feature = "migrations")]
+pub mod alter;
 /// Column builder module
 pub mod columns;
 /// Column types module
