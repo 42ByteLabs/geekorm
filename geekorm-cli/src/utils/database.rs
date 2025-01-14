@@ -63,7 +63,7 @@ impl Database {
         let mut tables = Vec::new();
         let mut dependencies = Vec::new();
 
-        for _passes in 0..=2 {
+        while tables.len() < self.tables.len() {
             for table in &self.tables {
                 if dependencies.contains(&table.name) {
                     continue;
@@ -84,5 +84,23 @@ impl Database {
         }
 
         self.tables = tables;
+    }
+
+    pub fn get_table(&self, name: &str) -> Option<&BuilderTable> {
+        self.tables.iter().find(|table| table.name == name)
+    }
+
+    pub fn get_table_names(&self) -> Vec<&str> {
+        self.tables.iter().map(|t| t.name.as_str()).collect()
+    }
+
+    pub fn get_table_columns(&self, table: &str) -> Vec<&str> {
+        self.get_table(table)
+            .unwrap()
+            .columns
+            .columns
+            .iter()
+            .map(|col| col.name.as_str())
+            .collect()
     }
 }

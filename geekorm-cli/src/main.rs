@@ -41,6 +41,9 @@ async fn main() -> Result<()> {
 
             codegen::lib_generation(&config).await?;
         }
+        Some(ArgumentCommands::Test) => {
+            migrations::test_migrations(&config).await?;
+        }
         Some(ArgumentCommands::Display) => {
             display::display_database(&config)?;
         }
@@ -48,23 +51,36 @@ async fn main() -> Result<()> {
             let options = if config.new {
                 vec!["Init", "Display"]
             } else {
-                vec!["Migrate", "Display"]
+                vec!["Migrate", "Update", "Display"]
             };
             let (selected, _) = prompt_select("Select an option:", &options)?;
 
-            println!("You selected: {}", selected);
+            log::info!("You selected: {}", selected);
             match selected {
                 "Init" => {
-                    println!("Initializing GeekORM...");
+                    log::info!("Initializing GeekORM...");
                     init::init(&mut config).await?;
                     config.save(&arguments.config)?;
                 }
                 "Migrate" => {
-                    println!("Migrating the database...");
+                    log::info!("Migrating the database...");
                     migrations::create_migrations(&config).await?;
+                }
+                "Update" => {
+                    log::info!("Updating the database...");
+                    if config.mode == "crate" {
+                        init::initalise(&config).await?;
+                    }
+
+                    codegen::lib_generation(&config).await?;
+                }
+                "Display" => {
+                    log::info!("Displaying the database...");
+                    display::display_database(&config)?;
                 }
                 _ => {
                     log::error!("Invalid command");
+                    return Err(anyhow::anyhow!("Invalid command"));
                 }
             }
         }

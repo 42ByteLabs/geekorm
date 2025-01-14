@@ -61,7 +61,7 @@ impl Config {
         }
 
         config.versions = config.get_versions().await?;
-        log::info!("Versions: {:?}", config.versions);
+        log::debug!("Versions: {:?}", config.versions);
 
         Ok(config)
     }
@@ -133,9 +133,19 @@ impl Config {
         }
     }
 
+    pub fn migrations_src_path(&self) -> Result<PathBuf> {
+        if self.crate_mode() {
+            Ok(self.migrations_path()?.join("src"))
+        } else if self.module_mode() {
+            self.migrations_path()
+        } else {
+            Err(anyhow::anyhow!("No mode selected"))
+        }
+    }
+
     pub fn new_migration_path(&self) -> Result<PathBuf> {
         if self.crate_mode() {
-            let migrations_dir = self.migrations_path()?.join("src");
+            let migrations_dir = self.migrations_src_path()?;
             // Get the current Cargo package version
             Ok(migrations_dir.join(format!("v{}", self.version())))
         } else if self.module_mode() {
@@ -164,6 +174,7 @@ impl Config {
                 }
             }
         }
+        results.sort();
         Ok(results)
     }
 

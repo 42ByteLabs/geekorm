@@ -16,8 +16,15 @@ rust-version.workspace = true
 
 authors.workspace = true
 
+[features]
+
+
 [dependencies]
 geekorm = { path = "../", version = "^0.8.4", features = ["utils", "migrations"] }
+geekorm-core = { path = "../geekorm-core", version = "^0.8.4", features = ["migrations", "rusqlite"] }
+
+# libsql = { version = "0.6", optional = true }
+rusqlite = { version = "0.32" }
 
 # CLI
 clap = { version = "4.0", features = ["derive", "env"] }
