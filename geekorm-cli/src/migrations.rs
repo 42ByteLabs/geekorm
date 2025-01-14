@@ -3,7 +3,7 @@ use geekorm::{GeekConnection, MigrationState};
 use geekorm_core::builder::alter::AlterMode;
 use geekorm_core::error::MigrationError;
 use geekorm_core::migrations::validate::Validator;
-use geekorm_core::AlterQuery;
+use geekorm_core::{AlterQuery, ToSqlite};
 use std::path::PathBuf;
 
 use crate::codegen;
@@ -91,7 +91,7 @@ async fn create_schema_migration(config: &Config, path: &PathBuf) -> Result<bool
 
             let query = prompt_table_alter(&database, verror)?;
 
-            data.push_str(query.build().as_str());
+            data.push_str(query.as_str());
             data.push_str("\n\n");
         }
 
@@ -113,45 +113,68 @@ async fn create_schema_migration(config: &Config, path: &PathBuf) -> Result<bool
     }
 }
 
-fn prompt_table_alter(database: &Database, migrations: &MigrationError) -> Result<AlterQuery> {
+fn prompt_table_alter(database: &Database, migrations: &MigrationError) -> Result<String> {
     match migrations {
         MigrationError::MissingTable(table) => {
-            log::info!("Prompting for missing table: `{:?}`", migrations);
-            let (choice, _) =
-                prompt_select_with_default("Alter Column:", &vec!["Create", "Rename", "Skip"], 0)?;
+            if let Some(dbtable) = database.get_table(table) {
+                log::info!("Prompting for missing table: `{:?}`", migrations);
+                let (choice, _) = prompt_select_with_default(
+                    "Alter Column:",
+                    &vec!["Create", "Rename", "Skip"],
+                    0,
+                )?;
 
-            if choice == "Rename" {
-                let tables = database.get_table_names();
+                if choice == "Rename" {
+                    let tables = database.get_table_names();
 
-                let (new_table, _) = prompt_select("New Table Name:", &tables)?;
+                    let (new_table, _) = prompt_select("New Table Name:", &tables)?;
 
-                let mut alt = AlterQuery::new(AlterMode::RenameTable, table, "");
-                alt.rename(new_table);
-                Ok(alt)
-            } else if choice == "Create" {
-                Ok(AlterQuery::new(AlterMode::AddTable, table, ""))
+                    let mut alt = AlterQuery::new(AlterMode::RenameTable, table, "");
+                    alt.rename(new_table);
+                    Ok(dbtable.on_alter(&alt)?)
+                } else if choice == "Create" {
+                    let alt = AlterQuery::new(AlterMode::AddTable, table, "");
+                    Ok(dbtable.on_alter(&alt)?)
+                } else {
+                    Ok("".to_string())
+                }
             } else {
-                Ok(AlterQuery::new(AlterMode::Skip, table, ""))
+                Err(anyhow::anyhow!(
+                    "Table not found (this should never happen): {}",
+                    table
+                ))
             }
         }
         MigrationError::MissingColumn { table, column } => {
-            log::info!("Prompting for missing column: `{:?}`", migrations);
-            // Table exists, only the column is missing
-            let (choice, _) =
-                prompt_select_with_default("Alter Column:", &vec!["Create", "Rename", "Skip"], 0)?;
+            if let Some(dbcolumn) = database.get_table_column(table, column) {
+                log::info!("Prompting for missing column: `{:?}`", migrations);
+                // Table exists, only the column is missing
+                let (choice, _) = prompt_select_with_default(
+                    "Alter Column:",
+                    &vec!["Create", "Rename", "Skip"],
+                    0,
+                )?;
 
-            if choice == "Rename" {
-                let columns = database.get_table_columns(table);
+                if choice == "Rename" {
+                    let columns = database.get_table_columns(table);
 
-                let (new_column, _) = prompt_select("New Column Name:", &columns)?;
+                    let (new_column, _) = prompt_select("New Column Name:", &columns)?;
 
-                let mut alt = AlterQuery::new(AlterMode::RenameColumn, table, column);
-                alt.rename(new_column);
-                Ok(alt)
-            } else if choice == "Create" {
-                Ok(AlterQuery::new(AlterMode::AddColumn, table, column))
+                    let mut alt = AlterQuery::new(AlterMode::RenameColumn, table, column);
+                    alt.rename(new_column);
+                    Ok(dbcolumn.on_alter(&alt)?)
+                } else if choice == "Create" {
+                    let alt = AlterQuery::new(AlterMode::AddColumn, table, column);
+                    Ok(dbcolumn.on_alter(&alt)?)
+                } else {
+                    Ok("".to_string())
+                }
             } else {
-                Ok(AlterQuery::new(AlterMode::Skip, table, column))
+                Err(anyhow::anyhow!(
+                    "Column not found (this should never happen): {}.{}",
+                    table,
+                    column
+                ))
             }
         }
         _ => {

@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 use anyhow::Result;
 use geekorm::prelude::BuilderTable;
+use geekorm::Column;
 use glob::glob;
 use std::path::PathBuf;
 
@@ -88,6 +89,15 @@ impl Database {
 
     pub fn get_table(&self, name: &str) -> Option<&BuilderTable> {
         self.tables.iter().find(|table| table.name == name)
+    }
+
+    pub fn get_table_column(&self, table: &str, column: &str) -> Option<&Column> {
+        self.get_table(table)
+            .unwrap()
+            .columns
+            .columns
+            .iter()
+            .find(|col| col.name == column)
     }
 
     pub fn get_table_names(&self) -> Vec<&str> {
