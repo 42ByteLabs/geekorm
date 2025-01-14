@@ -133,7 +133,7 @@ required-features = ["all", "libsql"]
 [[example]]
 name = "turso-libsql"
 path = "./examples/turso-libsql/src/main.rs"
-required-features = ["all", "libsql"]
+required-features = ["all", "libsql", "backends-tokio"]
 
 [[example]]
 name = "rusqlite"

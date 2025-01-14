@@ -45,7 +45,7 @@ pub async fn lib_generation(config: &Config) -> Result<()> {
     let ast = if !imports.is_empty() {
         quote! {
             //! GeekORM Database Migrations
-            #[allow(unused_imports, unused_variables)]
+            #![allow(unused_imports, unused_variables)]
             use geekorm::prelude::*;
 
             #( #imports )*
@@ -56,10 +56,20 @@ pub async fn lib_generation(config: &Config) -> Result<()> {
             where
                 T: geekorm::GeekConnection<Connection = T> + 'a,
             {
-                let database = &Database;
                 let latest = &LatestMigration;
 
-                latest.validate_database(connection, database).await?;
+                match latest.validate_database(connection, &Database).await {
+                    Ok(MigrationState::Initialized) => {
+                        LatestMigration::create(connection).await?;
+                    }
+                    Ok(MigrationState::UpToDate) => {}
+                    Ok(MigrationState::OutOfDate(_)) => {
+                        return Err(geekorm::Error::Unknown);
+                    }
+                    Err(err) => {
+                        return Err(err);
+                    }
+                }
 
                 Ok(())
             }
