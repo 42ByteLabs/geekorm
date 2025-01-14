@@ -1,8 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
-#[cfg(feature = "migrations")]
-use super::alter::AlterQuery;
 use crate::{Columns, QueryBuilder, ToSqlite, Values};
 
 /// The Table struct for defining a table
@@ -303,14 +301,6 @@ impl ToSqlite for Table {
         full_query.push_str(&format!(" WHERE {} = ?;", primary_key_name));
 
         Ok((full_query, parameters))
-    }
-
-    /// Function to alter the table
-    #[cfg(feature = "migrations")]
-    fn on_alter(&self, query: &AlterQuery) -> Result<(String, Values), crate::Error> {
-        let full_query = query.build();
-
-        Ok((full_query, Values::new()))
     }
 }
 
