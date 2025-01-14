@@ -6,6 +6,14 @@ pub enum Error {
     /// Database Connection Error
     #[error("Connection Error: {0}")]
     ConnectionError(String),
+    /// Database Schema Error
+    #[error("Schema Error: {0}")]
+    SchemaError(String),
+    /// Database Migration Error
+    #[cfg(feature = "migrations")]
+    #[error("{0}")]
+    MigrationError(#[from] MigrationError),
+
     /// Query Builder Error
     #[error("QueryBuilderError: {0} ({1})")]
     QueryBuilderError(String, String),
@@ -26,11 +34,6 @@ pub enum Error {
     #[cfg(feature = "pagination")]
     #[error("Pagination Error: {0}")]
     PaginationError(String),
-
-    /// Migration Error
-    #[cfg(feature = "migrations")]
-    #[error("Migration Error: {0}")]
-    MigrationError(String),
 
     /// Not Implemented
     #[error("Not Implemented")]
@@ -75,4 +78,53 @@ pub enum Error {
         "Query Syntax Error: {0}\n -> {1}\nPlease report this error to the GeekORM developers"
     )]
     QuerySyntaxError(String, String),
+}
+
+/// GeekORM Migration Error
+#[cfg(feature = "migrations")]
+#[derive(Debug, thiserror::Error, Clone)]
+pub enum MigrationError {
+    /// Missing Table (table name)
+    #[error("Missing Table `{0}`")]
+    MissingTable(String),
+    /// Missing Column (table name, column name)
+    #[error("Missing Column `{table}.{column}`")]
+    MissingColumn {
+        /// Table name
+        table: String,
+        /// Column name
+        column: String,
+    },
+    /// Column Type Mismatch (table name, column name, feature)
+    #[error("Column Type Mismatch `{table}.{column}`: {feature}")]
+    ColumnTypeMismatch {
+        /// Table name
+        table: String,
+        /// Column name
+        column: String,
+        /// Feature
+        feature: String,
+    },
+
+    /// New Table (table name)
+    #[error("New Table `{table}`")]
+    NewTable {
+        /// Table name
+        table: String,
+    },
+    /// New Column (table name, column name)
+    #[error("New Column `{table}.{column}`")]
+    NewColumn {
+        /// Table name
+        table: String,
+        /// Column name
+        column: String,
+    },
+
+    /// Upgrade Error (reason)
+    #[error("Upgrade Error: {0}")]
+    UpgradeError(String),
+    /// Missing Migration (migration name)
+    #[error("Missing Migration: {0}")]
+    MissingMigration(String),
 }
