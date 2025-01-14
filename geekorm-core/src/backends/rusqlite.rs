@@ -165,6 +165,21 @@ impl GeekConnection for rusqlite::Connection {
         Ok(())
     }
 
+    async fn batch(
+        connection: &Self::Connection,
+        query: crate::Query,
+    ) -> std::result::Result<(), crate::Error> {
+        #[cfg(feature = "log")]
+        {
+            debug!("Batch :: {:?}", query.to_str());
+        }
+        connection
+            .execute_batch(query.query.as_str())
+            .map_err(|e| crate::Error::RuSQLiteError(e.to_string()))?;
+
+        Ok(())
+    }
+
     async fn row_count(
         connection: &Self::Connection,
         query: crate::Query,

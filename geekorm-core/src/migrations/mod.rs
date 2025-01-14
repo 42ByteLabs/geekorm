@@ -96,7 +96,6 @@ where
         }
 
         let state = Self::validate(&mut migrations, database, &database_table_columns)?;
-        println!("State: {:?}", state);
 
         for migration in migrations {
             #[cfg(feature = "log")]
