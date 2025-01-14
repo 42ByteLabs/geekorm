@@ -36,10 +36,10 @@ async fn main() -> Result<()> {
         }
         Some(ArgumentCommands::Update) => {
             if config.mode == "crate" {
-                init::init_crate(&config).await?;
+                init::initalise(&config).await?;
             }
 
-            codegen::lib_generation(&config, &config.migrations_path()?).await?;
+            codegen::lib_generation(&config).await?;
         }
         Some(ArgumentCommands::Display) => {
             display::display_database(&config)?;

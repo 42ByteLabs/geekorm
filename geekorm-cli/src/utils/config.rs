@@ -23,7 +23,7 @@ pub struct Config {
     #[serde(skip_serializing_if = "String::is_empty")]
     pub(crate) database: String,
     /// Database Driver
-    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub(crate) drivers: Vec<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -31,6 +31,9 @@ pub struct Config {
 
     #[serde(skip)]
     pub(crate) version: String,
+
+    #[serde(skip)]
+    pub(crate) versions: Vec<String>,
 }
 
 impl Config {
@@ -56,6 +59,9 @@ impl Config {
         } else {
             log::warn!("Cargo.toml not found in working directory");
         }
+
+        config.versions = config.get_versions().await?;
+        log::info!("Versions: {:?}", config.versions);
 
         Ok(config)
     }
@@ -120,7 +126,8 @@ impl Config {
         if self.crate_mode() {
             Ok(self.working_dir.join(self.name()))
         } else if self.module_mode() {
-            todo!("module mode")
+            // TODO: What if the migrations directory is not in the src directory?
+            Ok(self.working_dir.join("src").join(self.name()))
         } else {
             Err(anyhow::anyhow!("No mode selected"))
         }
@@ -131,8 +138,40 @@ impl Config {
             let migrations_dir = self.migrations_path()?.join("src");
             // Get the current Cargo package version
             Ok(migrations_dir.join(format!("v{}", self.version())))
+        } else if self.module_mode() {
+            Ok(self.migrations_path()?.join(format!("v{}", self.version())))
         } else {
             Err(anyhow::anyhow!("No mode selected"))
+        }
+    }
+
+    async fn get_versions(&self) -> Result<Vec<String>> {
+        let mut results = vec![];
+        let src_dir = if self.crate_mode() {
+            self.migrations_path()?.join("src")
+        } else {
+            self.migrations_path()?
+        };
+        let mut dirs = tokio::fs::read_dir(&src_dir).await?;
+
+        while let Some(dir) = dirs.next_entry().await? {
+            if dir.file_type().await?.is_dir() {
+                let name = dir.file_name();
+                if let Some(name) = name.to_str() {
+                    if name.starts_with("v") {
+                        results.push(name.to_string());
+                    }
+                }
+            }
+        }
+        Ok(results)
+    }
+
+    pub fn previous_version(&self) -> Option<String> {
+        if self.versions.len() > 1 {
+            Some(self.versions[self.versions.len() - 2].clone())
+        } else {
+            None
         }
     }
 }
@@ -148,6 +187,7 @@ impl Default for Config {
             drivers: Vec::new(),
             geekorm: None,
             version: "0.1.0".to_string(),
+            versions: Vec::new(),
         }
     }
 }
