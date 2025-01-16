@@ -9,6 +9,7 @@ use crate::utils::cargo::Cargo;
 pub struct Config {
     #[serde(skip)]
     pub new: bool,
+
     #[serde(skip)]
     pub working_dir: PathBuf,
 
@@ -26,6 +27,10 @@ pub struct Config {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub(crate) drivers: Vec<String>,
 
+    /// Build command (if any)
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub(crate) build: Vec<String>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) geekorm: Option<String>,
 
@@ -34,6 +39,10 @@ pub struct Config {
 
     #[serde(skip)]
     pub(crate) versions: Vec<String>,
+
+    /// Data migrations
+    #[serde(skip)]
+    pub(crate) data_migrations: bool,
 }
 
 impl Config {
@@ -121,6 +130,24 @@ impl Config {
         self.version.replace(".", "_")
     }
 
+    /// Build Command for the Rust Project
+    pub fn build_command(&self) -> Result<Vec<String>> {
+        if self.build.is_empty() {
+            Ok(vec!["cargo".to_string(), "build".to_string()])
+        } else {
+            if let Some(cmd) = self.build.first() {
+                if cmd == "cargo" || cmd == "cross" {
+                    Ok(self.build.clone())
+                } else {
+                    log::error!("Only `cargo` or `cross` commands are supported");
+                    Err(anyhow::anyhow!("Invalid build command"))
+                }
+            } else {
+                Err(anyhow::anyhow!("No build command specified"))
+            }
+        }
+    }
+
     /// Returns the migrations directory
     pub fn migrations_path(&self) -> Result<PathBuf> {
         if self.crate_mode() {
@@ -153,6 +180,10 @@ impl Config {
         } else {
             Err(anyhow::anyhow!("No mode selected"))
         }
+    }
+
+    pub fn migrations_data_path(&self) -> Result<PathBuf> {
+        Ok(self.new_migration_path()?.join("data.rs"))
     }
 
     async fn get_versions(&self) -> Result<Vec<String>> {
@@ -196,9 +227,11 @@ impl Default for Config {
             name: None,
             database: "".to_string(),
             drivers: Vec::new(),
+            build: Vec::new(),
             geekorm: None,
             version: "0.1.0".to_string(),
             versions: Vec::new(),
+            data_migrations: false,
         }
     }
 }

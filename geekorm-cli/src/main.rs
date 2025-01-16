@@ -1,3 +1,8 @@
+#![doc = include_str!("../README.md")]
+#![doc(
+    html_logo_url = "https://raw.githubusercontent.com/42ByteLabs/geekorm/main/assets/geekorm.png"
+)]
+#![deny(unsafe_code)]
 use anyhow::Result;
 
 mod cli;
@@ -31,8 +36,9 @@ async fn main() -> Result<()> {
             init::init(&mut config).await?;
             config.save(&arguments.config)?;
         }
-        Some(ArgumentCommands::Migrate) => {
-            migrations::create_migrations(&config).await?;
+        Some(ArgumentCommands::Migrate { data }) => {
+            config.data_migrations = data;
+            migrations::create_migrations(&mut config).await?;
         }
         Some(ArgumentCommands::Update) => {
             if config.mode == "crate" {
@@ -42,7 +48,15 @@ async fn main() -> Result<()> {
             codegen::lib_generation(&config).await?;
         }
         Some(ArgumentCommands::Test) => {
-            migrations::test_migrations(&config).await?;
+            let results = migrations::test_migrations(&config).await?;
+            if results.errors.is_empty() {
+                log::info!("All migrations passed");
+            } else {
+                log::error!("The following migrations failed:");
+                for error in results.errors {
+                    log::error!(" > {}", error);
+                }
+            }
         }
         Some(ArgumentCommands::Display) => {
             display::display_database(&config)?;
@@ -64,7 +78,7 @@ async fn main() -> Result<()> {
                 }
                 "Migrate" => {
                     log::info!("Migrating the database...");
-                    migrations::create_migrations(&config).await?;
+                    migrations::create_migrations(&mut config).await?;
                 }
                 "Update" => {
                     log::info!("Updating the database...");

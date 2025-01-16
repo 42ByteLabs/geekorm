@@ -38,7 +38,10 @@ pub enum ArgumentCommands {
     /// Initialize GeekORM
     Init,
     /// Migration commands
-    Migrate,
+    Migrate {
+        #[clap(short, long, default_value_t = false)]
+        data: bool,
+    },
     /// Update
     Update,
     /// Test the migrations

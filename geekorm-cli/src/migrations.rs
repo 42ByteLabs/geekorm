@@ -10,7 +10,7 @@ use crate::codegen;
 use crate::utils::database::Database;
 use crate::utils::{prompt_select, prompt_select_with_default, Config};
 
-pub async fn create_migrations(config: &Config) -> Result<()> {
+pub async fn create_migrations(config: &mut Config) -> Result<()> {
     log::info!("Initializing a version migration...");
 
     let path = config.new_migration_path()?;
@@ -31,12 +31,33 @@ pub async fn create_migrations(config: &Config) -> Result<()> {
     std::fs::create_dir_all(&path)?;
     log::debug!("New Migration Path: {}", path.display());
 
-    log::debug!("Building project...");
-    tokio::process::Command::new("cargo")
-        .arg("build")
-        .current_dir(&config.working_dir)
-        .output()
-        .await?;
+    // Data migrations
+    if !config.data_migrations && !config.migrations_data_path()?.exists() {
+        log::debug!("Prompting for data migrations...");
+        let (data_migrations, _) = prompt_select_with_default(
+            "Would you like to create data migrations?",
+            &vec!["No", "Yes"],
+            0,
+        )?;
+        config.data_migrations = data_migrations == "Yes";
+    }
+
+    log::info!("Running a build...");
+    let build_cmd = config.build_command()?;
+
+    if let Some(cmd) = config.build_command()?.first() {
+        let rest = &build_cmd[1..];
+        log::debug!("Running build command: {} [ {} ]", cmd, rest.join(", "));
+
+        tokio::process::Command::new(cmd)
+            .args(rest)
+            .current_dir(&config.working_dir)
+            .output()
+            .await?;
+        log::debug!("Building complete");
+    } else {
+        log::warn!("No build command specified, skipping build");
+    }
 
     if create_schema_migration(config, &path).await? {
         let mod_path = path.join("mod.rs");
@@ -184,10 +205,10 @@ fn prompt_table_alter(database: &Database, migrations: &MigrationError) -> Resul
 }
 
 pub async fn test_migrations(config: &Config) -> Result<Validator> {
-    log::debug!("Testing the migrations...");
+    log::info!("Testing the migrations...");
 
     let connection = rusqlite::Connection::open_in_memory()?;
-    log::debug!("Created an in-memory database...");
+    log::info!("Created an in-memory database to test the migrations against");
 
     let path = config.migrations_src_path()?;
     let migrations: Vec<PathBuf> = config.versions.iter().map(|v| path.join(v)).collect();

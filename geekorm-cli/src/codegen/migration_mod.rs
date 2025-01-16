@@ -1,4 +1,5 @@
 use anyhow::Result;
+use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use std::path::PathBuf;
 
@@ -18,58 +19,85 @@ pub async fn create_mod(config: &Config, path: &PathBuf) -> Result<()> {
 
     let parent = path.parent().ok_or(anyhow::anyhow!("Invalid path"))?;
 
-    let mut previous_block = quote! {};
-    let previous = if let Some(pname) = config.previous_version() {
+    let mut imports = TokenStream::new();
+    let mut body = TokenStream::new();
+    let mut data_migrations = TokenStream::new();
+
+    if let Some(pname) = config.previous_version() {
         log::debug!("Previous Version: {}", pname);
         let ident = format_ident!("{}", pname);
-        previous_block = quote! {
+        body.extend(quote! {
             fn previous() -> Option<Box<dyn geekorm::Migration>>
             where
                 Self: Sized,
             {
                 Some(Box::new(previous::Migration))
             }
-        };
-        quote! {
+        });
+        imports.extend(quote! {
             use super::#ident as previous;
-        }
-    } else {
-        quote! {}
-    };
+        });
+    }
+    // Data migrations
+    if config.data_migrations {
+        log::debug!("Data Migrations: true");
+        imports.extend(quote! {
+            mod data;
+        });
+        body.extend(quote! {
+            #[doc = "Applies migrations to the database."]
+            async fn migrate<'a, C>(connection: &'a C) -> Result<(), geekorm::Error>
+            where
+                C: geekorm::GeekConnection<Connection = C> + 'a,
+            {
+                data::migrate(connection).await
+            }
+        });
+        // Create data migrations
+        let doctitle = format!("Migrations for {}", config.version);
+        data_migrations.extend(quote! {
+            use super::Migration;
 
-    let create_query = if parent.join("create.sql").exists() {
-        quote! {
+            #[doc = #doctitle]
+            pub(super) async fn migrate<'a, C>(connection: &'a C) -> Result<(), geekorm::Error>
+            where
+                C: geekorm::GeekConnection<Connection = C> + 'a,
+            {
+                todo!("Migrate the database to version ")
+            }
+        });
+    }
+
+    // Create query
+    if parent.join("create.sql").exists() {
+        body.extend(quote! {
             fn create_query() -> &'static str {
                 include_str!("create.sql")
             }
-        }
-    } else {
-        quote! {}
-    };
-    let upgrade_query = if parent.join("upgrade.sql").exists() {
-        quote! {
+        });
+    }
+    // Upgrade query
+    if parent.join("upgrade.sql").exists() {
+        body.extend(quote! {
             fn upgrade_query() -> &'static str {
                 include_str!("upgrade.sql")
             }
-        }
-    } else {
-        quote! {}
-    };
-    let rollback_query = if parent.join("rollback.sql").exists() {
-        quote! {
+        });
+    }
+    // Rollback query
+    if parent.join("rollback.sql").exists() {
+        body.extend(quote! {
             fn rollback_query() -> &'static str {
                 include_str!("rollback.sql")
             }
-        }
-    } else {
-        quote! {}
-    };
+        });
+    }
 
     let ast = quote! {
         #![doc = #doctitle]
         #![allow(unused_variables, non_upper_case_globals)]
 
-        #previous
+        #imports
 
         pub struct Migration;
 
@@ -78,19 +106,7 @@ pub async fn create_mod(config: &Config, path: &PathBuf) -> Result<()> {
                 #version
             }
 
-            /// The migrate function is used to apply the migration to the database.
-            async fn migrate<'a, C>(connection: &'a C) -> Result<(), geekorm::Error>
-            where
-                C: geekorm::GeekConnection<Connection = C> + 'a,
-            {
-                Ok(())
-            }
-
-            #create_query
-            #upgrade_query
-            #rollback_query
-
-            #previous_block
+            #body
 
             fn database(&self) -> &geekorm::Database {
                 &Database
@@ -111,6 +127,17 @@ pub async fn create_mod(config: &Config, path: &PathBuf) -> Result<()> {
     };
 
     tokio::fs::write(path, ast.to_string().as_bytes()).await?;
+
+    if config.data_migrations {
+        let data_path = config.migrations_data_path()?;
+        if !data_path.exists() {
+            log::debug!("Creating data migrations: {}", data_path.display());
+
+            tokio::fs::write(data_path, data_migrations.to_string().as_bytes()).await?;
+        } else {
+            log::warn!("Data migrations already exist: {}", data_path.display());
+        }
+    }
 
     Ok(())
 }

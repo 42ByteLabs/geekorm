@@ -9,7 +9,7 @@ pub async fn init(config: &mut Config) -> Result<()> {
     log::info!("Initializing GeekORM...");
     // TODO: Check if the configuration file already exists
 
-    let (selected, _) = prompt_select("Migration Mode:", &vec!["Crate", "Module"])?;
+    let (selected, _) = prompt_select_with_default("Migration Mode:", &vec!["Module", "Crate"], 0)?;
 
     match selected {
         "Crate" => {
@@ -23,12 +23,15 @@ pub async fn init(config: &mut Config) -> Result<()> {
             return Err(anyhow::anyhow!("Invalid mode selected"));
         }
     }
+    log::debug!("Migration Mode: {}", config.mode);
 
     let name = prompt_input_with_default("Name:", &config.name())?;
     config.name = Some(name);
+    log::debug!("Name: {}", config.name());
 
     let (database, _) = prompt_select("Database:", &vec!["SQLite"])?;
     config.database = database.to_lowercase().to_string();
+    log::debug!("Database: {}", config.database);
 
     config.drivers = prompt_select_many("Drivers:", &vec!["none", "libsql", "rustqlite"])?
         .iter()
@@ -39,9 +42,10 @@ pub async fn init(config: &mut Config) -> Result<()> {
 
     // Create new migration?
     let (new_migration, _) =
-        prompt_select_with_default("Create new migration?", &vec!["Yes", "No"], 0)?;
+        prompt_select_with_default("Create initial migration?", &vec!["Yes", "No"], 0)?;
 
     if new_migration == "Yes" {
+        log::debug!("Creating initial migration...");
         migrations::create_migrations(config).await?;
     }
 
