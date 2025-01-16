@@ -102,7 +102,7 @@ pub async fn create_mod(config: &Config, path: &PathBuf) -> Result<()> {
         pub struct Migration;
 
         impl geekorm::Migration for Migration {
-            fn version(&self) -> &'static str {
+            fn version() -> &'static str {
                 #version
             }
 
