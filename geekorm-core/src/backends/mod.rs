@@ -67,6 +67,8 @@ use crate::{Query, QueryBuilder, QueryBuilderTrait, TableBuilder, TablePrimaryKe
 
 #[cfg(feature = "libsql")]
 pub mod libsql;
+#[cfg(feature = "postgres")]
+pub mod postgres;
 #[cfg(feature = "rusqlite")]
 pub mod rusqlite;
 

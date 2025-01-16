@@ -73,6 +73,11 @@ pub enum Error {
     #[error("RuSQLite Error occurred: {0}")]
     RuSQLiteError(String),
 
+    /// Postgres Error
+    #[cfg(feature = "postgres")]
+    #[error("Postgres Error occurred: {0}")]
+    PostgresError(String),
+
     /// Query Syntax Error
     #[error(
         "Query Syntax Error: {0}\n -> {1}\nPlease report this error to the GeekORM developers"
@@ -127,4 +132,11 @@ pub enum MigrationError {
     /// Missing Migration (migration name)
     #[error("Missing Migration: {0}")]
     MissingMigration(String),
+}
+
+#[cfg(feature = "postgres")]
+impl From<tokio_postgres::Error> for Error {
+    fn from(e: tokio_postgres::Error) -> Self {
+        Self::PostgresError(e.to_string())
+    }
 }

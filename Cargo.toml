@@ -83,6 +83,7 @@ search = ["geekorm-derive/search", "geekorm-core/search"]
 libsql = ["backends", "geekorm-derive/libsql", "geekorm-core/libsql"]
 rusqlite = ["backends", "geekorm-derive/rusqlite", "geekorm-core/rusqlite"]
 # sqlite = ["backends", "geekorm-derive/sqlite", "geekorm-core/sqlite"]
+postgres = ["backends", "geekorm-derive/postgres", "geekorm-core/postgres"]
 
 migrations = ["geekorm-core/migrations"]
 
