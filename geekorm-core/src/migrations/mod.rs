@@ -32,7 +32,9 @@ where
     Self: Sync + Send,
 {
     /// Get the version of the migration
-    fn version<'a>(&self) -> &'static str;
+    fn version() -> &'static str
+    where
+        Self: Sized;
     /// Get the create query
     fn create_query() -> &'static str
     where
@@ -100,7 +102,7 @@ where
         for migration in migrations {
             #[cfg(feature = "log")]
             {
-                let v = migration.version();
+                let v = Self::version();
                 log::info!("Upgrading database to version {}", v);
             }
             Self::upgrade(connection).await?;
@@ -108,7 +110,7 @@ where
         if matches!(state, MigrationState::OutOfDate(_)) {
             #[cfg(feature = "log")]
             {
-                log::info!("Upgrading database to version {}", self.version());
+                log::info!("Upgrading database to version {}", Self::version());
             }
             Self::upgrade(connection).await?;
         }
