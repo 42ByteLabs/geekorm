@@ -49,6 +49,7 @@ You can install the library from [crates.io][crates]:
 cargo add geekorm
 ```
 
+<!-- markdownlint-disable -->
 <details>
 <summary>Add the backend driver you want to use</summary>
 
@@ -67,6 +68,7 @@ cargo add geekorm -F libsql
 ```
 
 </details>
+<!-- markdownlint-restore -->
 
 ### 🛠️ CLI
 
