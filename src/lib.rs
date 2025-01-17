@@ -47,6 +47,11 @@ pub use geekorm_core::QueryBuilderTrait;
 pub use geekorm_core::TableBuilder;
 pub use geekorm_core::{GeekConnection, GeekConnector};
 
+/// Re-export the `lazy_static` crate
+#[cfg(feature = "migrations")]
+#[doc(hidden)]
+pub use lazy_static::lazy_static;
+
 /// GeekORM Version
 pub const GEEKORM_VERSION: &str = env!("CARGO_PKG_VERSION");
 /// GeekORM Banner

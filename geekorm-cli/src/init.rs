@@ -92,7 +92,7 @@ pub async fn initalise(config: &Config) -> Result<()> {
     }
 
     let mut features = vec!["migrations", "backends"];
-    let mut crates = vec!["lazy_static@1"];
+    let mut crates = vec![];
 
     config.drivers.iter().for_each(|d| match d.as_str() {
         "libsql" => {

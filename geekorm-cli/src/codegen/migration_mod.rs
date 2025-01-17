@@ -114,7 +114,7 @@ pub async fn create_mod(config: &Config, path: &PathBuf) -> Result<()> {
         }
 
         // Static Database Tables
-        lazy_static::lazy_static! {
+        geekorm::lazy_static! {
             pub static ref Database: Box<geekorm::Database> = Box::new(
                 geekorm::Database {
                     tables: Vec::from([
