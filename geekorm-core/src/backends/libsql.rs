@@ -1,16 +1,53 @@
 //! # libsql
 //!
 //! This module contains the implementation for the `GeekConnection` trait for the `libsql` crate.
-use std::collections::HashMap;
+//!
+//! ## LibSQL with timeout and retry
+//!
+//! Wrapper for a `libsql::Connection` that implements the `GeekConnection` trait.
+//!
+//! ```no_run
+//! # #[cfg(all(feature = "libsql", feature = "backends-tokio"))] {
+//! use std::sync::Arc;
+//! use geekorm::prelude::*;
+//!
+//! #[derive(Table, Clone, Default, serde::Serialize, serde::Deserialize)]
+//! struct Users {
+//!     #[geekorm(primary_key, auto_increment)]
+//!     id: PrimaryKey<i32>,
+//!     #[geekorm(unique)]
+//!     username: String,
+//! }
+//!
+//! #[tokio::main]
+//! async fn main() -> anyhow::Result<()> {
+//!     let database = libsql::Builder::new_local(":memory:").build().await?;
+//!     let connection = Arc::new(tokio::sync::Mutex::new(database.connect().unwrap()));
+//!
+//!     Users::create_table(&connection).await?;
+//!
+//!     let users = vec!["geekmasher", "bob", "alice", "eve", "mallory", "trent"];
+//!     for user in users {
+//!         let mut new_user = Users::new(user);
+//!         new_user.save(&connection).await?;
+//!     }
+//!     Ok(())
+//! }
+//! # }
+//! ```
 
 use libsql::{de, params::IntoValue};
 #[cfg(feature = "log")]
 use log::{debug, error};
 use serde::{de::DeserializeOwned, Serialize};
+use std::collections::HashMap;
 
 use crate::{
     builder::models::QueryType, GeekConnection, QueryBuilderTrait, TableBuilder, Value, Values,
 };
+
+#[cfg(feature = "backends-tokio")]
+mod mutex;
 
 impl GeekConnection for libsql::Connection {
     type Connection = libsql::Connection;
@@ -27,7 +64,7 @@ impl GeekConnection for libsql::Connection {
         connection
             .execute(query.to_str(), ())
             .await
-            .map_err(|e| crate::Error::LibSQLError(e.to_string()))?;
+            .map_err(|e| crate::Error::QuerySyntaxError(e.to_string(), query.to_string()))?;
         Ok(())
     }
 
@@ -42,7 +79,7 @@ impl GeekConnection for libsql::Connection {
         let mut statement = connection
             .prepare(query.to_str())
             .await
-            .map_err(|e| crate::Error::LibSQLError(format!("Error preparing query: `{}`", e)))?;
+            .map_err(|e| crate::Error::QuerySyntaxError(e.to_string(), query.to_string()))?;
 
         let parameters: Vec<libsql::Value> = match convert_values(&query) {
             Ok(parameters) => parameters,
@@ -111,7 +148,10 @@ impl GeekConnection for libsql::Connection {
                     debug!("Error preparing query: `{}`", query.to_str());
                     debug!("Parameters :: {:?}", query.parameters);
                 }
-                return Err(crate::Error::LibSQLError(e.to_string()));
+                return Err(crate::Error::QuerySyntaxError(
+                    e.to_string(),
+                    query.to_string(),
+                ));
             }
         };
 
@@ -191,7 +231,10 @@ impl GeekConnection for libsql::Connection {
                     debug!("Error preparing query: `{}`", query.to_str());
                     debug!("Parameters :: {:?}", query.parameters);
                 }
-                return Err(crate::Error::LibSQLError(e.to_string()));
+                return Err(crate::Error::QuerySyntaxError(
+                    e.to_string(),
+                    query.to_string(),
+                ));
             }
         };
         // Convert the values to libsql::Value
@@ -249,13 +292,10 @@ impl GeekConnection for libsql::Connection {
         })?)
     }
 
-    async fn execute<T>(
+    async fn execute(
         connection: &Self::Connection,
         query: crate::Query,
-    ) -> Result<(), crate::Error>
-    where
-        T: serde::de::DeserializeOwned,
-    {
+    ) -> Result<(), crate::Error> {
         // Convert the values to libsql::Value
         let parameters: Vec<libsql::Value> = convert_values(&query).map_err(|e| {
             #[cfg(feature = "log")]
@@ -272,7 +312,21 @@ impl GeekConnection for libsql::Connection {
                 {
                     error!("Error executing query: `{}`", e);
                 }
-                crate::Error::LibSQLError(e.to_string())
+                crate::Error::QuerySyntaxError(e.to_string(), query.to_string())
+            })?;
+        Ok(())
+    }
+
+    async fn batch(connection: &Self::Connection, query: crate::Query) -> Result<(), crate::Error> {
+        connection
+            .execute_batch(query.to_str())
+            .await
+            .map_err(|e| {
+                #[cfg(feature = "log")]
+                {
+                    error!("Error executing query: `{}`", e);
+                }
+                crate::Error::QuerySyntaxError(e.to_string(), query.to_string())
             })?;
         Ok(())
     }
@@ -296,7 +350,10 @@ impl GeekConnection for libsql::Connection {
                 {
                     error!("Error preparing query: `{}`", query.to_str());
                 }
-                return Err(crate::Error::LibSQLError(e.to_string()));
+                return Err(crate::Error::QuerySyntaxError(
+                    e.to_string(),
+                    query.to_string(),
+                ));
             }
         };
 
@@ -339,19 +396,12 @@ fn convert_values(query: &crate::Query) -> Result<Vec<libsql::Value>, crate::Err
     let mut parameters: Vec<libsql::Value> = Vec::new();
 
     // TODO(geekmasher): This is awful, need to refactor this
-    let values: Values = match query.query_type {
-        QueryType::Insert | QueryType::Update => query.parameters.clone(),
-        _ => query.values.clone(),
+    let values: &Values = match query.query_type {
+        QueryType::Insert | QueryType::Update => &query.parameters,
+        _ => &query.values,
     };
 
-    for column_name in &values.order {
-        let value = values
-            .get(&column_name.to_string())
-            .ok_or(crate::Error::LibSQLError(format!(
-                "Error getting value for column - {}",
-                column_name
-            )))?;
-
+    for (column_name, value) in &values.values {
         // Check if the column exists in the table
         // The column_name could be in another table not part of the query (joins)
         if let Some(column) = query.table.columns.get(column_name.as_str()) {

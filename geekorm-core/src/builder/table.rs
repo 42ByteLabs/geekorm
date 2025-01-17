@@ -1,6 +1,7 @@
-use crate::{Columns, QueryBuilder, ToSqlite, Values};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
+
+use crate::{Columns, QueryBuilder, ToSqlite, Values};
 
 /// The Table struct for defining a table
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -14,7 +15,14 @@ pub struct Table {
 impl Table {
     /// Function to check if a column name is valid
     pub fn is_valid_column(&self, column: &str) -> bool {
-        self.columns.is_valid_column(column)
+        if let Some((table, column)) = column.split_once('.') {
+            if table != self.name {
+                return false;
+            }
+            self.columns.is_valid_column(column)
+        } else {
+            self.columns.is_valid_column(column)
+        }
     }
 
     /// Get the name of the primary key column
@@ -48,6 +56,34 @@ impl Table {
             column.alias.clone()
         };
         Ok(format!("{}.{}", self.name, name))
+    }
+
+    /// Get dependencies for the table
+    ///
+    /// This is a list of tables that the table depends on
+    pub fn get_dependencies(&self) -> Vec<String> {
+        let mut dependencies = Vec::new();
+        for column in &self.columns.columns {
+            if let Some(ftable) = column.column_type.foreign_key_table_name() {
+                dependencies.push(ftable);
+            }
+        }
+        dependencies
+    }
+}
+
+/// Implement the `ToTokens` trait for the `Table` struct
+#[cfg(feature = "migrations")]
+impl quote::ToTokens for Table {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let name = &self.name;
+        let columns = &self.columns;
+        tokens.extend(quote::quote! {
+            geekorm::Table {
+                name: String::from(#name),
+                columns: #columns
+            }
+        });
     }
 }
 
@@ -146,7 +182,7 @@ impl ToSqlite for Table {
         let mut values: Vec<String> = Vec::new();
         let mut parameters = Values::new();
 
-        for cname in query.values.order.iter() {
+        for (cname, value) in query.values.values.iter() {
             let column = query.table.columns.get(cname.as_str()).unwrap();
 
             // Get the column (might be an alias)
@@ -154,8 +190,6 @@ impl ToSqlite for Table {
             if !column.alias.is_empty() {
                 column_name = column.alias.to_string();
             }
-
-            let value = query.values.get(cname).unwrap();
 
             // Skip auto increment columns
             if column.column_type.is_auto_increment() {
@@ -203,7 +237,7 @@ impl ToSqlite for Table {
         let mut columns: Vec<String> = Vec::new();
         let mut parameters = Values::new();
 
-        for cname in query.values.order.iter() {
+        for (cname, value) in query.values.values.iter() {
             let column = query.table.columns.get(cname.as_str()).unwrap();
 
             // Skip if primary key
@@ -215,8 +249,6 @@ impl ToSqlite for Table {
             if !column.alias.is_empty() {
                 column_name = column.alias.to_string();
             }
-
-            let value = query.values.get(cname).unwrap();
 
             // Add to Values
             match value {
@@ -364,5 +396,17 @@ mod tests {
         let (delete_query, _) = table.on_delete(&query).unwrap();
 
         assert_eq!(delete_query, "DELETE FROM Test WHERE id = ?;");
+    }
+
+    #[test]
+    fn test_is_valid_column() {
+        let table = table();
+
+        assert!(table.is_valid_column("id"));
+        assert!(table.is_valid_column("name"));
+        assert!(!table.is_valid_column("name2"));
+        // Test with table name
+        assert!(table.is_valid_column("Test.name"));
+        assert!(!table.is_valid_column("Tests.name"));
     }
 }

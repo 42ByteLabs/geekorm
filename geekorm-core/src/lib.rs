@@ -9,25 +9,32 @@
 pub mod backends;
 pub mod builder;
 pub mod error;
+#[cfg(feature = "migrations")]
+pub mod migrations;
 pub mod queries;
 pub mod utils;
 
-#[cfg(feature = "libsql")]
-pub use backends::libsql;
-
 pub use crate::backends::{GeekConnection, GeekConnector};
-pub use crate::error::Error;
-
+#[cfg(feature = "migrations")]
+pub use crate::builder::alter::AlterQuery;
 pub use crate::builder::columns::{Column, Columns};
 pub use crate::builder::columntypes::{ColumnType, ColumnTypeOptions};
+pub use crate::builder::database::Database;
 pub use crate::builder::keys::{ForeignKey, PrimaryKey};
 pub use crate::builder::table::Table;
 pub use crate::builder::values::{Value, Values};
+pub use crate::error::Error;
 #[cfg(feature = "pagination")]
-pub use crate::queries::pages::Pagination;
+pub use crate::queries::pages::Page;
+#[cfg(feature = "pagination")]
+pub use crate::queries::pagination::Pagination;
 pub use crate::queries::{Query, QueryBuilder};
 #[cfg(feature = "two-factor-auth")]
 pub use crate::utils::tfa::TwoFactorAuth;
+#[cfg(feature = "libsql")]
+pub use backends::libsql;
+#[cfg(feature = "migrations")]
+pub use migrations::Migration;
 
 /// Trait for basic creation of tables
 ///
@@ -147,6 +154,16 @@ pub trait ToSqlite {
         Err(Error::QueryBuilderError(
             format!("on_delete not implemented for table: {}", query.table),
             String::from("on_delete"),
+        ))
+    }
+
+    /// Convert to SQLite for altering a table
+    #[allow(unused_variables)]
+    #[cfg(feature = "migrations")]
+    fn on_alter(&self, query: &AlterQuery) -> Result<String, crate::Error> {
+        Err(Error::QueryBuilderError(
+            "on_alter not implemented for table".to_string(),
+            String::from("on_alter"),
         ))
     }
 }

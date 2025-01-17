@@ -1,6 +1,9 @@
-use std::fmt::Display;
-
+#[cfg(feature = "migrations")]
+use crate::AlterQuery;
+#[cfg(feature = "migrations")]
+use quote::quote;
 use serde::{Deserialize, Serialize};
+use std::fmt::Display;
 
 use crate::ToSqlite;
 
@@ -30,6 +33,42 @@ impl Display for ColumnType {
             ColumnType::Integer(_) => write!(f, "Integer"),
             ColumnType::Boolean(_) => write!(f, "Boolean"),
             ColumnType::Blob(_) => write!(f, "Blob"),
+        }
+    }
+}
+
+#[cfg(feature = "migrations")]
+impl quote::ToTokens for ColumnType {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        match self {
+            ColumnType::Identifier(options) => {
+                tokens.extend(quote! {
+                    geekorm::ColumnType::Identifier(#options)
+                });
+            }
+            ColumnType::Text(options) => {
+                tokens.extend(quote! {
+                    geekorm::ColumnType::Text(#options)
+                });
+            }
+            ColumnType::Integer(options) => {
+                tokens.extend(quote! {
+                    geekorm::ColumnType::Integer(#options)
+                });
+            }
+            ColumnType::Boolean(options) => {
+                tokens.extend(quote! {
+                    geekorm::ColumnType::Boolean(#options)
+                });
+            }
+            ColumnType::Blob(options) => {
+                tokens.extend(quote! {
+                    geekorm::ColumnType::Blob(#options)
+                });
+            }
+            ColumnType::ForeignKey(options) => tokens.extend(quote! {
+                geekorm::ColumnType::ForeignKey(#options)
+            }),
         }
     }
 }
@@ -78,12 +117,64 @@ impl ToSqlite for ColumnType {
             }
         })
     }
+
+    #[cfg(feature = "migrations")]
+    fn on_alter(&self, _query: &AlterQuery) -> Result<String, crate::Error> {
+        match self {
+            ColumnType::Text(opts) => {
+                if opts.not_null {
+                    Ok("TEXT NOT NULL DEFAULT ''".to_string())
+                } else {
+                    Ok("TEXT".to_string())
+                }
+            }
+            ColumnType::Integer(opts) | ColumnType::Boolean(opts) => {
+                if opts.not_null {
+                    Ok("INTEGER NOT NULL DEFAULT 0".to_string())
+                } else {
+                    Ok("INTEGER".to_string())
+                }
+            }
+            ColumnType::Blob(opts) => {
+                if opts.not_null {
+                    Ok("BLOB NOT NULL DEFAULT ''".to_string())
+                } else {
+                    Ok("BLOB".to_string())
+                }
+            }
+            _ => Ok("BEANS".to_string()),
+        }
+    }
 }
 
 impl ColumnType {
     /// Check if the column type is a primary key
     pub fn is_primary_key(&self) -> bool {
         matches!(self, ColumnType::Identifier(_))
+    }
+
+    /// Check if the column type is nullable
+    pub fn is_not_null(&self) -> bool {
+        match self {
+            ColumnType::Identifier(_) => false,
+            ColumnType::ForeignKey(_) => false,
+            ColumnType::Text(opts) => opts.not_null,
+            ColumnType::Integer(opts) => opts.not_null,
+            ColumnType::Boolean(opts) => opts.not_null,
+            ColumnType::Blob(opts) => opts.not_null,
+        }
+    }
+
+    /// Check if the column type is unique
+    pub fn is_unique(&self) -> bool {
+        match self {
+            ColumnType::Identifier(_) => true,
+            ColumnType::ForeignKey(_) => false,
+            ColumnType::Text(opts) => opts.unique,
+            ColumnType::Integer(opts) => opts.unique,
+            ColumnType::Boolean(opts) => opts.unique,
+            ColumnType::Blob(opts) => opts.unique,
+        }
     }
 
     /// Check if the column type is an auto increment
@@ -99,6 +190,17 @@ impl ColumnType {
     pub fn is_foreign_key(&self) -> bool {
         matches!(self, ColumnType::ForeignKey(_))
     }
+    /// Get the foreign key table by name
+    pub fn foreign_key_table_name(&self) -> Option<String> {
+        match self {
+            ColumnType::ForeignKey(opts) => {
+                let (t, _) = opts.foreign_key.split_once('.').unwrap();
+                Some(t.to_string())
+            }
+            _ => None,
+        }
+    }
+
     /// Get the foreign key table & column name
     pub fn is_foreign_key_table(&self, table: &String) -> bool {
         match self {
@@ -170,6 +272,27 @@ impl Display for ColumnTypeOptions {
     }
 }
 
+#[cfg(feature = "migrations")]
+impl quote::ToTokens for ColumnTypeOptions {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let primary_key = &self.primary_key;
+        let foreign_key = &self.foreign_key;
+        let unique = &self.unique;
+        let not_null = &self.not_null;
+        let auto_increment = &self.auto_increment;
+
+        tokens.extend(quote! {
+            geekorm::ColumnTypeOptions {
+                primary_key: #primary_key,
+                unique: #unique,
+                not_null: #not_null,
+                foreign_key: String::from(#foreign_key),
+                auto_increment: #auto_increment,
+            }
+        });
+    }
+}
+
 impl ToSqlite for ColumnTypeOptions {
     fn on_create(&self, _query: &crate::QueryBuilder) -> Result<String, crate::Error> {
         let mut sql = Vec::new();
@@ -192,6 +315,8 @@ impl ToSqlite for ColumnTypeOptions {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(feature = "migrations")]
+    use crate::builder::alter::AlterMode;
 
     fn query() -> crate::QueryBuilder {
         crate::QueryBuilder::default()
@@ -238,5 +363,25 @@ mod tests {
             column_type_options.on_create(&query).unwrap(),
             "PRIMARY KEY AUTOINCREMENT"
         );
+    }
+
+    #[test]
+    fn test_alter_table_to_sql() {
+        let query = crate::AlterQuery::new(AlterMode::AddColumn, "Table", "colname");
+
+        let column_type = ColumnType::Text(ColumnTypeOptions::default());
+        assert_eq!(column_type.on_alter(&query).unwrap(), "TEXT");
+
+        let column_type = ColumnType::Text(ColumnTypeOptions {
+            not_null: true,
+            ..Default::default()
+        });
+        assert_eq!(
+            column_type.on_alter(&query).unwrap(),
+            "TEXT NOT NULL DEFAULT ''"
+        );
+
+        let column_type = ColumnType::Integer(ColumnTypeOptions::default());
+        assert_eq!(column_type.on_alter(&query).unwrap(), "INTEGER");
     }
 }

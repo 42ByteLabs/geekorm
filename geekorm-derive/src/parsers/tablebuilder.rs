@@ -384,7 +384,7 @@ pub fn generate_backend(
             #[allow(async_fn_in_trait, unused_variables)]
             async fn save(&mut self, connection: &'a T) -> Result<(), geekorm::Error>
             {
-                T::execute::<Self>(connection, Self::query_insert(self)).await?;
+                T::execute(connection, Self::query_insert(self)).await?;
                 let select_query = #ident::query_select()
                     .order_by(#ident::primary_key().as_str(), geekorm::QueryOrder::Desc)
                     .limit(1)
@@ -400,7 +400,7 @@ pub fn generate_backend(
             #[allow(async_fn_in_trait, unused_variables)]
             async fn update(&mut self, connection: &'a T) -> Result<(), geekorm::Error> {
                 #auto_update
-                T::execute::<Self>(connection, Self::query_update(self)).await
+                T::execute(connection, Self::query_update(self)).await
             }
 
             /// Fetch all the data from foreign tables and store them in the struct.

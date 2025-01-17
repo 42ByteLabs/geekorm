@@ -1,9 +1,12 @@
 //! Query builder module
 
+#[cfg(feature = "migrations")]
+pub mod alter;
 /// Column builder module
 pub mod columns;
 /// Column types module
 pub mod columntypes;
+pub mod database;
 /// Join module
 pub mod joins;
 /// Primary and Foreign key module

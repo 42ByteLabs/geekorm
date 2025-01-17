@@ -8,7 +8,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.8.0"
+version = "0.8.4"
 license = "MIT"
 edition = "2021"
 rust-version = "1.74"
@@ -46,6 +46,8 @@ default = ["all", "backends"]
 # All features (minus backends)
 all = ["uuid", "chrono", "new", "pagination", "helpers", "rand", "hash"]
 
+utils = ["geekorm-core/utils"]
+
 uuid = ["geekorm-core/uuid"]
 chrono = ["geekorm-derive/chrono", "geekorm-core/chrono"]
 semver = ["geekorm-derive/semver", "geekorm-core/semver"]
@@ -75,15 +77,19 @@ primary_key = ["geekorm-derive/primary_key"]
 
 # Backends for the ORM
 backends = ["search", "geekorm-core/backends", "geekorm-derive/backends"]
+backends-tokio = ["geekorm-core/backends-tokio"]
 search = ["geekorm-derive/search", "geekorm-core/search"]
 
 libsql = ["backends", "geekorm-derive/libsql", "geekorm-core/libsql"]
 rusqlite = ["backends", "geekorm-derive/rusqlite", "geekorm-core/rusqlite"]
 # sqlite = ["backends", "geekorm-derive/sqlite", "geekorm-core/sqlite"]
 
+migrations = ["geekorm-core/migrations", "dep:lazy_static"]
+
 [dependencies]
-geekorm-core = { version = "^0.8.0", path = "geekorm-core" }
-geekorm-derive = { version = "^0.8.0", path = "geekorm-derive" }
+geekorm-core = { version = "^0.8.4", path = "geekorm-core" }
+geekorm-derive = { version = "^0.8.4", path = "geekorm-derive" }
+lazy_static = { version = "^1", optional = true }
 
 [dev-dependencies]
 geekorm = { path = ".", features = ["all", "semver", "tfa"] }
@@ -116,9 +122,19 @@ path = "./examples/chrono.rs"
 required-features = ["all", "libsql"]
 
 [[example]]
+name = "pagination"
+path = "./examples/pagination.rs"
+required-features = ["all", "libsql", "pagination"]
+
+[[example]]
+name = "filter"
+path = "./examples/filter.rs"
+required-features = ["all", "libsql"]
+
+[[example]]
 name = "turso-libsql"
 path = "./examples/turso-libsql/src/main.rs"
-required-features = ["all", "libsql"]
+required-features = ["all", "libsql", "backends-tokio"]
 
 [[example]]
 name = "rusqlite"
@@ -128,5 +144,5 @@ required-features = ["all", "rusqlite"]
 [[example]]
 name = "rocket"
 path = "./examples/server-rocket/src/main.rs"
-required-features = ["all", "libsql"]
+required-features = ["all", "libsql", "backends-tokio"]
 

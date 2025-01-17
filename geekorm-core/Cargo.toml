@@ -23,6 +23,8 @@ tag-name = "v{{version}}"
 [features]
 default = []
 
+utils = ["dep:serde_yaml", "dep:toml", "dep:figment", "dep:anyhow", "dep:log"]
+
 uuid = ["dep:uuid"]
 chrono = ["dep:chrono"]
 semver = ["dep:semver"]
@@ -43,18 +45,26 @@ hash-argon2 = ["dep:argon2", "dep:password-hash", "dep:rand_core"]
 hash-sha512 = ["dep:sha-crypt", "dep:rand_core"]
 
 # Backends
-backends = ["search"]
+backends = ["search", "dep:url"]
+backends-tokio = ["dep:tokio"]
 search = []
 
-libsql = ["backends", "dep:libsql"]
+libsql = ["backends", "dep:libsql", "dep:tokio"]
 rusqlite = ["backends", "dep:rusqlite", "dep:serde_rusqlite"]
 # sqlite = ["backends", "dep:sqlite"]
+
+migrations = ["dep:syn", "dep:quote", "dep:proc-macro2"]
 
 [dependencies]
 thiserror = "^2.0"
 serde = { version = "^1.0", features = ["derive"] }
 serde_json = "^1.0"
 log = { version = "^0.4", features = ["std"], optional = true }
+serde_yaml = { version = "^0.9", optional = true }
+toml = { version = "^0.8", optional = true }
+figment = { version = "^0.10", optional = true }
+anyhow = { version = "^1.0", optional = true }
+url = { version = "^2.2", optional = true }
 
 uuid = { version = "^1.9", features = ["v4"], optional = true }
 chrono = { version = "^0.4", optional = true, features = ["serde"] }
@@ -74,6 +84,14 @@ sha-crypt = { version = "^0.5", optional = true }
 libsql = { version = "^0.6", optional = true }
 rusqlite = { version = "0.32", features = ["bundled"], optional = true }
 serde_rusqlite = { version = "^0.36", optional = true }
+
+# Tokenization
+quote = { version = "1", optional = true }
+syn = { version = "2", optional = true }
+proc-macro2 = { version = "1", optional = true }
+
+tokio = { version = "^1.40", features = ["full"], optional = true }
+async-trait = "0.1"
 
 [dev-dependencies]
 geekorm = { path = ".." }

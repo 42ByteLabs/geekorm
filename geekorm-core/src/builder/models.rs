@@ -8,11 +8,11 @@ pub enum QueryType {
     /// Select data from a table
     #[default]
     Select,
-    /// Insert data into a table (not implemented)
+    /// Insert data into a table
     Insert,
-    /// Update data in a table (not implemented)
+    /// Update data in a table
     Update,
-    /// Delete data from a table (not implemented)
+    /// Delete data from a table
     Delete,
 }
 

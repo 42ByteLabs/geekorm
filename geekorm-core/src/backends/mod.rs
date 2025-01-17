@@ -93,7 +93,7 @@ where
     /// Execute a query on the database and do not return any rows
     #[allow(async_fn_in_trait, unused_variables)]
     async fn execute(connection: &'a C, query: Query) -> Result<(), crate::Error> {
-        C::execute::<Self>(connection, query).await
+        C::execute(connection, query).await
     }
 
     /// Create a table in the database
@@ -118,10 +118,44 @@ where
         .await
     }
 
+    /// Fetch all rows from the table
+    #[allow(async_fn_in_trait, unused_variables)]
+    async fn all(connection: &'a C) -> Result<Vec<Self>, crate::Error> {
+        C::query::<Self>(
+            connection,
+            Self::query_select().table(Self::table()).build()?,
+        )
+        .await
+    }
+
+    /// Fetch by Page
+    #[cfg(feature = "pagination")]
+    #[allow(async_fn_in_trait, unused_variables)]
+    async fn page(connection: &'a C, page: &crate::Page) -> Result<Vec<Self>, crate::Error> {
+        C::query::<Self>(
+            connection,
+            QueryBuilder::select()
+                .table(Self::table())
+                .page(page)
+                .build()?,
+        )
+        .await
+    }
+
+    /// Create a new Pagination instance with the current table and fetch
+    /// total number of rows
+    #[cfg(feature = "pagination")]
+    #[allow(async_fn_in_trait, unused_variables)]
+    async fn paginate(connection: &'a C) -> Result<crate::Pagination<Self>, crate::Error> {
+        let mut page = crate::Pagination::new();
+        page.set_total(Self::total(connection).await? as u32);
+        Ok(page)
+    }
+
     /// Update the current object in the database
     #[allow(async_fn_in_trait, unused_variables)]
     async fn update(&mut self, connection: &'a C) -> Result<(), crate::Error> {
-        C::execute::<Self>(connection, Self::query_update(self)).await
+        C::execute(connection, Self::query_update(self)).await
     }
 
     /// Save the current object to the database
@@ -131,14 +165,61 @@ where
     /// Delete the current object from the database
     #[allow(async_fn_in_trait, unused_variables)]
     async fn delete(&self, connection: &'a C) -> Result<(), crate::Error> {
-        C::execute::<Self>(connection, Self::query_delete(self)).await
+        C::execute(connection, Self::query_delete(self)).await
     }
 
     /// Fetches all of the foreign key values for the current object
     #[allow(async_fn_in_trait, unused_variables)]
     async fn fetch(&mut self, connection: &'a C) -> Result<(), crate::Error>;
 
+    /// Filter the rows in the table based on specific criteria passed as a tuple of (&str, Value).
+    ///
+    /// You can use prefix operators to define the type of comparison to use:
+    ///
+    /// - `=`: Equal
+    /// - `~`: Like
+    /// - `!`: Not equal
+    ///
+    /// If no prefix is used, the default comparison is equal.
+    #[allow(async_fn_in_trait, unused_variables)]
+    async fn filter(
+        connection: &'a C,
+        fields: Vec<(&str, impl Into<Value>)>,
+    ) -> Result<Vec<Self>, crate::Error> {
+        Self::query(
+            connection,
+            Self::query_select()
+                .table(Self::table())
+                .filter(fields)
+                .build()?,
+        )
+        .await
+    }
+
+    /// Filter with Pagination
+    #[cfg(feature = "pagination")]
+    #[allow(async_fn_in_trait, unused_variables)]
+    async fn filter_page(
+        connection: &'a C,
+        fields: Vec<(&str, impl Into<Value>)>,
+        page: &crate::Page,
+    ) -> Result<Vec<Self>, crate::Error> {
+        Self::query(
+            connection,
+            Self::query_select()
+                .table(Self::table())
+                .filter(fields)
+                .page(page)
+                .build()?,
+        )
+        .await
+    }
+
     /// Fetch all rows from the database
+    #[deprecated(
+        since = "0.8.4",
+        note = "Please use the `all` method instead of `fetch_all`"
+    )]
     #[allow(async_fn_in_trait, unused_variables)]
     async fn fetch_all(connection: &'a C) -> Result<Vec<Self>, crate::Error> {
         C::query::<Self>(
@@ -228,10 +309,13 @@ pub trait GeekConnection {
 
     /// Execute a query on the database and do not return any rows
     #[allow(async_fn_in_trait, unused_variables)]
-    async fn execute<T>(connection: &Self::Connection, query: Query) -> Result<(), crate::Error>
-    where
-        T: serde::de::DeserializeOwned,
-    {
+    async fn execute(connection: &Self::Connection, query: Query) -> Result<(), crate::Error> {
+        Err(crate::Error::NotImplemented)
+    }
+
+    /// Execute a batch query on the database and do not return any rows
+    #[allow(async_fn_in_trait, unused_variables)]
+    async fn batch(connection: &Self::Connection, query: Query) -> Result<(), crate::Error> {
         Err(crate::Error::NotImplemented)
     }
 
@@ -264,4 +348,75 @@ pub trait GeekConnection {
     ) -> Result<Vec<HashMap<String, Value>>, crate::Error> {
         Err(crate::Error::NotImplemented)
     }
+
+    /// Get Table Names
+    #[cfg(feature = "migrations")]
+    #[allow(async_fn_in_trait, unused_variables)]
+    async fn table_names(connection: &Self::Connection) -> Result<Vec<String>, crate::Error> {
+        // TODO: This only works for SQLite
+        let results: Vec<TableNames> = Self::query(
+            connection,
+            Query {
+                query: format!("SELECT name FROM sqlite_master WHERE type='table'"),
+                query_type: crate::builder::models::QueryType::Select,
+                ..Default::default()
+            },
+        )
+        .await?;
+
+        // Make sure to not include `sqlite_sequence` table
+        Ok(results
+            .iter()
+            .filter_map(|table| {
+                if table.name != "sqlite_sequence" {
+                    Some(table.name.clone())
+                } else {
+                    None
+                }
+            })
+            .collect())
+    }
+
+    /// Pragma table info
+    #[cfg(feature = "migrations")]
+    #[allow(async_fn_in_trait, unused_variables)]
+    async fn pragma_info(
+        connection: &Self::Connection,
+        table: &str,
+    ) -> Result<Vec<TableInfo>, crate::Error> {
+        Self::query(
+            connection,
+            Query {
+                query: format!("PRAGMA table_info({})", table),
+                query_type: crate::builder::models::QueryType::Select,
+                ..Default::default()
+            },
+        )
+        .await
+    }
+}
+
+/// Table Info
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+pub struct TableInfo {
+    /// The column ID
+    pub cid: i32,
+    /// The column name
+    pub name: String,
+    /// The column type
+    #[serde(rename = "type")]
+    pub coltype: String,
+    /// The column notnull value
+    pub notnull: i32,
+    /// The column default value
+    pub dflt_value: Option<String>,
+    /// The column primary key value
+    pub pk: i32,
+}
+
+/// Table Names
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+struct TableNames {
+    /// The table name
+    pub name: String,
 }

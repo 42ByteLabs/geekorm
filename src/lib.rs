@@ -7,6 +7,7 @@
 // Builder Modules
 pub use geekorm_core::builder::columns::{Column, Columns};
 pub use geekorm_core::builder::columntypes::{ColumnType, ColumnTypeOptions};
+pub use geekorm_core::builder::database::Database;
 pub use geekorm_core::builder::table::Table;
 pub use geekorm_core::Error;
 // Keys Modules
@@ -30,6 +31,9 @@ pub mod utils {
     pub use geekorm_core::TwoFactorAuth;
 }
 
+#[cfg(feature = "migrations")]
+pub use geekorm_core::migrations::{Migration, MigrationState};
+
 // Derive Crate
 pub use geekorm_derive::Data;
 pub use geekorm_derive::Table;
@@ -42,6 +46,11 @@ pub use geekorm_derive::GeekValue;
 pub use geekorm_core::QueryBuilderTrait;
 pub use geekorm_core::TableBuilder;
 pub use geekorm_core::{GeekConnection, GeekConnector};
+
+/// Re-export the `lazy_static` crate
+#[cfg(feature = "migrations")]
+#[doc(hidden)]
+pub use lazy_static::lazy_static;
 
 /// GeekORM Version
 pub const GEEKORM_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -91,7 +100,9 @@ pub mod prelude {
     pub use geekorm_core::builder::columntypes::{ColumnType, ColumnTypeOptions};
     pub use geekorm_core::builder::table::Table as BuilderTable;
     #[cfg(feature = "pagination")]
-    pub use geekorm_core::queries::pages::Pagination;
+    pub use geekorm_core::queries::pages::Page;
+    #[cfg(feature = "pagination")]
+    pub use geekorm_core::queries::pagination::Pagination;
 
     // Keys Modules
     pub use geekorm_core::builder::keys::foreign::{ForeignKey, ForeignKeyInteger};
@@ -100,6 +111,10 @@ pub mod prelude {
     pub use geekorm_core::builder::keys::primary::{
         PrimaryKey, PrimaryKeyInteger, PrimaryKeyString,
     };
+
+    // Migrations Module
+    #[cfg(feature = "migrations")]
+    pub use geekorm_core::migrations::{Migration, MigrationState};
 
     // Helper Modules
     #[cfg(feature = "two-factor-auth")]

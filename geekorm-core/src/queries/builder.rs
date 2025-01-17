@@ -1,5 +1,5 @@
 #[cfg(feature = "pagination")]
-use super::pages::Pagination;
+use super::pages::Page;
 use crate::builder::{
     joins::{TableJoin, TableJoinOptions, TableJoins},
     models::{QueryCondition, QueryOrder, QueryType, WhereCondition},
@@ -86,7 +86,7 @@ pub struct QueryBuilder {
 
     pub(crate) joins: TableJoins,
 
-    /// The values to use (where / insert)
+    /// The values are used for data inserted into the database
     pub(crate) values: Values,
 
     pub(crate) error: Option<Error>,
@@ -263,6 +263,26 @@ impl QueryBuilder {
         self
     }
 
+    /// Filter the query by multiple fields
+    pub fn filter(mut self, fields: Vec<(&str, impl Into<Value>)>) -> Self {
+        for (field, value) in fields {
+            if field.starts_with("=") {
+                let field = &field[1..];
+                self = self.where_eq(field, value.into());
+            } else if field.starts_with("~") {
+                let field = &field[1..];
+                self = self.where_like(field, value.into());
+            } else if field.starts_with("!") {
+                let field = &field[1..];
+                self = self.where_ne(field, value.into());
+            } else {
+                // Default to WHERE field = value with an OR operator
+                self = self.where_eq(field, value.into()).or();
+            }
+        }
+        self
+    }
+
     /// Order the query by a particular column
     pub fn order_by(mut self, column: &str, order: QueryOrder) -> Self {
         if self.table.is_valid_column(column) {
@@ -324,17 +344,30 @@ impl QueryBuilder {
 
     /// Add a page to the query
     #[cfg(feature = "pagination")]
-    pub fn page(mut self, page: &Pagination) -> Self {
+    pub fn page(mut self, page: &Page) -> Self {
         self.offset = Some(page.offset() as usize);
         self.limit = Some(page.limit as usize);
         self
     }
 
     /// Build a Query from the QueryBuilder and perform some checks
-    pub fn build(&self) -> Result<Query, crate::Error> {
+    pub fn build(&mut self) -> Result<Query, crate::Error> {
         if let Some(ref error) = self.error {
             return Err(error.clone());
         }
+
+        // Check the last where condition
+        let mut pop_where_condition = false;
+        if let Some(last) = self.where_clause.last() {
+            if last == &WhereCondition::Or.to_sqlite() || last == &WhereCondition::And.to_sqlite() {
+                pop_where_condition = true;
+            }
+        }
+        // Pop the last where condition
+        if pop_where_condition {
+            self.where_clause.pop();
+        }
+
         match self.query_type {
             QueryType::Create => {
                 let query = self.table.on_create(self)?;
