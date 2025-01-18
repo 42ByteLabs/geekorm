@@ -89,11 +89,35 @@ use uuid::Uuid;
 
 use crate::ToSqlite;
 
-/// Primary Key Type
+/// # Primary Key
 ///
 /// The Primary Key is a column in a Table used to uniquely identify a row.
 ///
 /// In GeekORM, it can be an `u64` (default), a `String`, or a `Uuid`.
+///
+/// # Standard Example
+///
+/// Here is an example of how to use the PrimaryKey.
+///
+/// ```rust
+/// use geekorm::prelude::*;
+///
+/// #[derive(Table, Clone, Default, serde::Serialize, serde::Deserialize)]
+/// pub struct Users {
+///     #[geekorm(primary_key, auto_increment)]
+///     pub id: PrimaryKey<u64>,
+///     #[geekorm(unique)]
+///     pub username: String,
+/// }
+///
+/// let user = Users {
+///     id: PrimaryKey::from(1),
+///     username: String::from("JohnDoe")
+/// };
+/// # assert_eq!(Users::primary_key(), "id");
+/// # assert_eq!(user.id.clone(), PrimaryKey::from(1));
+/// # assert_eq!(user.username.clone(), String::from("JohnDoe"));
+/// ```
 #[derive(Clone, Copy, Eq, PartialEq)]
 pub struct PrimaryKey<T>
 where
@@ -153,7 +177,9 @@ impl PrimaryKey<String> {
 ///
 /// #[derive(Table, Clone, Default, serde::Serialize, serde::Deserialize)]
 /// pub struct Users {
+///     #[geekorm(primary_key, auto_increment)]
 ///     pub id: PrimaryKeyInteger,
+///     #[geekorm(unique)]
 ///     pub username: String,
 /// }
 ///
@@ -183,7 +209,11 @@ impl Default for PrimaryKeyIntegerOld {
     }
 }
 
+/// # Primary Key as a String
+///
 /// PrimaryKeyString (alias) is a Primary Key as a String type
+///
+/// # Example
 ///
 /// ```rust
 /// use geekorm::prelude::*;
