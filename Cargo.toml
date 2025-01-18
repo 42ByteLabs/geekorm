@@ -74,9 +74,6 @@ hash-sha512 = ["hash", "geekorm-derive/hash-sha512", "geekorm-core/hash-sha512"]
 new = ["geekorm-derive/new"]
 # Generate helper functions for Tables
 helpers = ["geekorm-derive/helpers"]
-# Generate primary key functions for Tables automatically
-primary_key = ["geekorm-derive/primary_key"]
-
 
 # Backends for the ORM
 backends = ["search", "geekorm-core/backends", "geekorm-derive/backends"]

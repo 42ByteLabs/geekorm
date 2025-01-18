@@ -28,7 +28,6 @@ default = []
 uuid = ["geekorm-core/uuid", "dep:uuid"]
 chrono = ["geekorm-core/chrono"]
 new = []
-primary_key = []
 semver = ["geekorm-core/semver"]
 rand = ["geekorm-core/rand", "dep:rand"]
 # Hashing algorithms
