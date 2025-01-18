@@ -159,6 +159,17 @@ where
     }
 }
 
+// ForeignKey<i32, T> -> Value
+impl<T> From<ForeignKeyIntegerOld<T>> for Value
+where
+    T: TableBuilder + TablePrimaryKey,
+{
+    fn from(value: ForeignKeyIntegerOld<T>) -> Self {
+        Value::Identifier(value.key as u64)
+    }
+}
+
+// &ForeignKey<i32, T> -> Value
 impl<T> From<&ForeignKeyIntegerOld<T>> for Value
 where
     T: TableBuilder + TablePrimaryKey,
