@@ -88,7 +88,7 @@ migrations = ["geekorm-core/migrations", "dep:lazy_static"]
 
 [dependencies]
 geekorm-core = { version = "^0.9.0", path = "geekorm-core" }
-geekorm-derive = { version = "0.10.00", path = "geekorm-derive" }
+geekorm-derive = { version = "^0.9.0", path = "geekorm-derive" }
 lazy_static = { version = "^1", optional = true }
 
 [dev-dependencies]
