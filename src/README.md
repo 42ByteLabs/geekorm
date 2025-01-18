@@ -1,31 +1,81 @@
- GeekORM is a simple and lightweight ORM for Rust. It is designed to be simple and easy to use.
+# GeekORM
 
- This project is still in the early stages of development, and as such, it may not be suitable for all use cases.
+GeekORM is a simple and lightweight ORM for Rust. It is designed to be simple and easy to use.
 
-### Features
+This project is still in the early stages of development, and as such, it may not be suitable for all use cases.
 
-- Simple and lightweight
-- Uses derive macros for easy table creation
-- Helper Functions to make things easy
-  - Automatic `new` function
-    - feature: `new`
-  - Automatic `select_by_{field}` functions
-    - feature: `helpers`
-- Multi-Backends Support
-  - [LibSQL](https://github.com/tursodatabase/libsql)
-- Query builder pattern for building SQL queries
-  - Only supports SQLite at the moment
+## ✨ Features
 
-### Example
+- Focus on simplicity
+- Rely on Derive Macros to generate code for your structs
+  - Using `Table`
+  - Using `Data`
+- Dynamically generate functions and corresponding SQL queries
+  - `.save(...)` - Inserting new rows
+  - `.update(...)` - Updating existing rows
+  - `.delete(...)` - Deleting rows
+- Support for Backends Drivers
+  - `rusqlite`
+  - `libsql`
+- Automatic Migration Generation
+  - `geekorm-cli init` - Setup your migrations
+- Extensive crate features
+  - `rand`: Generate random strings (set lenght, set prefix, set enviroment)
+  - `hash` or `password`: Generate secure Hashes of passwords (set algorithm)
+  - and more...
 
- Here is a simple example of how to use GeekORM:
+## 📦 Installation
 
- ```rust
-#[cfg(feature = "libsql")] 
-{
+### 🦀 Library
+
+You can install the library from [crates.io][crates]:
+
+```bash
+cargo add geekorm
+```
+
+### 🛠️ CLI
+
+If you want to manage your models and migrations using `geekorm`, you'll need to install the `geekorm-cli` command line tool.
+
+```bash
+cargo install geekorm-cli
+```
+
+## 🏃 Getting Started
+
+GeekORM is easy to setup and use in your Rust project.
+
+### 🏎️ Setting Up Migrations
+
+The first thing you'll need to decide is if you want to use the `geekorm-cli` to manage your migrations or if you want to manage them manually.
+
+You can use the `geekorm-cli` to help you manage your migrations.
+
+```bash
+geekorm-cli init
+```
+
+This will prompt you to enter some information about your setup and will generate a `crate` or a `module` for you to use.
+Once you have setup your project, 2 new commands will be available to you:
+
+```bash
+# Generate a new migration (creates a new folders in your migrations directory)
+geekorm-cli migrate 
+# Validate your migrations (runs from your initial migration to the latest)
+geekorm-cli test
+```
+
+### 🚀 Writing your first model
+
+Once you have installed `geekorm`, you can start using the derive macros like the following:
+
+```rust
+# #[cfg(feature = "libsql")] {
 use anyhow::Result;
 use geekorm::prelude::*;
 
+/// Using the `Table` derive macro to generate the `Users` table
 #[derive(Table, Debug, Default, serde::Serialize, serde::Deserialize)]
 struct Users {
     #[geekorm(primary_key, auto_increment)]
@@ -39,23 +89,12 @@ struct Users {
     /// User Type Enum (defaults to `User`)
     #[geekorm(new = "UserType::User")]
     user_type: UserType,
-    /// Optional postcode field (nullable in the database)
-    postcode: Option<String>,
-    /// Randomly generated session token
-    #[geekorm(rand = "42", rand_prefix = "session_")]
-    session: String,
-
-    /// Created and Updated timestamps
-    #[geekorm(new = "chrono::Utc::now()")]
-    created_at: chrono::DateTime<chrono::Utc>,
-    #[geekorm(new = "chrono::Utc::now()", on_update = "chrono::Utc::now()")]
-    updated_at: chrono::DateTime<chrono::Utc>,
 }
 
 #[derive(Data, Debug, Default, Clone)]
 enum UserType {
     Admin,
-    Modirator,
+    Moderator,
     #[default]
     User,
 }
@@ -63,13 +102,13 @@ enum UserType {
 #[tokio::main]
 async fn main() -> Result<()> {
     // Setup the database and connection
-    let db = libsql::Builder::new_local(":memory:").build().await
-        .expect("Failed to create database");
-    let connection = db.connect()
-        .expect("Failed to connect to database");
+    let conn = rusqlite::Connection::open_in_memory().expect("Failed to open database");
 
-    // Create the table in the database
-    Users::create_table(&connection).await?;
+    // Initialize or migrate the database using the `crate` or `module`.
+    // This is done using the `geekorm-cli` function
+    db::init(&conn).await?;
+    // [OR] You can create the tables manually
+    Users::create_table(&conn).await?;
 
     // Use the generated `new` function to create a new User
     // using the default values set in the struct.
@@ -79,8 +118,8 @@ async fn main() -> Result<()> {
     // Print the Primary Key value set by the database (auto_increment)
     println!("User ID: {:?}", user.id);
 
-    // Updating the Users postcode (optional field)
-    user.postcode = Some("SW1A 1AA".to_string());
+    // Updating the Users account type to Admin
+    user.user_type = UserType::Admin;
     user.update(&connection).await?;
 
     // Fetch the Admin Users
@@ -89,41 +128,12 @@ async fn main() -> Result<()> {
 
     // Counts the number of Users in the database
     let total_users = Users::total(&connection).await?;
-
-    // Enums are used to help columns with a limited set of values
-    // and GeekORM will handle the conversion for you.
-    user.user_type = UserType::Admin;
-    // or you can use the `.from()` or `.into()` functions
-    user.user_type = UserType::from("Admin");
-    user.user_type = "Admin".into();
-
-    // GeekORM offers a number of helper functions to make your life easier.
-    
-    // Search unique fields or search tagged fields
-    let search = Users::search(&connection, "GeekMasher").await?;
-
-    // Automatically hashing passwords for you.
-    user.hash_password("ThisIsStillNotMyPassword")?;
-
-    // Automatically generate random strings for you.
-    user.regenerate_session();
-
-    // Go back to basics and build your own queries dynamically using
-    // the QueryBuilder built into GeekORM
-    let query = Users::query_select()
-        .where_eq("username", "GeekMasher")
-        .order_by("id", geekorm::QueryOrder::Desc)
-        .limit(1)
-        .build()?;
-
-    // Execute the query and return the results
-    let users = Users::query(&connection, query).await?;
-    println!("Users: {:?}", users);
+    println!("Total Users: {:?}", total_users);
 
     Ok(())
 }
 # }
- ```
+```
 
 ### Unsupported Features
 
@@ -132,8 +142,6 @@ async fn main() -> Result<()> {
 
  Here is a list of some of the features that GeekORM does not support (but may support in the future):
 
-- Automatic Migrations
-- Relationships (e.g. One-to-Many, Many-to-Many)
 - Transactions
 - Connection Pooling
 

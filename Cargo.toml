@@ -41,6 +41,9 @@ authors.workspace = true
 shared-version = true
 tag-name = "v{{version}}"
 
+[package.metadata.docs.rs]
+features = ["utils", "uuid", "chrono", "semver", "pagination", "tfa", "two-factor-auth", "two-factor-auth-qr", "rand", "log", "hash", "hash-all", "hash-pbkdf2", "hash-argon2", "hash-sha512", "backends", "backends-tokio", "search", "libsql", "rusqlite", "migrations"]
+
 [features]
 default = ["all", "backends"]
 # All features (minus backends)
