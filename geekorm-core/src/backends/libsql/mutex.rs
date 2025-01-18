@@ -30,9 +30,10 @@ where
                 }
             }
         }
-        Err(crate::Error::LibSQLError(
-            "Error getting write lock on connection".to_string(),
-        ))
+        Err(crate::Error::LibSQLError {
+            error: "Error getting write lock on connection".to_string(),
+            query: "N/A".to_string(),
+        })
     }
 
     async fn row_count(
@@ -48,9 +49,10 @@ where
                 }
             }
         }
-        Err(crate::Error::LibSQLError(
-            "Error getting write lock on connection in row_count".to_string(),
-        ))
+        Err(crate::Error::LibSQLError {
+            error: "Error getting write lock on connection in row_count".to_string(),
+            query: "N/A".to_string(),
+        })
     }
 
     async fn query<T>(
@@ -70,9 +72,10 @@ where
             }
         }
 
-        Err(crate::Error::LibSQLError(
-            "Error getting write lock on connection".to_string(),
-        ))
+        Err(crate::Error::LibSQLError {
+            error: "Error getting write lock on connection".to_string(),
+            query: "N/A".to_string(),
+        })
     }
 
     async fn query_first<T>(
@@ -91,9 +94,10 @@ where
                 }
             }
         }
-        Err(crate::Error::LibSQLError(
-            "Error getting write lock on connection".to_string(),
-        ))
+        Err(crate::Error::LibSQLError {
+            error: "Error getting write lock on connection".to_string(),
+            query: "N/A".to_string(),
+        })
     }
 
     async fn execute(
@@ -109,8 +113,9 @@ where
                 }
             }
         }
-        Err(crate::Error::LibSQLError(
-            "Error getting write lock on connection in execute".to_string(),
-        ))
+        Err(crate::Error::LibSQLError {
+            error: "Error getting write lock on connection in execute".to_string(),
+            query: "N/A".to_string(),
+        })
     }
 }

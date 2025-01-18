@@ -27,8 +27,11 @@ pub enum Error {
     ColumnSkipped,
 
     /// No Rows was found in the database for the query
-    #[error("No Rows Found - Query: '{0}'")]
-    NoRowsFound(String),
+    #[error("No Rows Found - Query: '{query}'")]
+    NoRowsFound {
+        /// Query
+        query: String,
+    },
 
     /// Pagination Error
     #[cfg(feature = "pagination")]
@@ -65,8 +68,15 @@ pub enum Error {
 
     /// LibSQL Error
     #[cfg(feature = "libsql")]
-    #[error("LibSQL Error occurred: {0}")]
-    LibSQLError(String),
+    #[error(
+        "LibSQL Error: {error}\n -> {query}\nPlease report this error to the GeekORM developers"
+    )]
+    LibSQLError {
+        /// Error message
+        error: String,
+        /// Query
+        query: String,
+    },
 
     /// RuSQLite Error
     #[cfg(feature = "rusqlite")]
@@ -75,9 +85,14 @@ pub enum Error {
 
     /// Query Syntax Error
     #[error(
-        "Query Syntax Error: {0}\n -> {1}\nPlease report this error to the GeekORM developers"
+        "Query Syntax Error: {error}\n -> {query}\nPlease report this error to the GeekORM developers"
     )]
-    QuerySyntaxError(String, String),
+    QuerySyntaxError {
+        /// Error message
+        error: String,
+        /// Query
+        query: String,
+    },
 }
 
 /// GeekORM Migration Error
