@@ -1,3 +1,85 @@
+//! # Primary Key
+//!
+//! Primary Keys are used to uniquely identify a row in a table.
+//! GeekORM supports three primary key types:
+//!
+//! - `PrimaryKeyInteger` (default)
+//! - `PrimaryKeyString`
+//! - `PrimaryKeyUuid` (requires the `uuid` feature to be enabled)
+//!
+//! # Standard Example
+//!
+//! Here is an example of how to use the PrimaryKey.
+//!
+//! ```rust
+//! use geekorm::prelude::*;
+//!
+//! #[derive(Table, Clone, Default, serde::Serialize, serde::Deserialize)]
+//! pub struct Users {
+//!     #[geekorm(primary_key, auto_increment)]
+//!     pub id: PrimaryKeyInteger,
+//!     #[geekorm(unique)]
+//!     pub username: String,
+//! }
+//!
+//! let user = Users {
+//!     id: PrimaryKey::from(1),
+//!     username: String::from("JohnDoe")
+//! };
+//! # assert_eq!(Users::primary_key(), "id");
+//! # assert_eq!(user.id.clone(), PrimaryKey::from(1));
+//! # assert_eq!(user.username.clone(), String::from("JohnDoe"));
+//! ```
+//!
+//! # String Example
+//!
+//! Here is an example of how to use the PrimaryKey struct with a String as the primary key.
+//!
+//! ```rust
+//! use geekorm::prelude::*;
+//!
+//! #[derive(Table, Clone, Default, serde::Serialize, serde::Deserialize)]
+//! pub struct Users {
+//!     #[geekorm(primary_key, auto_increment)]
+//!     pub id: PrimaryKeyString,
+//!     #[geekorm(unique)]
+//!     pub username: String,
+//! }
+//!
+//! let user = Users {
+//!     id: PrimaryKey::from("1"),
+//!     username: String::from("JohnDoe")
+//! };
+//! # assert_eq!(user.id.clone(), PrimaryKey::from("1"));
+//! # assert_eq!(user.username.clone(), String::from("JohnDoe"));
+//! ```
+//!
+//! # Uuid Example
+//!
+//! With the `uuid` feature enabled, you can use the `PrimaryKeyUuid` struct to use a
+//! Uuid as the primary key.
+//!
+//! ```rust
+//! use geekorm::prelude::*;
+//!
+//!
+//! #[derive(Table, Clone, Default, serde::Serialize, serde::Deserialize)]
+//! pub struct Users {
+//!     #[geekorm(primary_key, auto_increment)]
+//!     pub id: PrimaryKeyUuid,
+//!     #[geekorm(unique)]
+//!     pub username: String,
+//! }
+//!
+//! let new_uuid = uuid::Uuid::new_v4();
+//! let user = Users {
+//!     id: PrimaryKeyUuid::from(new_uuid),
+//!     username: String::from("JohnDoe")
+//! };
+//! # assert_eq!(user.username.clone(), String::from("JohnDoe"));
+//! # assert_eq!(user.id.clone(), PrimaryKeyUuid::from(new_uuid));
+//! ```
+//!
 use core::fmt;
 use std::fmt::{Debug, Display};
 
@@ -11,69 +93,37 @@ use crate::ToSqlite;
 ///
 /// The Primary Key is a column in a Table used to uniquely identify a row.
 ///
-/// In GeekORM, it can be an `i32` (default), a `String`, or a `Uuid`.
-///
-/// # Example
-///
-/// Here is an example of how to use the PrimaryKey struct with an integer
-///
-/// ```rust
-/// use geekorm::prelude::*;
-///
-/// #[derive(Table, Clone, Default, serde::Serialize, serde::Deserialize)]
-/// pub struct Users {
-///    pub id: PrimaryKey<i32>,
-///    pub username: String,
-/// }
-///
-/// let user = Users {
-///     id: PrimaryKey::from(1),
-///     username: String::from("JohnDoe")
-/// };
-/// # assert_eq!(Users::primary_key(), "id");
-/// # assert_eq!(user.id.clone(), PrimaryKey::from(1));
-/// # assert_eq!(user.username.clone(), String::from("JohnDoe"));
-/// ```
-///
-/// Here is an example of how to use the PrimaryKey struct with a String
-///
-/// ```rust
-/// use geekorm::prelude::*;
-///
-/// #[derive(Table, Clone, Default, serde::Serialize, serde::Deserialize)]
-/// pub struct Users {
-///     pub id: PrimaryKey<String>,
-///     pub username: String,
-/// }
-///
-/// let user = Users {
-///     id: PrimaryKey::from("1"),
-///     username: String::from("JohnDoe")
-/// };
-/// # assert_eq!(user.id.clone(), PrimaryKey::from("1"));
-/// # assert_eq!(user.username.clone(), String::from("JohnDoe"));
-/// ```
-///
+/// In GeekORM, it can be an `u64` (default), a `String`, or a `Uuid`.
 #[derive(Clone, Copy, Eq, PartialEq)]
 pub struct PrimaryKey<T>
 where
-    T: Display + 'static,
+    T: serde::Serialize + 'static,
 {
     pub(crate) value: T,
 }
 
+impl<T> PrimaryKey<T>
+where
+    T: serde::Serialize + 'static,
+{
+    /// Get the Primary Key value
+    pub fn value(&self) -> &T {
+        &self.value
+    }
+}
+
 impl<T> Debug for PrimaryKey<T>
 where
-    T: Debug + Display + 'static,
+    T: serde::Serialize + Debug + 'static,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "PrimaryKey({})", self.value)
+        write!(f, "PrimaryKey({:?})", self.value)
     }
 }
 
 impl<T> Display for PrimaryKey<T>
 where
-    T: Debug + Display + 'static,
+    T: serde::Serialize + Display + 'static,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.value)
@@ -122,6 +172,9 @@ impl Default for PrimaryKeyInteger {
     }
 }
 
+/// This is the old primary key type for GeekORM.
+///
+/// This is used for backwards compatibility.
 pub(crate) type PrimaryKeyIntegerOld = PrimaryKey<i32>;
 
 impl Default for PrimaryKeyIntegerOld {
@@ -335,6 +388,16 @@ impl From<PrimaryKeyIntegerOld> for i32 {
 impl From<&PrimaryKeyIntegerOld> for i32 {
     fn from(value: &PrimaryKeyIntegerOld) -> Self {
         value.value
+    }
+}
+impl From<PrimaryKeyIntegerOld> for u64 {
+    fn from(value: PrimaryKeyIntegerOld) -> Self {
+        value.value as u64
+    }
+}
+impl From<&PrimaryKeyIntegerOld> for u64 {
+    fn from(value: &PrimaryKeyIntegerOld) -> Self {
+        value.value as u64
     }
 }
 
