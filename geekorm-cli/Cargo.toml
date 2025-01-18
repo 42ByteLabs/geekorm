@@ -20,8 +20,8 @@ authors.workspace = true
 
 
 [dependencies]
-geekorm = { path = "../", version = "^0.8.4", features = ["utils", "migrations"] }
-geekorm-core = { path = "../geekorm-core", version = "^0.8.4", features = ["migrations", "rusqlite"] }
+geekorm = { path = "../", version = "^0.9.0", features = ["utils", "migrations"] }
+geekorm-core = { path = "../geekorm-core", version = "^0.9.0", features = ["migrations", "rusqlite"] }
 
 # libsql = { version = "0.6", optional = true }
 rusqlite = { version = "0.32" }
