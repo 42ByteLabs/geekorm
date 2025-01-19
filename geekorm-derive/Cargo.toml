@@ -46,6 +46,7 @@ search = ["geekorm-core/search"]
 libsql = ["backends", "geekorm-core/libsql"]
 rusqlite = ["backends", "geekorm-core/rusqlite"]
 # sqlite = ["backends", "geekorm-core/sqlite"]
+postgres = ["backends", "geekorm-core/postgres"]
 
 [lib]
 proc-macro = true
