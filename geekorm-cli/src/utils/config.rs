@@ -3,6 +3,7 @@ use anyhow::Result;
 use std::path::PathBuf;
 
 use crate::utils::cargo::Cargo;
+use crate::utils::prompt_input;
 
 /// Configuration struct
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -63,7 +64,13 @@ impl Config {
 
         if config.working_dir.join("Cargo.toml").exists() {
             let cargo = Cargo::read(&config.working_dir.join("Cargo.toml")).await?;
-            config.version = cargo.package.version;
+            let version = if let Some(version) = cargo.version() {
+                version
+            } else {
+                log::warn!("Cargo.toml does not contain a version");
+                prompt_input("Enter the version of the crate (e.g. 0.1.0): ")?
+            };
+            config.version = version;
             log::debug!("Set version to `{}`", config.version);
         } else {
             log::warn!("Cargo.toml not found in working directory");
