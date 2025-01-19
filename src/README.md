@@ -146,3 +146,7 @@ async fn main() -> Result<()> {
 - Connection Pooling
 
  If there are any features you would like to see in GeekORM, please open an issue on the GitHub repository.
+
+<!-- Resources -->
+[crates]: https://crates.io
+[crates-io]: https://crates.io/crates/geekorm
