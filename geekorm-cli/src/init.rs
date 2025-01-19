@@ -26,6 +26,11 @@ pub async fn init(config: &mut Config) -> Result<()> {
     log::debug!("Migration Mode: {}", config.mode);
 
     let name = prompt_input_with_default("Name:", &config.name())?;
+    // Add basic validation
+    if name.contains("/") || name.contains("\\") {
+        log::error!("Invalid name: {}", name);
+        return Err(anyhow::anyhow!("Invalid name"));
+    }
     config.name = Some(name);
     log::debug!("Name: {}", config.name());
 
