@@ -7,10 +7,16 @@ use crate::utils::database::Database;
 use crate::utils::Config;
 
 pub async fn create_mod(config: &Config, path: &PathBuf) -> Result<()> {
-    log::info!("Creating a mod file...");
+    log::info!("Creating migration files");
 
     let database = Database::find_database(config)?;
-    log::debug!("Database: {:#?}", database);
+    log::trace!("Database: {:#?}", database);
+
+    // Create SQL files
+    if let Some(parent) = path.parent() {
+        let create_path = parent.join("create.sql");
+        crate::codegen::generate_create_sql(&database, &create_path).await?;
+    }
 
     let tables = database.tables;
 
@@ -38,6 +44,7 @@ pub async fn create_mod(config: &Config, path: &PathBuf) -> Result<()> {
             use super::#ident as previous;
         });
     }
+
     // Data migrations
     if config.data_migrations {
         log::debug!("Data Migrations: true");
@@ -95,7 +102,7 @@ pub async fn create_mod(config: &Config, path: &PathBuf) -> Result<()> {
 
     let ast = quote! {
         #![doc = #doctitle]
-        #![allow(unused_variables, non_upper_case_globals)]
+        #![allow(unused_variables, non_upper_case_globals, missing_docs)]
 
         #imports
 
@@ -123,7 +130,6 @@ pub async fn create_mod(config: &Config, path: &PathBuf) -> Result<()> {
                 }
             );
         }
-
     };
 
     tokio::fs::write(path, ast.to_string().as_bytes()).await?;
