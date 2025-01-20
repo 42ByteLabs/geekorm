@@ -6,9 +6,6 @@ use crate::utils::{
 use anyhow::Result;
 
 pub async fn init(config: &mut Config) -> Result<()> {
-    log::info!("Initializing GeekORM...");
-    // TODO: Check if the configuration file already exists
-
     let (selected, _) = prompt_select_with_default("Migration Mode:", &vec!["Module", "Crate"], 0)?;
 
     match selected {
@@ -33,6 +30,8 @@ pub async fn init(config: &mut Config) -> Result<()> {
     }
     config.name = Some(name);
     log::debug!("Name: {}", config.name());
+    let path = config.migrations_path()?;
+    log::info!("Migration Directory: {}", path.display());
 
     let (database, _) = prompt_select("Database:", &vec!["SQLite"])?;
     config.database = database.to_lowercase().to_string();
@@ -44,6 +43,9 @@ pub async fn init(config: &mut Config) -> Result<()> {
         .collect();
 
     initalise(config).await?;
+
+    // Create the lib/mod generation
+    crate::codegen::lib_generation(config).await?;
 
     // Create new migration?
     let (new_migration, _) =
@@ -66,7 +68,6 @@ pub async fn initalise(config: &Config) -> Result<()> {
 
     let name = config.name();
     let migrations_dir = config.migrations_path()?;
-    // let migrations_src_dir = migrations_dir.join("src");
     log::debug!("Migrations directory: {}", migrations_dir.display());
 
     // Setup the migrations project
