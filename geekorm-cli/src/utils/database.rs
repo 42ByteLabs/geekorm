@@ -49,7 +49,13 @@ impl Database {
     /// Load the database from the file
     pub fn load_database(path: PathBuf) -> Result<Self> {
         let database = std::fs::read_to_string(path)?;
-        let database: Database = serde_json::from_str(&database)?;
+        let mut database: Database = serde_json::from_str(&database)?;
+
+        // Remove skipped columns
+        database.tables.iter_mut().for_each(|table| {
+            table.columns.columns.retain(|col| !col.skip);
+        });
+
         Ok(database)
     }
 
