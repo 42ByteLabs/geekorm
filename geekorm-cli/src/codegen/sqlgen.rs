@@ -6,7 +6,7 @@ use crate::utils::database::Database;
 
 /// Creates the `create.sql` file for the schema migration
 pub async fn generate_create_sql(database: &Database, path: &PathBuf) -> Result<()> {
-    log::debug!("Creating the create.sql file...");
+    log::debug!("Creating `create.sql` file at: {}", path.display());
     let mut data = String::new();
     data += "-- GeekORM Database Migrations\n\n";
 

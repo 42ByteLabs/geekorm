@@ -5,10 +5,11 @@ use crate::utils::Config;
 
 pub async fn lib_generation(config: &Config) -> Result<()> {
     let path = config.migrations_path()?;
-    log::info!("Generating the lib file...");
     let src_dir = if config.crate_mode() {
+        log::info!("Generating the lib file...");
         path.join("src")
     } else {
+        log::info!("Generating the module file...");
         path.clone()
     };
 
@@ -40,6 +41,7 @@ pub async fn lib_generation(config: &Config) -> Result<()> {
 
             pub use #latest::{Database, Migration as LatestMigration};
 
+            #[doc = "Initializes and automatically migrates database."]
             pub async fn init<'a, T>(connection: &'a T) -> Result<(), geekorm::Error>
             where
                 T: geekorm::GeekConnection<Connection = T> + 'a,
