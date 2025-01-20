@@ -11,11 +11,13 @@ use crate::utils::database::Database;
 use crate::utils::{prompt_select, prompt_select_with_default, Config};
 
 pub async fn create_migrations(config: &mut Config) -> Result<()> {
-    log::info!("Initializing a version migration...");
+    log::info!("Initializing `{}` migration...", config.version);
 
     let path = config.new_migration_path()?;
+    let mod_path = path.join("mod.rs");
+    log::debug!("Migration Path: {}", path.display());
 
-    if path.exists() {
+    if mod_path.exists() {
         let (overwrite, _) = prompt_select_with_default(
             "The migrations directory already exists. Overwrite?",
             &vec!["No", "Yes"],
@@ -59,27 +61,35 @@ pub async fn create_migrations(config: &mut Config) -> Result<()> {
         log::warn!("No build command specified, skipping build");
     }
 
-    if create_schema_migration(config, &path).await? {
-        let mod_path = path.join("mod.rs");
+    // If there is zero or one version (initial migration)
+    log::debug!("Versions :: {:?}", config.versions);
+    if config.is_initial_version() {
+        log::info!("Creating the initial migration");
 
         codegen::lib_generation(config).await?;
         codegen::create_mod(config, &mod_path).await?;
+    } else if create_schema_migration(config, &path).await? {
+        log::info!("Creating a new migration version");
 
-        log::debug!("Formatting the lib/mod file...");
-        let fmtdir = if config.crate_mode() {
-            config.migrations_path()?
-        } else {
-            config.working_dir.clone()
-        };
-        tokio::process::Command::new("cargo")
-            .arg("fmt")
-            .current_dir(fmtdir)
-            .status()
-            .await?;
+        codegen::lib_generation(config).await?;
+        codegen::create_mod(config, &mod_path).await?;
     } else {
         log::info!("No schema migration created");
         log::info!("If this is incorrect, please run `geekorm test` to validate");
+        return Ok(());
     }
+
+    log::debug!("Formatting the lib/mod file...");
+    let fmtdir = if config.crate_mode() {
+        config.migrations_path()?
+    } else {
+        config.working_dir.clone()
+    };
+    tokio::process::Command::new("cargo")
+        .arg("fmt")
+        .current_dir(fmtdir)
+        .status()
+        .await?;
 
     Ok(())
 }
@@ -87,11 +97,13 @@ pub async fn create_migrations(config: &mut Config) -> Result<()> {
 /// Creates a schema migration if the database is out of date
 ///
 /// If the database is up to date, this function does nothing and returns false
-async fn create_schema_migration(config: &Config, path: &PathBuf) -> Result<bool> {
+pub async fn create_schema_migration(config: &Config, path: &PathBuf) -> Result<bool> {
     log::debug!("Creating a schema migration...");
 
     let mut database = Database::find_database(config)?;
     database.sort_tables();
+
+    log::debug!("Database table count: {}", database.tables.len());
 
     // Update the schema
     let upgrade_path = path.join("upgrade.sql");

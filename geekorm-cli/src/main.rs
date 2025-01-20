@@ -22,10 +22,11 @@ async fn main() -> Result<()> {
     let mut config = match Config::load(&arguments.config).await {
         Ok(config) => config,
         Err(err) => {
-            log::warn!("Failed to load configuration: {}", err);
-            Config::default()
+            log::error!("Failed to load configuration: {}", err);
+            return Err(err);
         }
     };
+
     if let Some(geekorm_path) = &arguments.geekorm_path {
         config.geekorm = Some(geekorm_path.display().to_string());
     }
@@ -65,7 +66,7 @@ async fn main() -> Result<()> {
             let options = if config.new {
                 vec!["Init", "Display"]
             } else {
-                vec!["Migrate", "Update", "Display"]
+                vec!["Migrate", "Test/Validate", "Update", "Display"]
             };
             let (selected, _) = prompt_select("Select an option:", &options)?;
 
@@ -80,8 +81,16 @@ async fn main() -> Result<()> {
                     log::info!("Migrating the database...");
                     migrations::create_migrations(&mut config).await?;
                 }
+                "Test/Validate" => {
+                    log::info!("Testing the migrations...");
+                    if !config.is_initial_version() {
+                        migrations::test_migrations(&config).await?;
+                    } else {
+                        log::info!("No migrations to test");
+                    }
+                }
                 "Update" => {
-                    log::info!("Updating the database...");
+                    log::info!("Updating the migrations...");
                     if config.mode == "crate" {
                         init::initalise(&config).await?;
                     }
