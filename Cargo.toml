@@ -104,7 +104,7 @@ semver = { version = "1.0", features = ["serde"] }
 totp-rs = { version = "^5.5", features = ["serde_support", "gen_secret"] }
 
 libsql = "^0.6"
-rusqlite = "^0.32"
+rusqlite = "^0.33"
 
 rocket = { version = "^0.5" }
 
