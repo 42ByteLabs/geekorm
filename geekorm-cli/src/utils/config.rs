@@ -8,14 +8,15 @@ use crate::utils::prompt_input;
 /// Configuration struct
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Config {
+    /// If the configuration is newly created
     #[serde(skip)]
     pub new: bool,
-
+    /// Working directory
     #[serde(skip)]
     pub working_dir: PathBuf,
 
     /// GeekORM mode
-    #[serde(skip_serializing_if = "String::is_empty")]
+    #[serde(default, skip_serializing_if = "String::is_empty")]
     pub mode: String,
     /// Crate/Module name
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -61,9 +62,12 @@ impl Config {
 
         // Set default working directory
         config.working_dir = path.parent().unwrap().to_path_buf();
+        log::debug!("Working directory: {}", config.working_dir.display());
 
-        if config.working_dir.join("Cargo.toml").exists() {
-            let cargo = Cargo::read(&config.working_dir.join("Cargo.toml")).await?;
+        let cargo_path = config.working_dir.join("Cargo.toml");
+        if cargo_path.exists() {
+            log::debug!("Cargo.toml found in working directory");
+            let cargo = Cargo::read(&cargo_path).await?;
             let version = if let Some(version) = cargo.version() {
                 version
             } else {
@@ -71,9 +75,17 @@ impl Config {
                 prompt_input("Enter the version of the crate (e.g. 0.1.0): ")?
             };
             config.version = version;
-            log::debug!("Set version to `{}`", config.version);
         } else {
             log::warn!("Cargo.toml not found in working directory");
+            let version = prompt_input("Enter the version of the crate (e.g. 0.1.0): ")?;
+            config.version = version;
+        }
+
+        if config.version.is_empty() {
+            log::error!("Version cannot be empty");
+            return Err(anyhow::anyhow!("Version cannot be empty"));
+        } else {
+            log::debug!("Set version to `{}`", config.version);
         }
 
         config.versions = config.get_versions().await?;
@@ -140,18 +152,20 @@ impl Config {
     /// Build Command for the Rust Project
     pub fn build_command(&self) -> Result<Vec<String>> {
         if self.build.is_empty() {
-            Ok(vec!["cargo".to_string(), "build".to_string()])
-        } else {
-            if let Some(cmd) = self.build.first() {
-                if cmd == "cargo" || cmd == "cross" {
-                    Ok(self.build.clone())
-                } else {
-                    log::error!("Only `cargo` or `cross` commands are supported");
-                    Err(anyhow::anyhow!("Invalid build command"))
-                }
+            Ok(vec![
+                "cargo".to_string(),
+                "build".to_string(),
+                "--workspace".to_string(),
+            ])
+        } else if let Some(cmd) = self.build.first() {
+            if cmd == "cargo" || cmd == "cross" {
+                Ok(self.build.clone())
             } else {
-                Err(anyhow::anyhow!("No build command specified"))
+                log::error!("Only `cargo` or `cross` commands are supported");
+                Err(anyhow::anyhow!("Invalid build command"))
             }
+        } else {
+            Err(anyhow::anyhow!("No build command specified"))
         }
     }
 
@@ -193,13 +207,23 @@ impl Config {
         Ok(self.new_migration_path()?.join("data.rs"))
     }
 
+    pub fn is_initial_version(&self) -> bool {
+        self.versions.len() < 2
+    }
+
     async fn get_versions(&self) -> Result<Vec<String>> {
+        if self.mode.is_empty() {
+            // No mode means we haven't initialised geekorm yet
+            return Ok(vec![]);
+        }
+
         let mut results = vec![];
         let src_dir = if self.crate_mode() {
             self.migrations_path()?.join("src")
         } else {
             self.migrations_path()?
         };
+
         let mut dirs = tokio::fs::read_dir(&src_dir).await?;
 
         while let Some(dir) = dirs.next_entry().await? {
@@ -236,7 +260,7 @@ impl Default for Config {
             drivers: Vec::new(),
             build: Vec::new(),
             geekorm: None,
-            version: "0.1.0".to_string(),
+            version: String::new(),
             versions: Vec::new(),
             data_migrations: false,
         }
