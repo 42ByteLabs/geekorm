@@ -15,7 +15,7 @@ mod tablebuilder;
 mod values;
 
 use crate::{
-    attr::GeekAttribute,
+    attr::{GeekAttribute, GeekAttributeKeys, GeekAttributeValue},
     derive::{ColumnDerive, ColumnTypeDerive, ColumnTypeOptionsDerive, ColumnsDerive, TableDerive},
     internal::TableState,
     parsers::tablebuilder::generate_query_builder,
@@ -48,6 +48,7 @@ pub(crate) fn derive_parser(ast: &DeriveInput) -> Result<TokenStream, syn::Error
             let mut table = TableDerive {
                 name: name.to_string(),
                 columns: ColumnsDerive::from(columns),
+                database: None,
             };
             table.apply_attributes(&attributes);
 

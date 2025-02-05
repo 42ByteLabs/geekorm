@@ -71,6 +71,8 @@ pub(crate) struct GeekAttribute {
 pub(crate) enum GeekAttributeKeys {
     /// Rename the field for the table
     Rename,
+    /// Database Name
+    Database,
     /// ToString
     ToString,
     FromString,
@@ -319,6 +321,7 @@ impl Parse for GeekAttribute {
 
         let key: Option<GeekAttributeKeys> = match name_str.as_str() {
             "skip" => Some(GeekAttributeKeys::Skip),
+            "database" | "db" => Some(GeekAttributeKeys::Database),
             "disable" => Some(GeekAttributeKeys::Disable),
             "rename" => Some(GeekAttributeKeys::Rename),
             "to_str" | "to_string" => Some(GeekAttributeKeys::ToString),
