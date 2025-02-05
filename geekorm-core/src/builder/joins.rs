@@ -129,6 +129,7 @@ mod tests {
     fn table_parent(name: String) -> Table {
         Table {
             name,
+            database: None,
             columns: Columns {
                 columns: vec![
                     Column {
@@ -153,6 +154,7 @@ mod tests {
     fn table_child(name: String) -> Table {
         Table {
             name,
+            database: None,
             columns: Columns {
                 columns: vec![Column {
                     name: String::from("id"),
