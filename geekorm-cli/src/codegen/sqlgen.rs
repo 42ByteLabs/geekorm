@@ -10,7 +10,7 @@ pub async fn generate_create_sql(database: &Database, path: &PathBuf) -> Result<
     let mut data = String::new();
     data += "-- GeekORM Database Migrations\n\n";
 
-    for table in &database.tables {
+    for table in database.get_tables() {
         let comment = format!("-- {} Table\n", table.name);
         let query = QueryBuilder::create().table(table.clone()).build()?.query;
 

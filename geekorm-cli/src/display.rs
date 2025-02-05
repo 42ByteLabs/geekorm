@@ -11,10 +11,10 @@ pub fn display_database(config: &Config) -> Result<()> {
     let database = Database::find_database(config)?;
     debug!("Database: {:#?}", database);
 
-    for table in database.tables {
-        println!(" Table({}) {{", style(table.name).green());
+    for table in database.get_tables() {
+        println!(" Table({}) {{", style(table.name.to_string()).green());
 
-        for column in table.columns {
+        for column in table.columns.clone() {
             if column.skip {
                 continue;
             }

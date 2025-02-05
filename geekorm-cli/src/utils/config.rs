@@ -57,6 +57,7 @@ impl Config {
             log::warn!("Configuration file does not exist");
             Config::default()
         } else {
+            log::debug!("Loading configuration from `{}`", path.display());
             Config::load_file(path).await?
         };
 

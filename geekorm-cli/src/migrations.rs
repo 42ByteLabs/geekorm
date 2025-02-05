@@ -100,10 +100,15 @@ pub async fn create_migrations(config: &mut Config) -> Result<()> {
 pub async fn create_schema_migration(config: &Config, path: &PathBuf) -> Result<bool> {
     log::debug!("Creating a schema migration...");
 
-    let mut database = Database::find_database(config)?;
+    // Default database
+    let mut database = Database::find_default_database(config)?;
     database.sort_tables();
 
-    log::debug!("Database table count: {}", database.tables.len());
+    let migrations_path = path.join("migrations.json");
+    if migrations_path.exists() {
+        log::debug!("Removing the migrations.json file...");
+        tokio::fs::remove_file(&migrations_path).await?;
+    }
 
     // Update the schema
     let upgrade_path = path.join("upgrade.sql");
@@ -119,15 +124,24 @@ pub async fn create_schema_migration(config: &Config, path: &PathBuf) -> Result<
 
         let mut data = "-- This migration will update the schema\n\n".to_string();
 
+        let mut migration_data = Vec::new();
+
         for verror in validator.errors.iter() {
             log::info!("Error: {}", verror);
 
             let query = prompt_table_alter(&database, verror)?;
 
-            data.push_str(query.as_str());
+            let table = database.get_table(query.table()).unwrap();
+            data.push_str(table.on_alter(&query)?.as_str());
             data.push_str("\n\n");
+
+            migration_data.push(query);
         }
 
+        log::info!("Writing the `{}` file...", migrations_path.display());
+        tokio::fs::write(&migrations_path, serde_json::to_string(&migration_data)?).await?;
+
+        log::debug!("Writing the upgrade.sql file...");
         tokio::fs::write(&upgrade_path, data.as_bytes()).await?;
 
         // Creates a new database from scratch
@@ -135,9 +149,7 @@ pub async fn create_schema_migration(config: &Config, path: &PathBuf) -> Result<
         log::debug!("Create Path: {}", create_path.display());
         codegen::generate_create_sql(&database, &create_path).await?;
 
-        // Rollback the schema
-        // let rollback_path = path.join("rollback.sql");
-        // tokio::fs::write(&rollback_path, b"").await?;
+        // TODO: Rollback the schema
 
         log::info!("Schema migration created");
         Ok(true)
@@ -146,31 +158,24 @@ pub async fn create_schema_migration(config: &Config, path: &PathBuf) -> Result<
     }
 }
 
-fn prompt_table_alter(database: &Database, migrations: &MigrationError) -> Result<String> {
+fn prompt_table_alter(database: &Database, migrations: &MigrationError) -> Result<AlterQuery> {
     match migrations {
         MigrationError::MissingTable(table) => {
-            if let Some(dbtable) = database.get_table(table) {
-                log::info!("Prompting for missing table: `{:?}`", migrations);
-                let (choice, _) = prompt_select_with_default(
-                    "Alter Column:",
-                    &vec!["Create", "Rename", "Skip"],
-                    0,
-                )?;
+            log::info!("Prompting for missing table: `{:?}`", migrations);
+            let (choice, _) =
+                prompt_select_with_default("Alter Column:", &vec!["Create", "Rename", "Skip"], 0)?;
 
-                if choice == "Rename" {
-                    let tables = database.get_table_names();
+            if choice == "Rename" {
+                let tables = database.get_table_names();
 
-                    let (new_table, _) = prompt_select("New Table Name:", &tables)?;
+                let (new_table, _) = prompt_select("New Table Name:", &tables)?;
 
-                    let mut alt = AlterQuery::new(AlterMode::RenameTable, table, "");
-                    alt.rename(new_table);
-                    Ok(dbtable.on_alter(&alt)?)
-                } else if choice == "Create" {
-                    let alt = AlterQuery::new(AlterMode::AddTable, table, "");
-                    Ok(dbtable.on_alter(&alt)?)
-                } else {
-                    Ok("".to_string())
-                }
+                let mut alt = AlterQuery::new(AlterMode::RenameTable, table, "");
+                alt.rename(new_table);
+                Ok(alt)
+            } else if choice == "Create" {
+                let alt = AlterQuery::new(AlterMode::AddTable, table, "");
+                Ok(alt)
             } else {
                 Err(anyhow::anyhow!(
                     "Table not found (this should never happen): {}",
@@ -179,29 +184,22 @@ fn prompt_table_alter(database: &Database, migrations: &MigrationError) -> Resul
             }
         }
         MigrationError::MissingColumn { table, column } => {
-            if let Some(dbcolumn) = database.get_table_column(table, column) {
-                log::info!("Prompting for missing column: `{:?}`", migrations);
-                // Table exists, only the column is missing
-                let (choice, _) = prompt_select_with_default(
-                    "Alter Column:",
-                    &vec!["Create", "Rename", "Skip"],
-                    0,
-                )?;
+            log::info!("Prompting for missing column: `{:?}`", migrations);
+            // Table exists, only the column is missing
+            let (choice, _) =
+                prompt_select_with_default("Alter Column:", &vec!["Create", "Rename", "Skip"], 0)?;
 
-                if choice == "Rename" {
-                    let columns = database.get_table_columns(table);
+            if choice == "Rename" {
+                let columns = database.get_table_columns(table);
 
-                    let (new_column, _) = prompt_select("New Column Name:", &columns)?;
+                let (new_column, _) = prompt_select("New Column Name:", &columns)?;
 
-                    let mut alt = AlterQuery::new(AlterMode::RenameColumn, table, column);
-                    alt.rename(new_column);
-                    Ok(dbcolumn.on_alter(&alt)?)
-                } else if choice == "Create" {
-                    let alt = AlterQuery::new(AlterMode::AddColumn, table, column);
-                    Ok(dbcolumn.on_alter(&alt)?)
-                } else {
-                    Ok("".to_string())
-                }
+                let mut alt = AlterQuery::new(AlterMode::RenameColumn, table, column);
+                alt.rename(new_column);
+                Ok(alt)
+            } else if choice == "Create" {
+                let alt = AlterQuery::new(AlterMode::AddColumn, table, column);
+                Ok(alt)
             } else {
                 Err(anyhow::anyhow!(
                     "Column not found (this should never happen): {}.{}",
@@ -243,7 +241,7 @@ pub async fn test_migrations(config: &Config) -> Result<Validator> {
         }
     }
 
-    let current_database = Database::find_database(config)?;
+    let current_database = Database::find_default_database(config)?;
     let database = geekorm::Database {
         tables: current_database.tables.clone(),
     };
