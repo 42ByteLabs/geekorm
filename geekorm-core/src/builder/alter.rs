@@ -1,7 +1,7 @@
 //! # Alter
 
 /// Alter mode
-#[derive(Debug)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum AlterMode {
     /// Add a table
     AddTable,
@@ -22,7 +22,7 @@ pub enum AlterMode {
 }
 
 /// Alter query builder
-#[derive(Debug)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct AlterQuery {
     pub(crate) mode: AlterMode,
 
@@ -49,5 +49,10 @@ impl AlterQuery {
     pub fn rename(&mut self, name: impl Into<String>) -> &mut Self {
         self.rename = Some(name.into());
         self
+    }
+
+    /// Get the table name
+    pub fn table(&self) -> &str {
+        &self.table
     }
 }
