@@ -1,11 +1,11 @@
 #[cfg(feature = "pagination")]
 use super::pages::Page;
-use crate::builder::{
-    joins::{TableJoin, TableJoinOptions, TableJoins},
-    models::{QueryCondition, QueryOrder, QueryType, WhereCondition},
-};
 use crate::{
-    builder::values::{Value, Values},
+    builder::{
+        joins::{TableJoin, TableJoinOptions, TableJoins},
+        models::{QueryCondition, QueryOrder, QueryType, WhereCondition},
+        values::{Value, Values},
+    },
     queries::Query,
     Error, Table, ToSqlite,
 };
@@ -113,10 +113,11 @@ impl QueryBuilder {
     }
 
     /// Build a "get all rows" query
-    pub fn all() -> Query {
-        QueryBuilder::select()
-            .build()
-            .expect("Failed to build query (all)")
+    pub fn all() -> QueryBuilder {
+        QueryBuilder {
+            query_type: QueryType::Select,
+            ..Default::default()
+        }
     }
 
     /// Build an insert query

@@ -10,6 +10,11 @@ pub struct Table {
     pub name: String,
     /// Columns in the table
     pub columns: Columns,
+    /// Database name (optional)
+    ///
+    /// This is used to support multiple databases in the same project
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub database: Option<String>,
 }
 
 impl Table {
@@ -78,10 +83,16 @@ impl quote::ToTokens for Table {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let name = &self.name;
         let columns = &self.columns;
+        let database = self
+            .database
+            .clone()
+            .unwrap_or_else(|| "Database".to_string());
+
         tokens.extend(quote::quote! {
             geekorm::Table {
                 name: String::from(#name),
-                columns: #columns
+                columns: #columns,
+                database: Some(String::from(#database)),
             }
         });
     }
@@ -319,6 +330,7 @@ mod tests {
 
         Table {
             name: "Test".to_string(),
+            database: None,
             columns: vec![
                 Column::new(
                     "id".to_string(),
