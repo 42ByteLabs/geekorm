@@ -289,6 +289,7 @@ mod tests {
     fn create_table() -> crate::Table {
         crate::Table {
             name: String::from("users"),
+            database: None,
             columns: Columns::from(vec![
                 Column::new(
                     String::from("user_id"),

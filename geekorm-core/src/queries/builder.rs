@@ -438,6 +438,7 @@ mod tests {
     fn simple_table() -> Table {
         Table {
             name: "users".to_string(),
+            database: None,
             columns: crate::Columns::from(vec![
                 Column::new(
                     "id".to_string(),
