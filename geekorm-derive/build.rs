@@ -10,7 +10,7 @@ fn main() {
     let state_file = format!("geekorm-{}-{}.json", cargo_bin_name, compile_time);
 
     println!(
-        "cargo:rustc-env=GEEKORM_STATE_FILE={}",
-        state_dir + "/" + &state_file
+        "cargo:rustc-env=GEEKORM_STATE_FILE={}/{}",
+        state_dir, state_file
     );
 }

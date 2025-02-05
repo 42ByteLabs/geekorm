@@ -15,25 +15,21 @@ use geekorm_core::{PrimaryKey, Table};
 pub(crate) struct TableDerive {
     pub name: String,
     pub columns: ColumnsDerive,
+    /// Database name
+    pub database: Option<String>,
 }
 
 impl TableDerive {
-    #[allow(irrefutable_let_patterns)]
     pub(crate) fn apply_attributes(&mut self, attributes: &Vec<GeekAttribute>) {
         for attr in attributes {
-            if let Some(key) = &attr.key {
-                match key {
-                    GeekAttributeKeys::Rename => {
-                        if let Some(value) = &attr.value {
-                            if let GeekAttributeValue::String(name) = value {
-                                self.name = name.to_string();
-                            }
-                        }
-                    }
-                    _ => {}
+            if let Some(GeekAttributeKeys::Key {}) = &attr.key {
+                if let Some(GeekAttributeValue::String(name)) = &attr.value {
+                    self.name = name.to_string();
                 }
-            } else {
-                // TODO(geekmasher): Handle this better
+            } else if Some(GeekAttributeKeys::Database {}) == attr.key {
+                if let Some(GeekAttributeValue::String(name)) = &attr.value {
+                    self.database = Some(name.to_string());
+                }
             }
         }
     }
@@ -43,10 +39,13 @@ impl ToTokens for TableDerive {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let name = &self.name;
         let columns = &self.columns;
+        let database = self.database.clone().unwrap_or("Database".to_string());
+
         tokens.extend(quote! {
             geekorm::Table {
                 name: String::from(#name),
-                columns: #columns
+                columns: #columns,
+                database: Some(String::from(#database)),
             }
         });
     }
@@ -57,6 +56,7 @@ impl From<TableDerive> for Table {
         Table {
             name: value.name,
             columns: value.columns.into(),
+            database: value.database,
         }
     }
 }
