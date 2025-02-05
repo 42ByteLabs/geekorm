@@ -9,7 +9,7 @@ use crate::utils::Config;
 pub async fn create_mod(config: &Config, path: &PathBuf) -> Result<()> {
     log::info!("Creating migration files");
 
-    let database = Database::find_database(config)?;
+    let database = Database::find_default_database(config)?;
     log::trace!("Database: {:#?}", database);
 
     // Create SQL files
@@ -17,8 +17,6 @@ pub async fn create_mod(config: &Config, path: &PathBuf) -> Result<()> {
         let create_path = parent.join("create.sql");
         crate::codegen::generate_create_sql(&database, &create_path).await?;
     }
-
-    let tables = database.tables;
 
     let doctitle = format!("GeekORM Database Migrations - {}", chrono::Utc::now());
     let version = config.version.to_string();
@@ -100,6 +98,10 @@ pub async fn create_mod(config: &Config, path: &PathBuf) -> Result<()> {
         });
     }
 
+    let ast_database = geekorm::Database {
+        tables: database.tables.clone(),
+    };
+
     let ast = quote! {
         #![doc = #doctitle]
         #![allow(unused_variables, non_upper_case_globals, missing_docs)]
@@ -122,13 +124,7 @@ pub async fn create_mod(config: &Config, path: &PathBuf) -> Result<()> {
 
         // Static Database Tables
         geekorm::lazy_static! {
-            pub static ref Database: Box<geekorm::Database> = Box::new(
-                geekorm::Database {
-                    tables: Vec::from([
-                        #(#tables),*
-                    ])
-                }
-            );
+            #ast_database
         }
     };
 

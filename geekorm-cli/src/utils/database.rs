@@ -3,6 +3,7 @@ use anyhow::Result;
 use geekorm::prelude::BuilderTable;
 use geekorm::Column;
 use glob::glob;
+use std::collections::HashMap;
 use std::path::PathBuf;
 
 use super::Config;
@@ -13,7 +14,12 @@ use super::Config;
 pub(crate) struct Database {
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
-    pub tables: Vec<BuilderTable>,
+
+    /// The name of the database
+    #[serde(skip)]
+    pub(crate) name: String,
+    /// The tables in the database
+    pub(crate) tables: Vec<BuilderTable>,
 }
 
 impl Database {
@@ -34,7 +40,15 @@ impl Database {
         glob(path_str)?
             .filter_map(|entry| entry.ok())
             .fold(None, |acc, entry| {
-                let database = Self::load_database(entry).ok()?;
+                log::trace!("Database Entry: {:#?}", entry);
+                let database = match Self::load_database(entry) {
+                    Ok(database) => database,
+                    Err(err) => {
+                        log::warn!("Failed to load database: {}", err);
+                        return acc;
+                    }
+                };
+
                 Some(acc.map_or(database.clone(), |ref acc: Database| {
                     if database.updated_at < acc.updated_at {
                         database
@@ -44,6 +58,41 @@ impl Database {
                 }))
             })
             .ok_or_else(|| anyhow::anyhow!("Database not found"))
+    }
+
+    /// Find the default database
+    pub fn find_default_database(config: &Config) -> Result<Self> {
+        let databases = Self::find_databases(config)?;
+        Ok(databases
+            .iter()
+            .find(|db| db.name.as_str() == "Database")
+            .ok_or_else(|| anyhow::anyhow!("Database not found"))?
+            .clone())
+    }
+
+    /// Find all the databases in the target directory
+    pub fn find_databases(config: &Config) -> Result<Vec<Self>> {
+        let database = Self::find_database(config)?;
+        let mut databases = HashMap::new();
+
+        for table in database.tables {
+            let database = table.database.clone().unwrap_or("Database".to_string());
+            log::debug!("Found table: {}.{}", database, table.name);
+            databases
+                .entry(database.clone())
+                .or_insert_with(|| Database {
+                    created_at: chrono::Utc::now(),
+                    updated_at: chrono::Utc::now(),
+                    name: database,
+                    tables: Vec::new(),
+                })
+                .tables
+                .push(table.clone());
+        }
+
+        log::debug!("Found {} database(s)", databases.len());
+
+        Ok(databases.values().cloned().collect())
     }
 
     /// Load the database from the file
@@ -91,6 +140,19 @@ impl Database {
         }
 
         self.tables = tables;
+    }
+
+    /// Gets all the tables (default tables only)
+    pub fn get_tables(&self) -> Vec<&BuilderTable> {
+        self.get_database_tables("Database")
+    }
+
+    /// Get the tables for a specific database
+    pub fn get_database_tables(&self, database: &str) -> Vec<&BuilderTable> {
+        self.tables
+            .iter()
+            .filter(|table| table.database == Some(database.to_string()))
+            .collect()
     }
 
     pub fn get_table(&self, name: &str) -> Option<&BuilderTable> {
