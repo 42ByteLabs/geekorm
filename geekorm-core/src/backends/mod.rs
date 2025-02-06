@@ -357,7 +357,7 @@ pub trait GeekConnection {
         let results: Vec<TableNames> = Self::query(
             connection,
             Query {
-                query: format!("SELECT name FROM sqlite_master WHERE type='table'"),
+                query: "SELECT name FROM sqlite_master WHERE type='table'".to_string(),
                 query_type: crate::builder::models::QueryType::Select,
                 ..Default::default()
             },
