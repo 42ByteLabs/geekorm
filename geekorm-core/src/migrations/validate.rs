@@ -33,6 +33,14 @@ pub fn validate_database(
     }
     // // Mismatched table count
     if database_tables.len() != migration_database.tables.len() {
+        #[cfg(feature = "log")]
+        {
+            log::info!("Database Tables :: {:?}", database_tables);
+            log::info!(
+                "Migration Tables :: {:?}",
+                migration_database.get_table_names()
+            );
+        }
         state = MigrationState::OutOfDate("Table count mismatch".to_string());
         if validator.quick {
             return Ok(state);
