@@ -313,6 +313,20 @@ impl ToSqlite for Table {
 
         Ok((full_query, parameters))
     }
+
+    #[cfg(feature = "migrations")]
+    fn on_alter(&self, query: &crate::AlterQuery) -> Result<String, crate::Error> {
+        for column in &self.columns.columns {
+            if column.name == query.column {
+                return column.clone().on_alter(query);
+            }
+        }
+
+        Err(crate::Error::ColumnNotFound(
+            self.name.clone(),
+            query.column.clone(),
+        ))
+    }
 }
 
 impl Display for Table {
