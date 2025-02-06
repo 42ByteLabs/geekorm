@@ -144,7 +144,7 @@ impl Database {
 
     /// Gets all the tables (default tables only)
     pub fn get_tables(&self) -> Vec<&BuilderTable> {
-        self.get_database_tables("Database")
+        self.tables.iter().collect()
     }
 
     /// Get the tables for a specific database

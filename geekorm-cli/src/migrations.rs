@@ -79,13 +79,13 @@ pub async fn create_migrations(config: &mut Config) -> Result<()> {
 
         tokio::fs::write(&database_path, data).await?;
 
-        codegen::lib_generation(config).await?;
         codegen::create_mod(config, &mod_path).await?;
+        codegen::lib_generation(config).await?;
     } else if create_schema_migration(config, &path).await? {
         log::info!("Creating a new migration version");
 
-        codegen::lib_generation(config).await?;
         codegen::create_mod(config, &mod_path).await?;
+        codegen::lib_generation(config).await?;
     } else {
         log::info!("No schema migration created");
         log::info!("If this is incorrect, please run `geekorm test` to validate");
@@ -144,8 +144,10 @@ pub async fn create_schema_migration(config: &Config, path: &PathBuf) -> Result<
 
             let query = prompt_table_alter(&database, verror)?;
 
-            let table = database.get_table(query.table()).unwrap();
+            let table = database.get_table(query.table()).expect("Table not found");
+            log::debug!("Table: {:#?}", table);
             data.push_str(table.on_alter(&query)?.as_str());
+            log::info!("TEST");
             data.push_str("\n\n");
 
             migration_data.push(query);
