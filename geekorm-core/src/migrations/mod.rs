@@ -2,7 +2,6 @@
 //!
 //! This module contains the migration logic for the database.
 
-pub mod snap;
 pub mod validate;
 
 use crate::backends::TableInfo;
