@@ -66,6 +66,19 @@ pub async fn create_migrations(config: &mut Config) -> Result<()> {
     if config.is_initial_version() {
         log::info!("Creating the initial migration");
 
+        // Generate the database file
+        let database = Database::find_default_database(config)?;
+        let db = geekorm::Database {
+            tables: database.tables.clone(),
+        };
+
+        let database_path = path.join("database.json");
+        log::debug!("Database Path: {}", database_path.display());
+
+        let data = serde_json::to_string_pretty(&db)?;
+
+        tokio::fs::write(&database_path, data).await?;
+
         codegen::lib_generation(config).await?;
         codegen::create_mod(config, &mod_path).await?;
     } else if create_schema_migration(config, &path).await? {
