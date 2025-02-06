@@ -12,14 +12,41 @@ pub async fn create_mod(config: &Config, path: &PathBuf) -> Result<()> {
     let database = Database::find_default_database(config)?;
     log::trace!("Database: {:#?}", database);
 
+    generate_migration(config, &database, path).await
+}
+
+pub async fn regenerate_mods(config: &Config) -> Result<()> {
+    log::info!("Update the migration mod.rs files");
+
+    let root = config.migrations_src_path()?;
+
+    for version_mod in config.versions.iter() {
+        log::info!("Updating migration: {}", version_mod);
+
+        let path = root.join(version_mod);
+        let dbpath = path.join("database.json");
+        log::debug!("Migrations Path: {}", dbpath.display());
+
+        if !dbpath.exists() {
+            continue;
+        }
+
+        let database = Database::load_database(dbpath)?;
+
+        generate_migration(config, &database, &path.join("mod.rs")).await?;
+    }
+
+    Ok(())
+}
+
+async fn generate_migration(config: &Config, database: &Database, path: &PathBuf) -> Result<()> {
     // Create SQL files
     if let Some(parent) = path.parent() {
         let create_path = parent.join("create.sql");
-        crate::codegen::generate_create_sql(&database, &create_path).await?;
+        crate::codegen::generate_create_sql(database, &create_path).await?;
     }
-
-    let doctitle = format!("GeekORM Database Migrations - {}", chrono::Utc::now());
     let version = config.version.to_string();
+    let doctitle = format!("GeekORM Database Migrations - v{}", version);
 
     let parent = path.parent().ok_or(anyhow::anyhow!("Invalid path"))?;
 

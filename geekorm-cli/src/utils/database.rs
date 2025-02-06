@@ -12,7 +12,9 @@ use super::Config;
 /// module of the `geekorm_derive` crate.
 #[derive(Debug, Clone, serde::Deserialize)]
 pub(crate) struct Database {
+    #[serde(default)]
     pub created_at: chrono::DateTime<chrono::Utc>,
+    #[serde(default)]
     pub updated_at: chrono::DateTime<chrono::Utc>,
 
     /// The name of the database

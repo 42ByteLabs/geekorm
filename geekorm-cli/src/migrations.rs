@@ -61,28 +61,30 @@ pub async fn create_migrations(config: &mut Config) -> Result<()> {
         log::warn!("No build command specified, skipping build");
     }
 
+    // Generate the database.json file
+    let database = Database::find_default_database(config)?;
+    let db = geekorm::Database {
+        tables: database.tables.clone(),
+    };
+
+    let database_path = path.join("database.json");
+    log::debug!("Database Path: {}", database_path.display());
+
     // If there is zero or one version (initial migration)
     log::debug!("Versions :: {:?}", config.versions);
     if config.is_initial_version() {
         log::info!("Creating the initial migration");
 
-        // Generate the database file
-        let database = Database::find_default_database(config)?;
-        let db = geekorm::Database {
-            tables: database.tables.clone(),
-        };
-
-        let database_path = path.join("database.json");
-        log::debug!("Database Path: {}", database_path.display());
-
         let data = serde_json::to_string_pretty(&db)?;
-
         tokio::fs::write(&database_path, data).await?;
 
         codegen::create_mod(config, &mod_path).await?;
         codegen::lib_generation(config).await?;
     } else if create_schema_migration(config, &path).await? {
         log::info!("Creating a new migration version");
+
+        let data = serde_json::to_string_pretty(&db)?;
+        tokio::fs::write(&database_path, data).await?;
 
         codegen::create_mod(config, &mod_path).await?;
         codegen::lib_generation(config).await?;
@@ -145,16 +147,18 @@ pub async fn create_schema_migration(config: &Config, path: &PathBuf) -> Result<
             let query = prompt_table_alter(&database, verror)?;
 
             let table = database.get_table(query.table()).expect("Table not found");
-            log::debug!("Table: {:#?}", table);
             data.push_str(table.on_alter(&query)?.as_str());
-            log::info!("TEST");
             data.push_str("\n\n");
 
             migration_data.push(query);
         }
 
         log::info!("Writing the `{}` file...", migrations_path.display());
-        tokio::fs::write(&migrations_path, serde_json::to_string(&migration_data)?).await?;
+        tokio::fs::write(
+            &migrations_path,
+            serde_json::to_string_pretty(&migration_data)?,
+        )
+        .await?;
 
         log::debug!("Writing the upgrade.sql file...");
         tokio::fs::write(&upgrade_path, data.as_bytes()).await?;
