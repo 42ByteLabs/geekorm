@@ -49,11 +49,7 @@ async fn main() -> Result<()> {
             codegen::regenerate_mods(&config).await?;
             codegen::lib_generation(&config).await?;
 
-            log::debug!("Running cargo fmt...");
-            tokio::process::Command::new("cargo")
-                .arg("fmt")
-                .status()
-                .await?;
+            config.code_format().await?;
         }
         Some(ArgumentCommands::Test) => {
             let results = migrations::test_migrations(&config).await?;

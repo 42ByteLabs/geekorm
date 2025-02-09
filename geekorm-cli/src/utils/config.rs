@@ -62,7 +62,11 @@ impl Config {
         };
 
         // Set default working directory
-        config.working_dir = path.parent().unwrap().to_path_buf();
+        config.working_dir = if let Some(parent) = path.parent() {
+            parent.to_path_buf()
+        } else {
+            PathBuf::from(".")
+        };
         log::debug!("Working directory: {}", config.working_dir.display());
 
         let cargo_path = config.working_dir.join("Cargo.toml");
@@ -101,12 +105,12 @@ impl Config {
         // Based off extension, we can determine the format of the configuration file
         let config: Self = if path
             .extension()
-            .map_or(false, |ext| ext == "yml" || ext == "yaml")
+            .is_some_and(|ext| ext == "yml" || ext == "yaml")
         {
             serde_yaml::from_str(&data)?
-        } else if path.extension().map_or(false, |ext| ext == "json") {
+        } else if path.extension().is_some_and(|ext| ext == "json") {
             serde_json::from_str(&data)?
-        } else if path.extension().map_or(false, |ext| ext == "toml") {
+        } else if path.extension().is_some_and(|ext| ext == "toml") {
             toml::from_str(&data)?
         } else {
             return Err(anyhow::anyhow!("Configuration file is not valid"));
@@ -119,12 +123,12 @@ impl Config {
         log::debug!("Saving configuration to `{}`", path.display());
         let data = if path
             .extension()
-            .map_or(false, |ext| ext == "yml" || ext == "yaml")
+            .is_some_and(|ext| ext == "yml" || ext == "yaml")
         {
             serde_yaml::to_string(self)?
-        } else if path.extension().map_or(false, |ext| ext == "json") {
+        } else if path.extension().is_some_and(|ext| ext == "json") {
             serde_json::to_string(self)?
-        } else if path.extension().map_or(false, |ext| ext == "toml") {
+        } else if path.extension().is_some_and(|ext| ext == "toml") {
             toml::to_string(self)?
         } else {
             return Err(anyhow::anyhow!("Configuration file is not valid"));
@@ -168,6 +172,16 @@ impl Config {
         } else {
             Err(anyhow::anyhow!("No build command specified"))
         }
+    }
+
+    /// Run the code format command
+    pub async fn code_format(&self) -> Result<()> {
+        log::debug!("Running cargo fmt...");
+        tokio::process::Command::new("cargo")
+            .args(["fmt", "--all"])
+            .status()
+            .await?;
+        Ok(())
     }
 
     /// Returns the migrations directory
