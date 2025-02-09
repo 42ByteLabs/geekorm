@@ -42,7 +42,7 @@ shared-version = true
 tag-name = "v{{version}}"
 
 [package.metadata.docs.rs]
-features = ["uuid", "chrono", "semver", "pagination", "rand", "hash", "hash-all", "backends", "backends-tokio", "search", "libsql", "rusqlite", "migrations"]
+all-features = true
 
 [features]
 default = ["all", "backends"]
