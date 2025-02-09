@@ -94,17 +94,7 @@ pub async fn create_migrations(config: &mut Config) -> Result<()> {
         return Ok(());
     }
 
-    log::debug!("Formatting the lib/mod file...");
-    let fmtdir = if config.crate_mode() {
-        config.migrations_path()?
-    } else {
-        config.working_dir.clone()
-    };
-    tokio::process::Command::new("cargo")
-        .arg("fmt")
-        .current_dir(fmtdir)
-        .status()
-        .await?;
+    config.code_format().await?;
 
     Ok(())
 }
