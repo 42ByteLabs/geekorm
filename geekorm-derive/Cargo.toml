@@ -22,6 +22,9 @@ build = "build.rs"
 shared-version = true
 tag-name = "v{{version}}"
 
+[package.metadata.docs.rs]
+all-features = true
+
 [features]
 default = []
 
