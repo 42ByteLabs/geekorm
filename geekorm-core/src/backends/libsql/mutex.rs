@@ -8,6 +8,7 @@ use tokio::sync::Mutex;
 
 use crate::{GeekConnection, QueryBuilderTrait, TableBuilder};
 
+const WAIT: std::time::Duration = std::time::Duration::from_nanos(100);
 const TIMEOUT: std::time::Duration = std::time::Duration::from_secs(5);
 
 impl<C> GeekConnection for Arc<Mutex<C>>
@@ -26,7 +27,7 @@ where
             match connection.try_lock() {
                 Ok(conn) => return C::create_table::<T>(&conn).await,
                 Err(_) => {
-                    std::thread::sleep(std::time::Duration::from_millis(10));
+                    std::thread::sleep(WAIT);
                 }
             }
         }
@@ -45,7 +46,7 @@ where
             match connection.try_lock() {
                 Ok(conn) => return C::row_count(&conn, query).await,
                 Err(_) => {
-                    std::thread::sleep(std::time::Duration::from_millis(10));
+                    std::thread::sleep(WAIT);
                 }
             }
         }
@@ -67,7 +68,7 @@ where
             match connection.try_lock() {
                 Ok(conn) => return C::query::<T>(&conn, query).await,
                 Err(_) => {
-                    std::thread::sleep(std::time::Duration::from_millis(10));
+                    std::thread::sleep(WAIT);
                 }
             }
         }
@@ -90,7 +91,7 @@ where
             match connection.try_lock() {
                 Ok(conn) => return C::query_first::<T>(&conn, query).await,
                 Err(_) => {
-                    std::thread::sleep(std::time::Duration::from_millis(10));
+                    std::thread::sleep(WAIT);
                 }
             }
         }
@@ -109,7 +110,7 @@ where
             match connection.try_lock() {
                 Ok(conn) => return C::execute(&conn, query).await,
                 Err(_) => {
-                    std::thread::sleep(std::time::Duration::from_millis(10));
+                    std::thread::sleep(WAIT);
                 }
             }
         }
