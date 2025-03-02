@@ -5,11 +5,11 @@
 #![deny(missing_docs)]
 
 // Builder Modules
+pub use geekorm_core::Error;
 pub use geekorm_core::builder::columns::{Column, Columns};
 pub use geekorm_core::builder::columntypes::{ColumnType, ColumnTypeOptions};
 pub use geekorm_core::builder::database::Database;
 pub use geekorm_core::builder::table::Table;
-pub use geekorm_core::Error;
 // Keys Modules
 pub use geekorm_core::builder::keys::foreign::{ForeignKey, ForeignKeyInteger};
 #[cfg(feature = "uuid")]
@@ -24,11 +24,15 @@ pub use geekorm_core::builder::values::{Value, Values};
 pub use geekorm_core::queries::Query;
 pub use geekorm_core::queries::QueryBuilder;
 
+// Connection
+#[cfg(feature = "connect")]
+pub use geekorm_core::backends::connect::{Backend, Connection, manager::ConnectionManager};
+
 /// Utils
 pub mod utils {
-    pub use geekorm_core::utils::*;
     #[cfg(feature = "two-factor-auth")]
     pub use geekorm_core::TwoFactorAuth;
+    pub use geekorm_core::utils::*;
 }
 
 #[cfg(feature = "migrations")]
