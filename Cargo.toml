@@ -8,10 +8,12 @@ members = [
 ]
 
 [workspace.package]
-version = "0.10.1"
+version = "0.10.2"
 license = "MIT"
-edition = "2021"
-rust-version = "1.74"
+
+edition = "2024"
+rust-version = "1.85"
+
 keywords = ["database", "orm", "sql", "sqlite"]
 categories = ["database"]
 
@@ -78,6 +80,7 @@ helpers = ["geekorm-derive/helpers"]
 # Backends for the ORM
 backends = ["search", "geekorm-core/backends", "geekorm-derive/backends"]
 backends-tokio = ["geekorm-core/backends-tokio"]
+connect = ["geekorm-core/connect"]
 search = ["geekorm-derive/search", "geekorm-core/search"]
 
 libsql = ["backends", "geekorm-derive/libsql", "geekorm-core/libsql"]
@@ -105,6 +108,7 @@ totp-rs = { version = "^5.5", features = ["serde_support", "gen_secret"] }
 
 libsql = "^0.6"
 rusqlite = "^0.33"
+bb8 = "^0.9"
 
 rocket = { version = "^0.5" }
 
