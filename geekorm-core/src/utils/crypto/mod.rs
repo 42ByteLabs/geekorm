@@ -25,10 +25,12 @@ pub enum HashingAlgorithm {
     /// Argon2 Hashing Algorithm
     ///
     /// Argon2id v19 + Salt
+    #[cfg(feature = "hash-argon2")]
     Argon2,
     /// SHA512 + Rounds (100k) Hashing Algorithm
     ///
     /// Weakest of all supported algorithms but fastest
+    #[cfg(feature = "hash-sha512")]
     Sha512,
 }
 
@@ -37,7 +39,9 @@ impl HashingAlgorithm {
     pub fn to_str(&self) -> &str {
         match self {
             HashingAlgorithm::Pbkdf2 => "Pbkdf2",
+            #[cfg(feature = "hash-argon2")]
             HashingAlgorithm::Argon2 => "Argon2",
+            #[cfg(feature = "hash-sha512")]
             HashingAlgorithm::Sha512 => "Sha512",
         }
     }
