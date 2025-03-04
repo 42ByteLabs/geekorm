@@ -1,6 +1,6 @@
 //! # Validate
 use crate::error::MigrationError;
-use crate::{backends::TableInfo, Database};
+use crate::{Database, backends::TableInfo};
 
 use super::MigrationState;
 

@@ -342,7 +342,10 @@ mod tests {
 
         let columns = query.table.columns.on_create(&query).unwrap();
 
-        assert_eq!(columns, "(user_id INTEGER, name TEXT, image_id INTEGER, FOREIGN KEY (image_id) REFERENCES images(id))");
+        assert_eq!(
+            columns,
+            "(user_id INTEGER, name TEXT, image_id INTEGER, FOREIGN KEY (image_id) REFERENCES images(id))"
+        );
     }
 
     #[test]

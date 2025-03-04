@@ -2,7 +2,7 @@
 //!
 //! This example demonstrates how to use the `chrono` crate with `geekorm`.
 use anyhow::Result;
-use geekorm::{prelude::*, GEEKORM_BANNER, GEEKORM_VERSION};
+use geekorm::{GEEKORM_BANNER, GEEKORM_VERSION, prelude::*};
 
 #[derive(Debug, Clone, Default, Table, serde::Serialize, serde::Deserialize)]
 struct Projects {

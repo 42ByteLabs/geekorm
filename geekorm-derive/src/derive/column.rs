@@ -1,13 +1,13 @@
-use geekorm_core::{utils::crypto::HashingAlgorithm, ColumnType};
+use geekorm_core::{ColumnType, utils::crypto::HashingAlgorithm};
 use proc_macro2::{Span, TokenStream};
-use quote::{quote, ToTokens};
+use quote::{ToTokens, quote};
 use std::{
     any::{Any, TypeId},
     fmt::Debug,
 };
 use syn::{
-    parse::Parse, spanned::Spanned, token::Pub, Attribute, Field, GenericArgument, Ident, Type,
-    TypePath, Visibility,
+    Attribute, Field, GenericArgument, Ident, Type, TypePath, Visibility, parse::Parse,
+    spanned::Spanned, token::Pub,
 };
 
 use crate::{
@@ -252,7 +252,7 @@ impl ColumnDerive {
                                         return Err(syn::Error::new(
                                             attr.value_span.unwrap_or(attr.span.span()),
                                             "Invalid foreign key format (table.column)",
-                                        ))
+                                        ));
                                     }
                                 };
 
@@ -747,7 +747,7 @@ impl TryFrom<&Field> for ColumnDerive {
                 return Err(syn::Error::new(
                     value.span(),
                     "Column must have an identifier",
-                ))
+                ));
             }
         };
 

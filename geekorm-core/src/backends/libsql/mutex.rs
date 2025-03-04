@@ -1,4 +1,4 @@
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 use std::sync::Arc;
 
 #[cfg(not(feature = "backends-tokio"))]

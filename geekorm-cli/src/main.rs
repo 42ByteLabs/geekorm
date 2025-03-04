@@ -13,7 +13,7 @@ mod migrations;
 mod utils;
 
 use crate::cli::*;
-use crate::utils::{prompt_select, Config};
+use crate::utils::{Config, prompt_select};
 
 #[tokio::main]
 async fn main() -> Result<()> {

@@ -39,11 +39,11 @@
 use libsql::{de, params::IntoValue};
 #[cfg(feature = "log")]
 use log::{debug, error};
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 use std::collections::HashMap;
 
 use crate::{
-    builder::models::QueryType, GeekConnection, QueryBuilderTrait, TableBuilder, Value, Values,
+    GeekConnection, QueryBuilderTrait, TableBuilder, Value, Values, builder::models::QueryType,
 };
 
 #[cfg(feature = "backends-tokio")]

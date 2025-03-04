@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 use anyhow::Result;
-use geekorm::prelude::BuilderTable;
 use geekorm::Column;
+use geekorm::prelude::BuilderTable;
 use glob::glob;
 use std::collections::HashMap;
 use std::path::PathBuf;
