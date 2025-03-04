@@ -24,7 +24,7 @@ impl Clone for ConnectionManager {
     }
 }
 
-impl<'a> ConnectionManager {
+impl ConnectionManager {
     /// Connect to a database
     pub async fn connect(connection: impl Into<String>) -> Result<Self, crate::Error> {
         let connection = connection.into();
