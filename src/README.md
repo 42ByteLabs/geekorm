@@ -71,7 +71,7 @@ geekorm-cli test
 Once you have installed `geekorm`, you can start using the derive macros like the following:
 
 ```rust
-# #[cfg(feature = "libsql")] {
+# #[cfg(feature = "backend")] {
 use anyhow::Result;
 use geekorm::prelude::*;
 
@@ -102,7 +102,8 @@ enum UserType {
 #[tokio::main]
 async fn main() -> Result<()> {
     // Setup the database and connection
-    let conn = rusqlite::Connection::open_in_memory().expect("Failed to open database");
+    let database = ConnectionManager::connect(":memory:");
+    let connection = database.acquire().await?;
 
     // Initialize or migrate the database using the `crate` or `module`.
     // This is done using the `geekorm-cli` function
