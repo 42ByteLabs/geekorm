@@ -8,7 +8,7 @@ use std::path::PathBuf;
 
 use crate::codegen;
 use crate::utils::database::Database;
-use crate::utils::{prompt_select, prompt_select_with_default, Config};
+use crate::utils::{Config, prompt_select, prompt_select_with_default};
 
 pub async fn create_migrations(config: &mut Config) -> Result<()> {
     log::info!("Initializing `{}` migration...", config.version);

@@ -1,13 +1,13 @@
 #[cfg(feature = "pagination")]
 use super::pages::Page;
 use crate::{
+    Error, Table, ToSqlite,
     builder::{
         joins::{TableJoin, TableJoinOptions, TableJoins},
         models::{QueryCondition, QueryOrder, QueryType, WhereCondition},
         values::{Value, Values},
     },
     queries::Query,
-    Error, Table, ToSqlite,
 };
 
 /// The QueryBuilder is how you can build dynamically queries using the builder pattern.
@@ -432,7 +432,7 @@ impl QueryBuilder {
 #[cfg(test)]
 mod tests {
     use crate::{
-        builder::values::Value, Column, ColumnType, ColumnTypeOptions, QueryBuilder, Table,
+        Column, ColumnType, ColumnTypeOptions, QueryBuilder, Table, builder::values::Value,
     };
 
     fn simple_table() -> Table {

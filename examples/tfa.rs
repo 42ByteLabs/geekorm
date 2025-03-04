@@ -1,5 +1,5 @@
 use anyhow::Result;
-use geekorm::{prelude::*, GEEKORM_BANNER, GEEKORM_VERSION};
+use geekorm::{GEEKORM_BANNER, GEEKORM_VERSION, prelude::*};
 
 #[derive(Table, Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Users {

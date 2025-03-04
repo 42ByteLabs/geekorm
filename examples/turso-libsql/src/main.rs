@@ -2,12 +2,12 @@
 use std::ops::Deref;
 
 use anyhow::Result;
-use geekorm::prelude::*;
 use geekorm::ConnectionManager;
+use geekorm::prelude::*;
 
 mod models;
 
-use models::{ProjectType, Projects, Repository, PROJECTS};
+use models::{PROJECTS, ProjectType, Projects, Repository};
 
 #[tokio::main]
 async fn main() -> Result<()> {

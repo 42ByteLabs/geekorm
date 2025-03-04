@@ -2,10 +2,10 @@ use std::any::Any;
 
 #[allow(unused_imports)]
 use proc_macro2::{Ident, Span, TokenStream};
-use quote::{quote, ToTokens};
+use quote::{ToTokens, quote};
 use syn::{
-    parse_macro_input, spanned::Spanned, Data, DataStruct, DeriveInput, Fields, FieldsNamed,
-    GenericArgument, Type, TypePath,
+    Data, DataStruct, DeriveInput, Fields, FieldsNamed, GenericArgument, Type, TypePath,
+    parse_macro_input, spanned::Spanned,
 };
 
 use crate::{derive::TableDerive, internal::TableState};
@@ -295,7 +295,7 @@ pub fn generate_backend(
                     return Err(syn::Error::new(
                         field.ty.span(),
                         "Only path types are supported for foreign keys",
-                    ))
+                    ));
                 }
             };
 
@@ -305,7 +305,7 @@ pub fn generate_backend(
                     return Err(syn::Error::new(
                         field.ty.span(),
                         "Only angle bracketed arguments are supported for foreign keys",
-                    ))
+                    ));
                 }
             };
 
@@ -326,7 +326,7 @@ pub fn generate_backend(
                     return Err(syn::Error::new(
                         field.ty.span(),
                         "Only type arguments are supported for foreign keys",
-                    ))
+                    ));
                 }
             }
         }

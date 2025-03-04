@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
-use anyhow::{anyhow, Result};
-use dialoguer::{theme::ColorfulTheme, FuzzySelect};
+use anyhow::{Result, anyhow};
+use dialoguer::{FuzzySelect, theme::ColorfulTheme};
 
 /// Prompt for input
 #[allow(dead_code)]

@@ -3,7 +3,7 @@ extern crate rocket;
 
 use anyhow::Result;
 use geekorm::prelude::*;
-use rocket::{routes, State};
+use rocket::{State, routes};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 

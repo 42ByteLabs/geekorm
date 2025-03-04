@@ -3,9 +3,9 @@ use argon2::Argon2;
 #[cfg(feature = "hash-pbkdf2")]
 use pbkdf2::Pbkdf2;
 #[cfg(feature = "hash-sha512")]
-use sha_crypt::{sha512_check, sha512_simple, Sha512Params};
+use sha_crypt::{Sha512Params, sha512_check, sha512_simple};
 // Password Hashing Library
-use password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString};
+use password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString, rand_core::OsRng};
 
 use crate::utils::crypto::HashingAlgorithm;
 
@@ -91,7 +91,7 @@ pub(crate) fn verify_hash_pbkdf2(data: String, hash: String) -> Result<bool, cra
             return Err(crate::Error::HashingError(format!(
                 "Error parsing password hash: {}",
                 e
-            )))
+            )));
         }
     };
 
@@ -126,7 +126,7 @@ pub(crate) fn generate_hash_sha512(data: String) -> Result<String, crate::Error>
         Err(_) => {
             return Err(crate::Error::HashingError(String::from(
                 "Error creating params for sha512",
-            )))
+            )));
         }
     };
     match sha512_simple(data.as_str(), &params) {

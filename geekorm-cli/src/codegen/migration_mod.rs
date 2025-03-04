@@ -3,8 +3,8 @@ use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use std::path::PathBuf;
 
-use crate::utils::database::Database;
 use crate::utils::Config;
+use crate::utils::database::Database;
 
 pub async fn create_mod(config: &Config, path: &PathBuf) -> Result<()> {
     log::info!("Creating migration files");

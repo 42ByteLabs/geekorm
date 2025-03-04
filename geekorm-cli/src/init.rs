@@ -1,7 +1,7 @@
 use crate::migrations;
 use crate::utils::{
-    prompt_confirm, prompt_input_with_default, prompt_select, prompt_select_many,
-    prompt_select_with_default, Config,
+    Config, prompt_confirm, prompt_input_with_default, prompt_select, prompt_select_many,
+    prompt_select_with_default,
 };
 use anyhow::Result;
 

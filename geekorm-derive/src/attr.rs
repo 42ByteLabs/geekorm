@@ -49,13 +49,13 @@
 //! # }
 //! ```
 use proc_macro2::{Span, TokenStream};
-use quote::{quote, ToTokens};
+use quote::{ToTokens, quote};
 use syn::{
-    parse::{discouraged::AnyDelimiter, Parse, ParseStream},
+    Attribute, Ident, LitBool, LitInt, LitStr, Token,
+    parse::{Parse, ParseStream, discouraged::AnyDelimiter},
     punctuated::Punctuated,
     spanned::Spanned,
     token::{Bracket, Comma},
-    Attribute, Ident, LitBool, LitInt, LitStr, Token,
 };
 
 #[derive(Debug, Clone)]
@@ -347,7 +347,7 @@ impl Parse for GeekAttribute {
                     return Err(syn::Error::new(
                         name.span(),
                         "The `new` attribute requires the `new` feature to be enabled",
-                    ))
+                    ));
                 }
             },
             // Random value feature
@@ -357,7 +357,7 @@ impl Parse for GeekAttribute {
                     return Err(syn::Error::new(
                         name.span(),
                         "The `rand` attribute requires the `rand` feature to be enabled",
-                    ))
+                    ));
                 }
             },
             "rand_length" => match cfg!(feature = "rand") {
@@ -366,7 +366,7 @@ impl Parse for GeekAttribute {
                     return Err(syn::Error::new(
                         name.span(),
                         "The `rand_length` attribute requires the `rand` feature to be enabled",
-                    ))
+                    ));
                 }
             },
             "rand_prefix" => match cfg!(feature = "rand") {
@@ -375,7 +375,7 @@ impl Parse for GeekAttribute {
                     return Err(syn::Error::new(
                         name.span(),
                         "The `rand_prefix` attribute requires the `rand` feature to be enabled",
-                    ))
+                    ));
                 }
             },
             "rand_env" => match cfg!(feature = "rand") {
@@ -384,39 +384,41 @@ impl Parse for GeekAttribute {
                     return Err(syn::Error::new(
                         name.span(),
                         "The `rand_env` attribute requires the `rand` feature to be enabled",
-                    ))
+                    ));
                 }
             },
             "hash" | "password" => match cfg!(feature = "hash") {
                 true => Some(GeekAttributeKeys::Hash),
-                false => return Err(syn::Error::new(
-                    name.span(),
-                    "The `hash` or `password` attribute requires the `hash` feature to be enabled",
-                )),
+                false => {
+                    return Err(syn::Error::new(
+                        name.span(),
+                        "The `hash` or `password` attribute requires the `hash` feature to be enabled",
+                    ));
+                }
             },
-            "hash_algorithm" => {
-                match cfg!(feature = "hash") {
-                    true => Some(GeekAttributeKeys::HashAlgorithm),
-                    false => return Err(syn::Error::new(
+            "hash_algorithm" => match cfg!(feature = "hash") {
+                true => Some(GeekAttributeKeys::HashAlgorithm),
+                false => {
+                    return Err(syn::Error::new(
                         name.span(),
                         "The `hash_algorithm` attribute requires the `hash` feature to be enabled",
-                    )),
+                    ));
                 }
-            }
-            "search" | "searchable" => {
-                match cfg!(feature = "search") {
-                    true => Some(GeekAttributeKeys::Searchable),
-                    false => return Err(syn::Error::new(
+            },
+            "search" | "searchable" => match cfg!(feature = "search") {
+                true => Some(GeekAttributeKeys::Searchable),
+                false => {
+                    return Err(syn::Error::new(
                         name.span(),
                         "The `searchable` attribute requires the `search` feature to be enabled",
-                    )),
+                    ));
                 }
-            }
+            },
             _ => {
                 return Err(syn::Error::new(
                     name.span(),
                     format!("Unknown attribute `{}`", name_str),
-                ))
+                ));
             }
         };
 

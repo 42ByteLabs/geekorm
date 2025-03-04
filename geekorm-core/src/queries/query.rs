@@ -3,7 +3,7 @@ use std::fmt::Display;
 
 use crate::builder::models::QueryType;
 use crate::queries::QueryBuilder;
-use crate::{builder::values::Values, Table};
+use crate::{Table, builder::values::Values};
 
 /// The built Query struct with the query and values to use
 #[derive(Debug, Clone, Default)]

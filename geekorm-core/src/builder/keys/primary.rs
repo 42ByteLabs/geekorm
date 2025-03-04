@@ -83,7 +83,7 @@
 use core::fmt;
 use std::fmt::{Debug, Display};
 
-use serde::{de::Visitor, Deserialize, Serialize, Serializer};
+use serde::{Deserialize, Serialize, Serializer, de::Visitor};
 #[cfg(feature = "uuid")]
 use uuid::Uuid;
 

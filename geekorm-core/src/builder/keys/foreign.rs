@@ -1,7 +1,7 @@
 use core::fmt;
 use std::fmt::{Debug, Display};
 
-use serde::{de::Visitor, Deserialize, Serialize, Serializer};
+use serde::{Deserialize, Serialize, Serializer, de::Visitor};
 
 use crate::{PrimaryKey, TableBuilder};
 

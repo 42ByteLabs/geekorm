@@ -21,8 +21,8 @@ mod parsers;
 
 use parsers::{derive_parser, enum_parser};
 use proc_macro::TokenStream;
-use quote::{quote, ToTokens};
-use syn::{parse_macro_input, Data, DataEnum, DataStruct, DeriveInput, Fields};
+use quote::{ToTokens, quote};
+use syn::{Data, DataEnum, DataStruct, DeriveInput, Fields, parse_macro_input};
 
 /// Derive macro for `Table` trait.
 ///

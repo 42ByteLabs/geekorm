@@ -1,8 +1,8 @@
 use proc_macro2::TokenStream;
-use quote::{quote, quote_spanned, ToTokens};
+use quote::{ToTokens, quote, quote_spanned};
 use syn::{
-    parse::Parse, parse_macro_input, punctuated::Punctuated, spanned::Spanned, Data, DataEnum,
-    DataStruct, DeriveInput, Fields,
+    Data, DataEnum, DataStruct, DeriveInput, Fields, parse::Parse, parse_macro_input,
+    punctuated::Punctuated, spanned::Spanned,
 };
 
 #[cfg(feature = "rand")]

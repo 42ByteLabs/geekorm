@@ -10,8 +10,8 @@ pub(crate) mod valsemver;
 pub(crate) mod valuuid;
 
 use crate::{
-    builder::keys::{foreign::ForeignKeyInteger, primary::PrimaryKeyInteger},
     PrimaryKey, TableBuilder, TablePrimaryKey,
+    builder::keys::{foreign::ForeignKeyInteger, primary::PrimaryKeyInteger},
 };
 
 use super::keys::{foreign::ForeignKeyIntegerOld, primary::PrimaryKeyIntegerOld};
