@@ -55,7 +55,7 @@ pub(crate) fn derive_parser(ast: &DeriveInput) -> Result<TokenStream, syn::Error
             TableState::add(table.clone().into());
 
             // Generate for the whole table
-            let mut tokens = generate_struct(name, &fields, &ast.generics, table)?;
+            let mut tokens = generate_struct(name, fields, &ast.generics, table)?;
 
             if !errors.is_empty() {
                 for error in errors {
