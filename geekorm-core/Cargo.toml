@@ -50,7 +50,7 @@ hash-sha512 = ["dep:sha-crypt", "dep:rand_core"]
 # Backends
 backends = ["search", "connect", "dep:url"]
 backends-tokio = ["dep:tokio"]
-connect = []
+connect = ["dep:tokio"]
 search = []
 
 libsql = ["backends", "dep:libsql", "dep:tokio"]

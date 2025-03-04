@@ -40,8 +40,6 @@ pub struct Connection<'a> {
 pub enum Backend {
     #[cfg(feature = "libsql")]
     Libsql { conn: libsql::Connection },
-    #[cfg(feature = "rusqlite")]
-    Rusqlite { conn: rusqlite::Connection },
     #[default]
     Unknown,
 }
@@ -65,8 +63,6 @@ impl Debug for Connection<'_> {
         match self.backend {
             #[cfg(feature = "libsql")]
             Backend::Libsql { .. } => write!(f, "Backend::Libsql"),
-            #[cfg(feature = "rusqlite")]
-            Backend::Rusqlite { .. } => write!(f, "Backend::Rusqlite"),
             Backend::Unknown => write!(f, "Backend::Unknown"),
         }
     }
