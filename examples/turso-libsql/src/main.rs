@@ -1,6 +1,9 @@
 #![allow(dead_code, unused_variables, unused_imports)]
+use std::ops::Deref;
+
 use anyhow::Result;
 use geekorm::prelude::*;
+use geekorm::ConnectionManager;
 
 mod models;
 
@@ -11,12 +14,14 @@ async fn main() -> Result<()> {
     init();
 
     // Initialize an in-memory database
-    let db = libsql::Builder::new_local(":memory:").build().await?;
-    // Initialize a database in a file
-    // let db = libsql::Builder::new_local("/tmp/turso-testing.sqlite")
-    //     .build()
-    //     .await?;
-    let conn = db.connect()?;
+    // let db = libsql::Builder::new_local(":memory:").build().await?;
+    // let connection = db.connect()?;
+
+    // Use the ConnectionManager to create a new connection to the database
+    let manager = ConnectionManager::connect(":memory:").await?;
+    let conn = manager.acquire().await;
+
+    println!("Connection: {:?}", conn);
 
     // Create a table
     println!("Creating table 'projects'...");
@@ -47,6 +52,14 @@ async fn main() -> Result<()> {
             project.name, project.url, repository.url
         );
     }
+
+    // Access the number of queries run on the connection
+    println!("Queries run: {}", conn.count());
+    // If you drop the connection, the connection will be returned to the pool
+    drop(conn);
+
+    // Re-acquire the connection
+    let conn = manager.acquire().await;
 
     // Count the number of projects in the table
     let count = Projects::total(&conn).await?;
@@ -99,6 +112,7 @@ async fn main() -> Result<()> {
     // Check that the project has been deleted (by counting the number of projects)
     let new_count = Projects::total(&conn).await?;
     assert_eq!(count, new_count + 1);
+    println!("Queries run: {}", conn.count());
 
     Ok(())
 }
