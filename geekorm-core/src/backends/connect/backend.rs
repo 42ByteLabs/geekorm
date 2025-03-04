@@ -3,7 +3,7 @@ use crate::GeekConnection;
 
 use super::{Backend, Connection};
 
-impl<'a> GeekConnection for Connection<'a> {
+impl GeekConnection for Connection<'_> {
     type Connection = Self;
 
     async fn create_table<T>(connection: &Self::Connection) -> Result<(), crate::Error>
@@ -20,7 +20,7 @@ impl<'a> GeekConnection for Connection<'a> {
         match &connection.backend {
             #[cfg(feature = "libsql")]
             Backend::Libsql { conn, .. } => {
-                <libsql::Connection as GeekConnection>::create_table::<T>(&conn).await
+                <libsql::Connection as GeekConnection>::create_table::<T>(conn).await
             }
             _ => unimplemented!(),
         }
@@ -33,7 +33,7 @@ impl<'a> GeekConnection for Connection<'a> {
         match &connection.backend {
             #[cfg(feature = "libsql")]
             Backend::Libsql { conn, .. } => {
-                <libsql::Connection as GeekConnection>::batch(&conn, query).await
+                <libsql::Connection as GeekConnection>::batch(conn, query).await
             }
             _ => unimplemented!(),
         }
@@ -52,7 +52,7 @@ impl<'a> GeekConnection for Connection<'a> {
         match &connection.backend {
             #[cfg(feature = "libsql")]
             Backend::Libsql { conn, .. } => {
-                <libsql::Connection as GeekConnection>::query(&conn, query).await
+                <libsql::Connection as GeekConnection>::query(conn, query).await
             }
             _ => unimplemented!(),
         }
@@ -84,7 +84,7 @@ impl<'a> GeekConnection for Connection<'a> {
         match &connection.backend {
             #[cfg(feature = "libsql")]
             Backend::Libsql { conn, .. } => {
-                <libsql::Connection as GeekConnection>::row_count(&conn, query).await
+                <libsql::Connection as GeekConnection>::row_count(conn, query).await
             }
             _ => unimplemented!(),
         }
@@ -100,7 +100,7 @@ impl<'a> GeekConnection for Connection<'a> {
         match &connection.backend {
             #[cfg(feature = "libsql")]
             Backend::Libsql { conn, .. } => {
-                <libsql::Connection as GeekConnection>::query_raw(&conn, query).await
+                <libsql::Connection as GeekConnection>::query_raw(conn, query).await
             }
             _ => unimplemented!(),
         }
@@ -119,7 +119,7 @@ impl<'a> GeekConnection for Connection<'a> {
         match &connection.backend {
             #[cfg(feature = "libsql")]
             Backend::Libsql { conn, .. } => {
-                <libsql::Connection as GeekConnection>::query_first(&conn, query).await
+                <libsql::Connection as GeekConnection>::query_first(conn, query).await
             }
             _ => unimplemented!(),
         }
