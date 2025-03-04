@@ -131,8 +131,8 @@ pub(crate) fn generate_hash_sha512(data: String) -> Result<String, crate::Error>
     };
     match sha512_simple(data.as_str(), &params) {
         Ok(hash) => Ok(hash),
-        Err(_) => Err(crate::Error::HashingError(format!(
-            "Error hashing password using SHA512",
-        ))),
+        Err(_) => Err(crate::Error::HashingError(
+            "Error hashing password using SHA512".to_string(),
+        )),
     }
 }
