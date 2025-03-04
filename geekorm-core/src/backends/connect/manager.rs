@@ -125,13 +125,3 @@ impl From<libsql::Connection> for ConnectionManager {
         cm
     }
 }
-
-#[cfg(feature = "rusqlite")]
-impl From<rusqlite::Connection> for ConnectionManager {
-    fn from(value: rusqlite::Connection) -> Self {
-        Self {
-            backend: Mutex::new(VecDeque::from(vec![Backend::Rusqlite { conn: value }])),
-            ..Default::default()
-        }
-    }
-}
