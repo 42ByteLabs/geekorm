@@ -289,12 +289,8 @@ impl ColumnDerive {
                             .iter()
                             .find(|a| a.key == Some(GeekAttributeKeys::RandLength))
                             .map(|a| {
-                                if let Some(value) = &a.value {
-                                    if let GeekAttributeValue::Int(len) = value {
-                                        len.clone() as usize
-                                    } else {
-                                        32
-                                    }
+                                if let Some(GeekAttributeValue::Int(len)) = &a.value {
+                                    *len as usize
                                 } else {
                                     32
                                 }
@@ -304,34 +300,24 @@ impl ColumnDerive {
                         let prefix: Option<String> = attributes
                             .iter()
                             .find(|a| a.key == Some(GeekAttributeKeys::RandPrefix))
-                            .map(|a| {
-                                if let Some(value) = &a.value {
-                                    if let GeekAttributeValue::String(prefix) = value {
-                                        Some(prefix.clone())
-                                    } else {
-                                        None
-                                    }
+                            .and_then(|a| {
+                                if let Some(GeekAttributeValue::String(prefix)) = &a.value {
+                                    Some(prefix.clone())
                                 } else {
                                     None
                                 }
-                            })
-                            .flatten();
+                            });
 
                         let env = attributes
                             .iter()
                             .find(|a| a.key == Some(GeekAttributeKeys::RandEnv))
-                            .map(|a| {
-                                if let Some(value) = &a.value {
-                                    if let GeekAttributeValue::String(env) = value {
-                                        Some(env.clone())
-                                    } else {
-                                        None
-                                    }
+                            .and_then(|a| {
+                                if let Some(GeekAttributeValue::String(env)) = &a.value {
+                                    Some(env.clone())
                                 } else {
                                     None
                                 }
-                            })
-                            .flatten();
+                            });
 
                         self.mode = Some(ColumnMode::Rand { len, prefix, env });
                     }
@@ -370,10 +356,7 @@ impl ColumnDerive {
     }
 
     pub(crate) fn is_foreign_key(&self) -> bool {
-        match &self.coltype {
-            ColumnTypeDerive::ForeignKey(_) => true,
-            _ => false,
-        }
+        matches!(&self.coltype, ColumnTypeDerive::ForeignKey(_))
     }
 
     /// Check if the column is unique
@@ -389,10 +372,7 @@ impl ColumnDerive {
     }
 
     pub(crate) fn is_searchable(&self) -> bool {
-        match &self.mode {
-            Some(ColumnMode::Searchable { enabled: true }) => true,
-            _ => false,
-        }
+        matches!(&self.mode, Some(ColumnMode::Searchable { enabled: true }))
     }
 
     /// Convert the column into a list of parameters for a function
@@ -656,11 +636,8 @@ impl ColumnDerive {
         let random_func_name = format!("regenerate_{}", identifier);
         let random_func = Ident::new(&random_func_name, Span::call_site());
 
-        let len: usize = if let Some(mode) = &self.mode {
-            match mode {
-                ColumnMode::Rand { len, .. } => len.clone(),
-                _ => 10,
-            }
+        let len: usize = if let Some(ColumnMode::Rand { len, .. }) = self.mode {
+            len
         } else {
             10
         };
@@ -752,14 +729,8 @@ impl TryFrom<&Field> for ColumnDerive {
         };
 
         let itype = value.ty.clone();
-        let attributes = match GeekAttribute::parse_all(&value.attrs) {
-            Ok(attributes) => attributes,
-            Err(e) => return Err(e),
-        };
-        let coltype = match ColumnTypeDerive::try_from(&itype) {
-            Ok(coltype) => coltype,
-            Err(e) => return Err(e),
-        };
+        let attributes = GeekAttribute::parse_all(&value.attrs)?;
+        let coltype = ColumnTypeDerive::try_from(&itype)?;
 
         let mut col = ColumnDerive {
             name: name.to_string(),
