@@ -1,3 +1,4 @@
+#![allow(unused_imports, unused_variables)]
 use std::collections::VecDeque;
 use std::path::PathBuf;
 use std::sync::atomic::AtomicUsize;
@@ -44,14 +45,18 @@ impl<'a> ConnectionManager {
     }
 
     pub async fn in_memory() -> Result<Self, crate::Error> {
-        if cfg!(feature = "libsql") {
+        #[cfg(feature = "libsql")]
+        {
             let db = ::libsql::Builder::new_local(":memory:").build().await?;
             let conn = db.connect().unwrap();
 
             let manager = Self::default();
+            #[cfg(feature = "libsql")]
             manager.insert_backend(Backend::Libsql { conn });
             Ok(manager)
-        } else {
+        }
+        #[cfg(not(feature = "libsql"))]
+        {
             Err(crate::Error::ConnectionError(
                 "Unknown connection string".to_string(),
             ))
@@ -60,14 +65,17 @@ impl<'a> ConnectionManager {
 
     pub async fn path(path: impl Into<PathBuf>) -> Result<Self, crate::Error> {
         let path = path.into();
-        if cfg!(feature = "libsql") {
+        #[cfg(feature = "libsql")]
+        {
             let db = ::libsql::Builder::new_local_replica(path).build().await?;
             let conn = db.connect().unwrap();
 
             let manager = Self::default();
             manager.insert_backend(Backend::Libsql { conn });
             Ok(manager)
-        } else {
+        }
+        #[cfg(not(feature = "libsql"))]
+        {
             Err(crate::Error::ConnectionError(
                 "Unknown connection string".to_string(),
             ))

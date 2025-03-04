@@ -1,3 +1,4 @@
+#![allow(unused_imports, unused_variables)]
 use crate::GeekConnection;
 
 use super::{Backend, Connection};
