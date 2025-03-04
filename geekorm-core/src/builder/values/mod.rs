@@ -47,6 +47,11 @@ impl Values {
     pub fn len(&self) -> usize {
         self.values.len()
     }
+
+    /// Check if the values are empty
+    pub fn is_empty(&self) -> bool {
+        self.values.is_empty()
+    }
 }
 
 impl IntoIterator for Values {
@@ -260,7 +265,7 @@ impl From<&u64> for Value {
 
 impl From<i64> for Value {
     fn from(value: i64) -> Self {
-        Value::Integer(value as i64)
+        Value::Integer(value)
     }
 }
 
@@ -362,7 +367,7 @@ impl<'de> Deserialize<'de> for Value {
             where
                 E: serde::de::Error,
             {
-                Ok(Value::Integer(value as i64))
+                Ok(Value::Integer(value))
             }
 
             fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
