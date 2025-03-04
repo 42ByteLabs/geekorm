@@ -65,6 +65,8 @@ use std::collections::HashMap;
 
 use crate::{Query, QueryBuilder, QueryBuilderTrait, TableBuilder, TablePrimaryKey, Value};
 
+#[cfg(feature = "connect")]
+pub mod connect;
 #[cfg(feature = "libsql")]
 pub mod libsql;
 #[cfg(feature = "rusqlite")]

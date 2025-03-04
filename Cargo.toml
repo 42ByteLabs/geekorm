@@ -78,7 +78,7 @@ new = ["geekorm-derive/new"]
 helpers = ["geekorm-derive/helpers"]
 
 # Backends for the ORM
-backends = ["search", "geekorm-core/backends", "geekorm-derive/backends"]
+backends = ["search", "connect", "geekorm-core/backends", "geekorm-derive/backends"]
 backends-tokio = ["geekorm-core/backends-tokio"]
 connect = ["geekorm-core/connect"]
 search = ["geekorm-derive/search", "geekorm-core/search"]
@@ -108,7 +108,6 @@ totp-rs = { version = "^5.5", features = ["serde_support", "gen_secret"] }
 
 libsql = "^0.6"
 rusqlite = "^0.33"
-bb8 = "^0.9"
 
 rocket = { version = "^0.5" }
 
@@ -138,7 +137,7 @@ required-features = ["all", "libsql"]
 [[example]]
 name = "turso-libsql"
 path = "./examples/turso-libsql/src/main.rs"
-required-features = ["all", "libsql", "backends-tokio"]
+required-features = ["libsql"]
 
 [[example]]
 name = "rusqlite"
