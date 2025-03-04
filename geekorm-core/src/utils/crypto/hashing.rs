@@ -62,9 +62,6 @@ pub fn verify_hash(
             Ok(_) => Ok(true),
             Err(_) => Ok(false),
         },
-        _ => Err(crate::Error::HashingError(
-            "Invalid hashing algorithm".to_string(),
-        )),
     }
 }
 
