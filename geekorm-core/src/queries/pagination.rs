@@ -89,7 +89,7 @@ where
             self.page
                 .set_total(C::row_count(connection, T::query_count().build()?).await? as u32);
         }
-        Ok(C::query(connection, T::query_select().page(&self.page).build()?).await?)
+        C::query(connection, T::query_select().page(&self.page).build()?).await
     }
 
     /// Get the next page of results

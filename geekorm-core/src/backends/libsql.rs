@@ -113,10 +113,10 @@ impl GeekConnection for libsql::Connection {
             }
         };
         // Get the first row
-        Ok(row.get(0).map_err(|e| crate::Error::LibSQLError {
+        row.get(0).map_err(|e| crate::Error::LibSQLError {
             error: e.to_string(),
             query: query.to_string(),
-        })?)
+        })
     }
 
     async fn query<T>(
@@ -233,13 +233,13 @@ impl GeekConnection for libsql::Connection {
             }
         };
 
-        Ok(de::from_row::<T>(&row).map_err(|e| {
+        de::from_row::<T>(&row).map_err(|e| {
             #[cfg(feature = "log")]
             {
                 error!("Error deserializing row: `{}`", e);
             }
             crate::Error::SerdeError(e.to_string())
-        })?)
+        })
     }
 
     async fn execute(
@@ -404,7 +404,7 @@ impl From<libsql::Value> for Value {
             libsql::Value::Null => Value::Null,
             libsql::Value::Blob(value) => {
                 // TODO: Is this the best way of doing this?
-                if let Some(start) = value.get(0) {
+                if let Some(start) = value.first() {
                     if *start == b'{' || *start == b'[' {
                         return Value::Json(value);
                     }
