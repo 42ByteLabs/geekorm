@@ -11,7 +11,7 @@ members = [
 version = "0.10.2"
 license = "MIT"
 
-edition = "2024"
+edition = "2021"
 rust-version = "1.85"
 
 keywords = ["database", "orm", "sql", "sqlite"]

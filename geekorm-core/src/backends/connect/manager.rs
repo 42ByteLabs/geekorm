@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 use std::path::PathBuf;
-use std::sync::Mutex;
 use std::sync::atomic::AtomicUsize;
+use std::sync::Mutex;
 
 use url::Url;
 
@@ -12,6 +12,15 @@ use super::{Backend, Connection};
 pub struct ConnectionManager {
     backend: Mutex<VecDeque<Backend>>,
     notifier: tokio::sync::Notify,
+}
+
+impl Clone for ConnectionManager {
+    fn clone(&self) -> Self {
+        Self {
+            backend: Mutex::new(self.backend.lock().unwrap().clone()),
+            ..Default::default()
+        }
+    }
 }
 
 impl<'a> ConnectionManager {
@@ -106,10 +115,14 @@ impl<'a> ConnectionManager {
 #[cfg(feature = "libsql")]
 impl From<libsql::Connection> for ConnectionManager {
     fn from(value: libsql::Connection) -> Self {
-        Self {
-            backend: Mutex::new(VecDeque::from(vec![Backend::Libsql { conn: value }])),
+        let backend = Backend::Libsql { conn: value };
+        let cm = Self {
+            backend: Mutex::new(VecDeque::new()),
             ..Default::default()
-        }
+        };
+        cm.insert_backend(backend);
+
+        cm
     }
 }
 
