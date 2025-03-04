@@ -99,7 +99,7 @@ impl Display for TwoFactorAuth {
 impl From<TwoFactorAuth> for Value {
     fn from(value: TwoFactorAuth) -> Self {
         serde_json::to_vec(&value.totp)
-            .map(|s| Value::Json(s))
+            .map(Value::Json)
             .unwrap_or(Value::Null)
     }
 }
@@ -107,7 +107,7 @@ impl From<TwoFactorAuth> for Value {
 impl From<&TwoFactorAuth> for Value {
     fn from(value: &TwoFactorAuth) -> Self {
         serde_json::to_vec(&value.totp)
-            .map(|s| Value::Json(s))
+            .map(Value::Json)
             .unwrap_or(Value::Null)
     }
 }
