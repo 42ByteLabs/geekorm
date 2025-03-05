@@ -130,33 +130,26 @@ impl ConnectionManager {
     /// Connect to a database using a URL
     ///
     pub async fn url(url: Url) -> Result<Self, crate::Error> {
-        let Some(host) = url.host_str() else {
-            return Err(crate::Error::ConnectionError(
-                "Unknown connection string".to_string(),
-            ));
-        };
-
         match url.scheme() {
-            "file://" => {
+            "file" => {
                 let path = url.path();
                 Self::path(path).await
             }
             #[cfg(feature = "libsql")]
-            "libsql://" | "sqlite://" => {
-                if host == "memory" || host == ":memory:" {
-                    return Self::in_memory().await;
+            "libsql" | "sqlite" => {
+                if let Some(host) = url.host_str() {
+                    if host == "memory" || host == ":memory:" {
+                        return Self::in_memory().await;
+                    }
+                    unimplemented!()
+                } else {
+                    Self::path(url.path()).await
                 }
-                let path = url.path();
-                let db = ::libsql::Builder::new_local_replica(path).build().await?;
-                let conn = db.connect().unwrap();
-
-                let manager = Self::default();
-                manager.insert_backend(Backend::Libsql { conn });
-                Ok(manager)
             }
-            _ => Err(crate::Error::ConnectionError(
-                "Unknown connection string".to_string(),
-            )),
+            _ => Err(crate::Error::ConnectionError(format!(
+                "Unknown database URL scheme: {}",
+                url.scheme()
+            ))),
         }
     }
 
@@ -221,11 +214,16 @@ mod tests {
 
     #[tokio::test]
     async fn test_connect_path() {
+        let path = PathBuf::from("./test.db");
+        let cm = ConnectionManager::path(path.clone())
+            .await
+            .expect("Failed to connect to database");
+        assert_eq!(cm.get_database_type(), ConnectionType::Path { file: path });
+
         let path = PathBuf::from("/tmp/test.db");
         let cm = ConnectionManager::path(path.clone())
             .await
             .expect("Failed to connect to database");
-
         assert_eq!(cm.get_database_type(), ConnectionType::Path { file: path });
     }
 
