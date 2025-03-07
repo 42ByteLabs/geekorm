@@ -141,7 +141,9 @@ impl ConnectionManager {
                     if host == "memory" || host == ":memory:" {
                         return Self::in_memory().await;
                     }
-                    unimplemented!()
+                    return Err(crate::Error::ConnectionError(
+                        "Remote connection handling is not yet supported".to_string(),
+                    ));
                 } else {
                     Self::path(url.path()).await
                 }
