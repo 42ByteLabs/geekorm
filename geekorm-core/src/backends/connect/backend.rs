@@ -1,3 +1,4 @@
+//! # GeekConnection trait implementation for Connection
 #![allow(unused_imports, unused_variables)]
 use crate::GeekConnection;
 

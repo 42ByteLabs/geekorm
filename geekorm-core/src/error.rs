@@ -66,6 +66,10 @@ pub enum Error {
     #[error("SystemTime Error: {0}")]
     SystemTimeError(#[from] std::time::SystemTimeError),
 
+    /// IO Error
+    #[error("IO Error: {0}")]
+    IOError(String),
+
     /// LibSQL Error
     #[cfg(feature = "libsql")]
     #[error(
@@ -142,4 +146,10 @@ pub enum MigrationError {
     /// Missing Migration (migration name)
     #[error("Missing Migration: {0}")]
     MissingMigration(String),
+}
+
+impl From<std::io::Error> for Error {
+    fn from(e: std::io::Error) -> Self {
+        Self::IOError(e.to_string())
+    }
 }
