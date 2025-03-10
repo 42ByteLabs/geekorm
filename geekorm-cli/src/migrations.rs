@@ -1,5 +1,7 @@
 use anyhow::Result;
-use geekorm::{GeekConnection, MigrationState};
+use geekorm::Connection;
+use geekorm::ConnectionManager;
+use geekorm::prelude::*;
 use geekorm_core::builder::alter::AlterMode;
 use geekorm_core::error::MigrationError;
 use geekorm_core::migrations::validate::Validator;
@@ -226,8 +228,11 @@ fn prompt_table_alter(database: &Database, migrations: &MigrationError) -> Resul
 pub async fn test_migrations(config: &Config) -> Result<Validator> {
     log::info!("Testing the migrations...");
 
-    let connection = rusqlite::Connection::open_in_memory()?;
+    let database = ConnectionManager::in_memory().await?;
+
+    let connection = database.acquire().await;
     log::info!("Created an in-memory database to test the migrations against");
+    log::info!("Connection: {:?}", connection);
 
     let path = config.migrations_src_path()?;
     let migrations: Vec<PathBuf> = config.versions.iter().map(|v| path.join(v)).collect();
@@ -243,7 +248,8 @@ pub async fn test_migrations(config: &Config) -> Result<Validator> {
             let query = tokio::fs::read_to_string(&query_path).await?;
 
             log::info!("Running migration: {:?}", query_path);
-            connection.execute_batch(&query)?;
+            Connection::batch(&connection, geekorm::Query::batch(query)).await?;
+
             log::info!("Migration complete");
         } else {
             log::warn!("Migration does not exist: {:?}", query_path);
