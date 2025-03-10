@@ -24,7 +24,7 @@ geekorm = { path = "../", version = "^0.11.0", features = ["utils", "migrations"
 geekorm-core = { path = "../geekorm-core", version = "^0.11.0", features = ["migrations", "rusqlite"] }
 
 # libsql = { version = "0.6", optional = true }
-rusqlite = { version = "0.33" }
+rusqlite = { version = "0.34" }
 
 # CLI
 clap = { version = "4.0", features = ["derive", "env"] }
