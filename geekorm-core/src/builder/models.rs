@@ -14,6 +14,8 @@ pub enum QueryType {
     Update,
     /// Delete data from a table
     Delete,
+    /// Batch query
+    Batch,
 }
 
 /// Query Order (ASC / DESC)

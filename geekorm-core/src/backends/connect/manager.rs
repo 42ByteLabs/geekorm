@@ -80,8 +80,15 @@ impl ConnectionManager {
             let db = ::libsql::Builder::new_local(":memory:").build().await?;
             let conn = db.connect().unwrap();
 
-            #[cfg(feature = "libsql")]
             manager.insert_backend(Backend::Libsql { conn });
+        }
+        #[cfg(feature = "rusqlite")]
+        {
+            let conn = ::rusqlite::Connection::open_in_memory()?;
+
+            manager.insert_backend(Backend::Rusqlite {
+                conn: std::sync::Arc::new(conn),
+            });
         }
         Ok(manager)
     }
