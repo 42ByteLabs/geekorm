@@ -18,7 +18,7 @@ jobs:
       contents: read
       security-events: write
     with:
-      features: "all,libsql"
+      features: "all"
 
   cli:
     name: CLI
