@@ -425,6 +425,10 @@ impl QueryBuilder {
                     self.table.clone(),
                 ))
             }
+            QueryType::Batch => Err(Error::QueryBuilderError(
+                String::from("Batch queries are not supported"),
+                String::from("build"),
+            )),
         }
     }
 }

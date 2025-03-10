@@ -47,7 +47,13 @@ pub enum Backend {
     #[cfg(feature = "libsql")]
     Libsql {
         /// The inner connection
-        conn: libsql::Connection,
+        conn: ::libsql::Connection,
+    },
+    /// A rusqlite connection
+    #[cfg(feature = "rusqlite")]
+    Rusqlite {
+        /// The inner connection
+        conn: std::sync::Arc<::rusqlite::Connection>,
     },
     /// Unknown backend
     #[default]
@@ -90,6 +96,10 @@ impl Display for Connection<'_> {
             Backend::Libsql { .. } => {
                 write!(f, "Backend::Libsql({})", self.pool.get_database_type())
             }
+            #[cfg(feature = "rusqlite")]
+            Backend::Rusqlite { .. } => {
+                write!(f, "Backend::Rusqlite({})", self.pool.get_database_type())
+            }
             Backend::Unknown => write!(f, "Backend::Unknown"),
         }
     }
@@ -108,6 +118,8 @@ impl Debug for Connection<'_> {
         match self.backend {
             #[cfg(feature = "libsql")]
             Backend::Libsql { .. } => write!(f, "Backend::Libsql"),
+            #[cfg(feature = "rusqlite")]
+            Backend::Rusqlite { .. } => write!(f, "Backend::Rusqlite"),
             Backend::Unknown => write!(f, "Backend::Unknown"),
         }
     }

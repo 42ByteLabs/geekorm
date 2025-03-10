@@ -23,6 +23,10 @@ impl GeekConnection for Connection<'_> {
             Backend::Libsql { conn, .. } => {
                 <libsql::Connection as GeekConnection>::create_table::<T>(conn).await
             }
+            #[cfg(feature = "rusqlite")]
+            Backend::Rusqlite { conn } => {
+                <rusqlite::Connection as GeekConnection>::create_table::<T>(conn).await
+            }
             _ => unimplemented!(),
         }
     }
@@ -35,6 +39,10 @@ impl GeekConnection for Connection<'_> {
             #[cfg(feature = "libsql")]
             Backend::Libsql { conn, .. } => {
                 <libsql::Connection as GeekConnection>::batch(conn, query).await
+            }
+            #[cfg(feature = "rusqlite")]
+            Backend::Rusqlite { conn } => {
+                <rusqlite::Connection as GeekConnection>::batch(conn, query).await
             }
             _ => unimplemented!(),
         }
@@ -55,6 +63,10 @@ impl GeekConnection for Connection<'_> {
             Backend::Libsql { conn, .. } => {
                 <libsql::Connection as GeekConnection>::query(conn, query).await
             }
+            #[cfg(feature = "rusqlite")]
+            Backend::Rusqlite { conn } => {
+                <rusqlite::Connection as GeekConnection>::query(conn, query).await
+            }
             _ => unimplemented!(),
         }
     }
@@ -70,6 +82,10 @@ impl GeekConnection for Connection<'_> {
             #[cfg(feature = "libsql")]
             Backend::Libsql { conn, .. } => {
                 <libsql::Connection as GeekConnection>::execute(conn, query).await
+            }
+            #[cfg(feature = "rusqlite")]
+            Backend::Rusqlite { conn } => {
+                <rusqlite::Connection as GeekConnection>::execute(conn, query).await
             }
             _ => unimplemented!(),
         }
@@ -87,6 +103,10 @@ impl GeekConnection for Connection<'_> {
             Backend::Libsql { conn, .. } => {
                 <libsql::Connection as GeekConnection>::row_count(conn, query).await
             }
+            #[cfg(feature = "rusqlite")]
+            Backend::Rusqlite { conn } => {
+                <rusqlite::Connection as GeekConnection>::row_count(conn, query).await
+            }
             _ => unimplemented!(),
         }
     }
@@ -102,6 +122,10 @@ impl GeekConnection for Connection<'_> {
             #[cfg(feature = "libsql")]
             Backend::Libsql { conn, .. } => {
                 <libsql::Connection as GeekConnection>::query_raw(conn, query).await
+            }
+            #[cfg(feature = "rusqlite")]
+            Backend::Rusqlite { conn } => {
+                <rusqlite::Connection as GeekConnection>::query_raw(conn, query).await
             }
             _ => unimplemented!(),
         }
@@ -121,6 +145,10 @@ impl GeekConnection for Connection<'_> {
             #[cfg(feature = "libsql")]
             Backend::Libsql { conn, .. } => {
                 <libsql::Connection as GeekConnection>::query_first(conn, query).await
+            }
+            #[cfg(feature = "rusqlite")]
+            Backend::Rusqlite { conn } => {
+                <rusqlite::Connection as GeekConnection>::query_first(conn, query).await
             }
             _ => unimplemented!(),
         }

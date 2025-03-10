@@ -153,3 +153,10 @@ impl From<std::io::Error> for Error {
         Self::IOError(e.to_string())
     }
 }
+
+#[cfg(feature = "rusqlite")]
+impl From<::rusqlite::Error> for Error {
+    fn from(e: ::rusqlite::Error) -> Self {
+        Self::RuSQLiteError(e.to_string())
+    }
+}

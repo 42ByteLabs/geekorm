@@ -48,6 +48,18 @@ impl Query {
         QueryBuilder::default()
     }
 
+    /// Batch query
+    pub fn batch(statement: impl Into<String>) -> Self {
+        Query::new(
+            QueryType::Batch,
+            statement.into(),
+            Values::default(),
+            Values::default(),
+            vec![],
+            Table::default(),
+        )
+    }
+
     /// Get the query as a &str
     pub fn to_str(&self) -> &str {
         &self.query
