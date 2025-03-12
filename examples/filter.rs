@@ -45,9 +45,6 @@ async fn main() -> Result<()> {
 }
 
 async fn create_projects(connection: Connection<'_>) -> Result<()> {
-    // Initialize an in-memory database
-    let db = libsql::Builder::new_local(":memory:").build().await?;
-    let connection = db.connect()?;
     Projects::create_table(&connection).await?;
 
     let project_names = vec![
