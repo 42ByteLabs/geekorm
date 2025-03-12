@@ -2,7 +2,7 @@
 //!
 //! This example demonstrates how to use the `chrono` crate with `geekorm`.
 use anyhow::Result;
-use geekorm::{GEEKORM_BANNER, GEEKORM_VERSION, prelude::*};
+use geekorm::{ConnectionManager, GEEKORM_BANNER, GEEKORM_VERSION, prelude::*};
 
 #[derive(Debug, Clone, Default, Table, serde::Serialize, serde::Deserialize)]
 struct Projects {
@@ -29,8 +29,9 @@ async fn main() -> Result<()> {
     println!("{}     v{}\n", GEEKORM_BANNER, GEEKORM_VERSION);
 
     // Initialize an in-memory database
-    let db = libsql::Builder::new_local(":memory:").build().await?;
-    let connection = db.connect()?;
+    let db = ConnectionManager::in_memory().await?;
+    let connection = db.acquire().await;
+
     Projects::create_table(&connection).await?;
 
     // Three weeks ago

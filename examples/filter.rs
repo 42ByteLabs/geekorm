@@ -2,7 +2,7 @@
 //!
 //! This example demonstrates how to use the `chrono` crate with `geekorm`.
 use anyhow::Result;
-use geekorm::{GEEKORM_BANNER, GEEKORM_VERSION, prelude::*};
+use geekorm::{Connection, ConnectionManager, GEEKORM_BANNER, GEEKORM_VERSION, prelude::*};
 
 #[derive(Table, Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 struct Projects {
@@ -20,7 +20,11 @@ async fn main() -> Result<()> {
         .init();
 
     println!("{}     v{}\n", GEEKORM_BANNER, GEEKORM_VERSION);
-    let connection = create_projects().await?;
+    // Initialize an in-memory database
+    let db = ConnectionManager::in_memory().await?;
+    create_projects(db.acquire().await).await?;
+
+    let connection = db.acquire().await;
 
     // Filter projects by name, multiple filters using `and`
     let results =
@@ -40,7 +44,7 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-async fn create_projects() -> Result<libsql::Connection> {
+async fn create_projects(connection: Connection<'_>) -> Result<()> {
     // Initialize an in-memory database
     let db = libsql::Builder::new_local(":memory:").build().await?;
     let connection = db.connect()?;
@@ -58,5 +62,5 @@ async fn create_projects() -> Result<libsql::Connection> {
     let total = Projects::total(&connection).await?;
     assert_eq!(total, 7);
 
-    Ok(connection)
+    Ok(())
 }

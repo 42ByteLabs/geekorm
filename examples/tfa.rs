@@ -1,5 +1,5 @@
 use anyhow::Result;
-use geekorm::{GEEKORM_BANNER, GEEKORM_VERSION, prelude::*};
+use geekorm::{ConnectionManager, GEEKORM_BANNER, GEEKORM_VERSION, prelude::*};
 
 #[derive(Table, Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Users {
@@ -23,8 +23,8 @@ async fn main() -> Result<()> {
     assert!(matches!(value, geekorm::Value::Json(_)));
 
     // Initialize an in-memory database
-    let db = libsql::Builder::new_local(":memory:").build().await?;
-    let connection = db.connect()?;
+    let db = ConnectionManager::in_memory().await?;
+    let connection = db.acquire().await;
 
     Users::create_table(&connection).await?;
 
