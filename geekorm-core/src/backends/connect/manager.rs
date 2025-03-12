@@ -113,7 +113,7 @@ impl ConnectionManager {
         if let Some(parent) = path.parent() {
             if !parent.exists() {
                 #[cfg(feature = "log")]
-                log::debug!("Creating parent directory: {}", parent);
+                log::debug!("Creating parent directory: {}", parent.display());
                 tokio::fs::create_dir_all(parent).await?;
             }
         };
@@ -136,6 +136,7 @@ impl ConnectionManager {
 
     /// Connect to a database using a URL
     ///
+    #[allow(unreachable_patterns)]
     pub async fn url(url: Url) -> Result<Self, crate::Error> {
         match url.scheme() {
             "file" => {
@@ -148,9 +149,22 @@ impl ConnectionManager {
                     if host == "memory" || host == ":memory:" {
                         return Self::in_memory().await;
                     }
-                    return Err(crate::Error::ConnectionError(
+                    Err(crate::Error::ConnectionError(
                         "Remote connection handling is not yet supported".to_string(),
-                    ));
+                    ))
+                } else {
+                    Self::path(url.path()).await
+                }
+            }
+            #[cfg(feature = "rusqlite")]
+            "rusqlite" | "sqlite" => {
+                if let Some(host) = url.host_str() {
+                    if host == "memory" || host == ":memory:" {
+                        return Self::in_memory().await;
+                    }
+                    Err(crate::Error::ConnectionError(
+                        "Remote connection handling is not yet supported".to_string(),
+                    ))
                 } else {
                     Self::path(url.path()).await
                 }
@@ -238,7 +252,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_connect_url() {
-        let url = Url::parse("libsql:///tmp/test.db").unwrap();
+        let url = Url::parse("sqlite:///tmp/test.db").unwrap();
         let cm = ConnectionManager::url(url)
             .await
             .expect("Failed to connect to database");
