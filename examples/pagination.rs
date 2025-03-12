@@ -2,7 +2,7 @@
 //!
 //! This example demonstrates how to use the `chrono` crate with `geekorm`.
 use anyhow::Result;
-use geekorm::{GEEKORM_BANNER, GEEKORM_VERSION, prelude::*};
+use geekorm::{Connection, ConnectionManager, GEEKORM_BANNER, GEEKORM_VERSION, prelude::*};
 
 #[derive(Table, Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 struct Projects {
@@ -20,13 +20,19 @@ async fn main() -> Result<()> {
         .init();
 
     println!("{}     v{}\n", GEEKORM_BANNER, GEEKORM_VERSION);
-    let connection = create_projects().await?;
+    // Initialize an in-memory database
+    let db = ConnectionManager::in_memory().await?;
+
+    create_projects(db.acquire().await).await?;
+
+    let connection = db.acquire().await;
 
     let mut page = Projects::paginate(&connection).await?;
 
     // Get the first page of projects
     let mut projects = page.next(&connection).await?;
     assert_eq!(page.page(), 0);
+    println!("Projects :: {:?}", projects);
 
     projects = page.next(&connection).await?;
     assert_eq!(projects.len(), 100);
@@ -36,10 +42,7 @@ async fn main() -> Result<()> {
 }
 
 // Helper function to create 1000 projects
-async fn create_projects() -> Result<libsql::Connection> {
-    // Initialize an in-memory database
-    let db = libsql::Builder::new_local(":memory:").build().await?;
-    let connection = db.connect()?;
+async fn create_projects(connection: Connection<'_>) -> Result<()> {
     Projects::create_table(&connection).await?;
 
     for pname in 1..=1000 {
@@ -50,5 +53,5 @@ async fn create_projects() -> Result<libsql::Connection> {
     let total = Projects::total(&connection).await?;
     assert_eq!(total, 1000);
 
-    Ok(connection)
+    Ok(())
 }
