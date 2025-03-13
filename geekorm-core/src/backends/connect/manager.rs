@@ -126,7 +126,7 @@ impl ConnectionManager {
 
         #[cfg(feature = "libsql")]
         {
-            let db = ::libsql::Builder::new_local_replica(path).build().await?;
+            let db = ::libsql::Builder::new_local(path).build().await?;
             let conn = db.connect().unwrap();
 
             manager.insert_backend(Backend::Libsql { conn });
