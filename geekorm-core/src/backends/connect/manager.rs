@@ -36,8 +36,8 @@ impl Clone for ConnectionManager {
     fn clone(&self) -> Self {
         Self {
             backend: Arc::clone(&self.backend),
+            dbtype: self.dbtype.clone(),
             notifier: Arc::clone(&self.notifier),
-            ..Default::default()
         }
     }
 }
