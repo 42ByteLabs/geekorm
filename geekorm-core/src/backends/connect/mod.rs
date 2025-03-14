@@ -23,12 +23,12 @@
 use std::fmt::{Debug, Display};
 use std::path::PathBuf;
 use std::sync::atomic::AtomicUsize;
+use url::Url;
 
 pub mod backend;
 pub mod manager;
 
 pub use manager::ConnectionManager;
-use url::Url;
 
 /// A connection to a database backend.
 ///

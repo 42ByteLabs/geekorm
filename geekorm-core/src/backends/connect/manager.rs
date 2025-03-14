@@ -2,30 +2,52 @@
 #![allow(unused_imports, unused_variables)]
 use std::collections::VecDeque;
 use std::path::PathBuf;
-use std::sync::Mutex;
 use std::sync::atomic::AtomicUsize;
-
+use std::sync::{Arc, Mutex};
 use url::Url;
 
+use super::{Backend, Connection};
 use crate::backends::connect::ConnectionType;
 
-use super::{Backend, Connection};
-
-/// Connection
-#[derive(Default)]
+/// Connection Manager
+///
+/// The connection manager is used to manage the connections to the database.
 pub struct ConnectionManager {
-    backend: Mutex<VecDeque<Backend>>,
-    /// The type of database
+    /// The backend connections which are thread safe and can be shared between
+    /// different parts of the code.
+    ///
+    /// The pool is a deque of connections, where the front of the deque is the
+    /// next connection to be acquired and the back of the deque is the next
+    /// connection to be released.
+    backend: Arc<Mutex<VecDeque<Backend>>>,
+    /// The type of database that the connection is connected to
+    /// (e.g. in-memory, file-based, etc.)
     dbtype: super::ConnectionType,
 
-    notifier: tokio::sync::Notify,
+    /// Notifier is used to notify the pool that a connection has been released
+    /// and is ready to be acquired.
+    ///
+    /// The Arc is to allow the pool to be cloned and passed around to different
+    /// parts of the code without having to worry about lifetimes.
+    notifier: Arc<tokio::sync::Notify>,
 }
 
 impl Clone for ConnectionManager {
     fn clone(&self) -> Self {
         Self {
-            backend: Mutex::new(self.backend.lock().unwrap().clone()),
+            backend: Arc::clone(&self.backend),
+            notifier: Arc::clone(&self.notifier),
             ..Default::default()
+        }
+    }
+}
+
+impl Default for ConnectionManager {
+    fn default() -> Self {
+        Self {
+            backend: Arc::new(Mutex::new(VecDeque::new())),
+            dbtype: ConnectionType::InMemory,
+            notifier: Arc::new(tokio::sync::Notify::new()),
         }
     }
 }
@@ -70,7 +92,6 @@ impl ConnectionManager {
     /// This is only supported for sqlite based databases.
     pub async fn in_memory() -> Result<Self, crate::Error> {
         let manager = Self {
-            backend: Mutex::new(VecDeque::new()),
             dbtype: ConnectionType::InMemory,
             ..Default::default()
         };
@@ -119,7 +140,6 @@ impl ConnectionManager {
         };
 
         let manager = Self {
-            backend: Mutex::new(VecDeque::new()),
             dbtype: ConnectionType::Path { file: path.clone() },
             ..Default::default()
         };
@@ -202,10 +222,7 @@ impl ConnectionManager {
 impl From<libsql::Connection> for ConnectionManager {
     fn from(value: libsql::Connection) -> Self {
         let backend = Backend::Libsql { conn: value };
-        let cm = Self {
-            backend: Mutex::new(VecDeque::new()),
-            ..Default::default()
-        };
+        let cm = Self::default();
         cm.insert_backend(backend);
 
         cm
