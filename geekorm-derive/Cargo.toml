@@ -54,7 +54,7 @@ rusqlite = ["backends", "geekorm-core/rusqlite"]
 proc-macro = true
 
 [dependencies]
-geekorm-core = { path = "../geekorm-core", version = "^0.11.2" }
+geekorm-core = { path = "../geekorm-core", version = "^0.11.3" }
 
 thiserror = "^2.0"
 # macro magic

@@ -8,7 +8,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.11.2"
+version = "0.11.3"
 license = "MIT"
 
 edition = "2024"
@@ -90,8 +90,8 @@ rusqlite = ["backends", "geekorm-derive/rusqlite", "geekorm-core/rusqlite"]
 migrations = ["geekorm-core/migrations", "dep:lazy_static"]
 
 [dependencies]
-geekorm-core = { version = "^0.11.2", path = "geekorm-core" }
-geekorm-derive = { version = "^0.11.2", path = "geekorm-derive" }
+geekorm-core = { version = "^0.11.3", path = "geekorm-core" }
+geekorm-derive = { version = "^0.11.3", path = "geekorm-derive" }
 lazy_static = { version = "^1", optional = true }
 
 [dev-dependencies]
