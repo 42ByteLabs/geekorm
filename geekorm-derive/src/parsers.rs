@@ -51,7 +51,6 @@ pub(crate) fn derive_parser(ast: &DeriveInput) -> Result<TokenStream, syn::Error
                 database: None,
             };
             table.apply_attributes(&attributes);
-
             TableState::add(table.clone().into());
 
             // Generate for the whole table

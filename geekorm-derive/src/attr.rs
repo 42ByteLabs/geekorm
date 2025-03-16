@@ -256,6 +256,23 @@ impl GeekAttribute {
                     Ok(())
                 }
             }
+            Some(GeekAttributeKeys::Rename) => {
+                if let Some(GeekAttributeValue::String(value)) = &self.value {
+                    if value.is_empty() {
+                        Err(syn::Error::new(
+                            self.span.span(),
+                            "The `rename` attribute requires a non-empty string value",
+                        ))
+                    } else {
+                        Ok(())
+                    }
+                } else {
+                    Err(syn::Error::new(
+                        self.span.span(),
+                        "The `rename` attribute requires a string value",
+                    ))
+                }
+            }
             Some(GeekAttributeKeys::Key) => {
                 if self.value.is_none() {
                     Err(syn::Error::new(
