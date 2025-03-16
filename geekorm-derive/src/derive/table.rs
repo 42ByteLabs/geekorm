@@ -14,6 +14,7 @@ use geekorm_core::{PrimaryKey, Table};
 #[derive(Debug, Clone)]
 pub(crate) struct TableDerive {
     pub name: String,
+    // pub alias: Option<String>,
     pub columns: ColumnsDerive,
     /// Database name
     pub database: Option<String>,
@@ -22,7 +23,11 @@ pub(crate) struct TableDerive {
 impl TableDerive {
     pub(crate) fn apply_attributes(&mut self, attributes: &Vec<GeekAttribute>) {
         for attr in attributes {
-            if let Some(GeekAttributeKeys::Key {}) = &attr.key {
+            if let Some(GeekAttributeKeys::Key) = &attr.key {
+                if let Some(GeekAttributeValue::String(name)) = &attr.value {
+                    self.name = name.to_string();
+                }
+            } else if Some(GeekAttributeKeys::Rename {}) == attr.key {
                 if let Some(GeekAttributeValue::String(name)) = &attr.value {
                     self.name = name.to_string();
                 }

@@ -36,6 +36,8 @@ pub fn generate_table_builder(
 ) -> Result<TokenStream, syn::Error> {
     let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
 
+    let table_name = quote::format_ident!("{}", table.name);
+
     Ok(quote! {
         impl #impl_generics geekorm::prelude::TableBuilder for #ident #ty_generics #where_clause {
             /// Get the table instance.
@@ -48,7 +50,7 @@ pub fn generate_table_builder(
             }
             /// Get the table name.
             fn table_name() -> String {
-                stringify!(#ident).to_string()
+                stringify!(#table_name).to_string()
             }
         }
     })
