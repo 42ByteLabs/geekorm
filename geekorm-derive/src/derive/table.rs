@@ -27,7 +27,7 @@ impl TableDerive {
                 if let Some(GeekAttributeValue::String(name)) = &attr.value {
                     self.name = name.to_string();
                 }
-            } else if Some(GeekAttributeKeys::Rename {}) == attr.key {
+            } else if let Some(GeekAttributeKeys::Rename) = &attr.key {
                 if let Some(GeekAttributeValue::String(name)) = &attr.value {
                     self.name = name.to_string();
                 }
