@@ -67,7 +67,7 @@ serde_json = "^1.0"
 # uuid
 uuid = { version = "^1.9", features = ["v4"], optional = true }
 chrono = { version = "^0.4", features = ["serde"] }
-rand = { version = "^0.8", optional = true }
+rand = { version = "^0.9", optional = true }
 
 [dev-dependencies]
 geekorm = { path = "..", features = ["new", "helpers"] }
