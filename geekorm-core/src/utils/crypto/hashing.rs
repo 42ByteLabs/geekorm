@@ -4,6 +4,7 @@ use argon2::Argon2;
 use pbkdf2::Pbkdf2;
 #[cfg(feature = "hash-sha512")]
 use sha_crypt::{Sha512Params, sha512_check, sha512_simple};
+
 // Password Hashing Library
 use password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString, rand_core::OsRng};
 
@@ -102,6 +103,7 @@ pub(crate) fn verify_hash_pbkdf2(data: String, hash: String) -> Result<bool, cra
 #[cfg(feature = "hash-argon2")]
 pub(crate) fn generate_hash_argon2(data: String) -> Result<String, crate::Error> {
     // Salt
+
     let salt = SaltString::generate(&mut OsRng);
     // Hash
     let argon2 = Argon2::default();

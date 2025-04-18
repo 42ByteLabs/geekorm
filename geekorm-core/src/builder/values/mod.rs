@@ -21,8 +21,6 @@ use super::keys::{foreign::ForeignKeyIntegerOld, primary::PrimaryKeyIntegerOld};
 pub struct Values {
     /// List of values
     pub(crate) values: Vec<(String, Value)>,
-    // /// List of columns in the order they were added
-    // pub(crate) order: Vec<String>,
 }
 
 impl Values {
