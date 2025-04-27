@@ -33,7 +33,7 @@ geekorm = ["dep:geekorm-core"]
 # Backends
 rusqlite = ["geekorm-core/rusqlite"]
 libsql = ["geekorm-core/libsql"]
-postgres = ["geekorm-core/postgres"]
+# postgres = ["geekorm-core/postgres"]
 
 [dependencies]
 geekorm-core = { version = "^0.11.4", path = "../geekorm-core", features = ["backends"], optional = true }
