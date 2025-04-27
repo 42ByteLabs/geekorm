@@ -1,0 +1,40 @@
+[package]
+name = "geekorm-sql"
+description = "GeekORM SQL Query Builder"
+
+version = "0.0.1"
+
+# version.workspace = true
+categories.workspace = true
+keywords.workspace = true
+
+documentation.workspace = true
+repository.workspace = true
+
+license.workspace = true
+
+edition.workspace = true
+rust-version.workspace = true
+
+authors.workspace = true
+
+[package.metadata.release]
+shared-version = true
+tag-name = "v{{version}}"
+
+[package.metadata.docs.rs]
+all-features = true
+
+[features]
+default = ["geekorm"]
+
+geekorm = ["dep:geekorm-core"]
+
+# Backends
+rusqlite = ["geekorm-core/rusqlite"]
+libsql = ["geekorm-core/libsql"]
+postgres = ["geekorm-core/postgres"]
+
+[dependencies]
+geekorm-core = { version = "^0.11.4", path = "../geekorm-core", features = ["backends", "internal"], optional = true }
+
