@@ -56,8 +56,11 @@ search = []
 libsql = ["backends", "dep:libsql", "dep:tokio"]
 rusqlite = ["backends", "dep:rusqlite", "dep:serde_rusqlite"]
 # sqlite = ["backends", "dep:sqlite"]
+postgres = ["backends"]
 
 migrations = ["dep:syn", "dep:quote", "dep:proc-macro2"]
+
+internal = []
 
 [dependencies]
 thiserror = "^2.0"
