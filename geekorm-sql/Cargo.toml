@@ -36,5 +36,5 @@ libsql = ["geekorm-core/libsql"]
 # postgres = ["geekorm-core/postgres"]
 
 [dependencies]
-geekorm-core = { version = "^0.11.4", path = "../geekorm-core", features = ["backends"], optional = true }
+geekorm-core = { version = "^0.11.5", path = "../geekorm-core", features = ["backends"], optional = true }
 
