@@ -24,13 +24,13 @@ geekorm = { path = "../", version = "^0.11.4", features = ["utils", "migrations"
 geekorm-core = { path = "../geekorm-core", version = "^0.11.4", features = ["migrations", "rusqlite"] }
 
 # libsql = { version = "0.6", optional = true }
-rusqlite = { version = "0.36" }
+rusqlite = { version = "0.37" }
 
 # CLI
 clap = { version = "4.0", features = ["derive", "env"] }
-console = "0.15"
+console = "0.16"
 dialoguer = { version = "0.11", features = ["fuzzy-select", "password"] }
-indicatif = "0.17"
+indicatif = "0.18"
 dotenvy = { version = "0.15", features = ["cli"] }
 
 tokio = { version = "1.0", features = ["full"] }
