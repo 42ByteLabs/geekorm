@@ -91,8 +91,8 @@ sha-crypt = { version = "^0.5", optional = true }
 
 # Backends
 libsql = { version = "^0.9", optional = true }
-rusqlite = { version = "0.36", features = ["bundled"], optional = true }
-serde_rusqlite = { version = "^0.39", optional = true }
+rusqlite = { version = "0.37", features = ["bundled"], optional = true }
+serde_rusqlite = { version = "^0.40", optional = true }
 
 # Tokenization
 quote = { version = "1", optional = true }
