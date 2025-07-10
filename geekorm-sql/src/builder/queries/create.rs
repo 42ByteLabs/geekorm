@@ -1,13 +1,12 @@
 //! # Create Query Builder
 
 use crate::builder::table::TableExpr;
-use crate::{QueryBuilder, QueryType, ToSql};
-use geekorm_core::Error;
+use crate::{Error, QueryBuilder, QueryType, ToSql};
 
 impl QueryType {
     pub(crate) fn sql_create(&self, query: &QueryBuilder) -> String {
         let mut full_query = String::new();
-        if let Some(table) = query.table {
+        if let Some(table) = query.find_table_default() {
             full_query.push_str("CREATE TABLE IF NOT EXISTS ");
             full_query.push_str(&table.name);
 
@@ -24,39 +23,27 @@ impl QueryType {
 
 #[cfg(test)]
 mod tests {
-    use geekorm_core::{Column, ColumnType, ColumnTypeOptions, Table};
 
     use super::*;
-    use crate::QueryType;
-    use crate::builder::QueryBuilder;
+    use crate::builder::{
+        QueryBuilder,
+        columns::{Column, ColumnOptions, Columns},
+        columntypes::ColumnType,
+    };
+    use crate::{QueryType, Table};
 
     fn table() -> Table {
         Table {
-            name: "Test".to_string(),
-            database: None,
-            columns: vec![
-                Column::new(
+            name: "Test",
+            columns: Columns::new(vec![
+                Column::from((
                     "id".to_string(),
-                    ColumnType::Identifier(ColumnTypeOptions {
-                        primary_key: true,
-                        foreign_key: String::new(),
-                        unique: true,
-                        not_null: true,
-                        auto_increment: true,
-                    }),
-                ),
-                Column::new(
-                    "name".to_string(),
-                    ColumnType::Text(ColumnTypeOptions::default()),
-                ),
-                Column::new(
-                    "email".to_string(),
-                    ColumnType::Text(ColumnTypeOptions {
-                        unique: true,
-                        ..Default::default()
-                    }),
-                ),
-            ]
+                    ColumnType::Integer,
+                    ColumnOptions::primary_key(),
+                )),
+                Column::from(("name".to_string(), ColumnType::Text)),
+                Column::from(("email".to_string(), ColumnType::Text)),
+            ])
             .into(),
         }
     }

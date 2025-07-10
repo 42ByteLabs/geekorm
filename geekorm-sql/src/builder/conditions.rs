@@ -1,8 +1,7 @@
 //! # Query Conditions
 
 use super::QueryBuilder;
-use crate::ToSql;
-use geekorm_core::Error;
+use crate::{Error, ToSql};
 
 /// Query Condition (EQ, NE, etc.)
 #[derive(Debug, Clone, Default)]
@@ -86,19 +85,19 @@ impl WhereClause {
     /// This is used to chain conditions together
     pub fn push_condition(&mut self, condition: WhereCondition) -> Result<(), Error> {
         if self.is_empty() {
-            return Err(Error::QueryBuilderError(
-                String::from("Cannot push condition to empty where clause"),
-                String::from("push_condition"),
-            ));
+            return Err(Error::QueryBuilderError {
+                error: String::from("Cannot push condition to empty where clause"),
+                location: String::from("push_condition"),
+            });
         }
         // Get the last condition
         if let Some(last) = self.conditions.last_mut() {
             last.2 = Some(condition);
         } else {
-            return Err(Error::QueryBuilderError(
-                String::from("Cannot push condition to empty where clause"),
-                String::from("push_condition"),
-            ));
+            return Err(Error::QueryBuilderError {
+                error: String::from("Cannot push condition to empty where clause"),
+                location: String::from("push_condition"),
+            });
         }
         Ok(())
     }
@@ -118,8 +117,10 @@ impl ToSql for WhereClause {
         stream.push_str("WHERE ");
 
         for (column, qcondition, wcondition) in &self.conditions {
-            // Add the condition to the SQL string with a parameter
-            stream.push_str(&format!("{} {} ?", column, qcondition.sql()));
+            stream.push_str(&column);
+            stream.push(' ');
+            stream.push_str(&qcondition.sql());
+            stream.push_str(" ?");
 
             if let Some(next_condition) = wcondition {
                 stream.push_str(&format!(" {} ", next_condition.sql()));

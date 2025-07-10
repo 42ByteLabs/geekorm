@@ -9,16 +9,22 @@
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
-use geekorm_core::Error;
-
 pub mod backends;
 pub mod builder;
+pub mod error;
 pub mod query;
+pub mod values;
 
-pub use builder::{QueryBuilder, QueryCondition, QueryOrder, QueryType, WhereCondition};
+pub use backends::QueryBackend;
+pub use builder::{
+    QueryBuilder, QueryCondition, QueryOrder, QueryType, WhereCondition,
+    columns::{Column, ColumnOptions, Columns},
+    columntypes::ColumnType,
+    table::{Table, TableExpr},
+};
+pub use error::Error;
 pub use query::Query;
-
-use self::backends::QueryBackend;
+pub use values::{value::Value, values::Values};
 
 /// To SQL trait
 pub trait ToSql {
@@ -43,4 +49,10 @@ pub trait ToSql {
         stream.push_str(&sql);
         Ok(())
     }
+}
+
+/// Trait for converting to a Value
+pub trait ToValue {
+    /// Convert to Value
+    fn to_value(&self) -> Value;
 }

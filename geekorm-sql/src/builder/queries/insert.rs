@@ -1,13 +1,12 @@
 //! # Insert Query Builder
 
 use crate::builder::table::TableExpr;
-use crate::{QueryBuilder, QueryType, ToSql};
-use geekorm_core::{Error, Value, Values};
+use crate::{QueryBuilder, QueryType, ToSql, Value, Values};
 
 impl QueryType {
     pub(crate) fn sql_insert(&self, query: &QueryBuilder) -> String {
         let mut full_query = String::new();
-        if let Some(table) = query.table {
+        if let Some(table) = query.find_table_default() {
             full_query.push_str("INSERT INTO ");
             full_query.push_str(&table.name);
 
@@ -16,17 +15,12 @@ impl QueryType {
             let mut parameters = Values::new();
 
             for (cname, value) in query.values.values() {
-                let column = table.columns.get(cname.as_str()).unwrap();
-
+                let column = table.find_column(cname).unwrap();
                 // Get the column (might be an alias)
-                let column_name = if !column.alias.is_empty() {
-                    column.alias.to_string()
-                } else {
-                    column.name.to_string()
-                };
+                let column_name = column.name();
 
                 // Skip auto increment columns
-                if column.column_type.is_auto_increment() {
+                if column.column_options.auto_increment {
                     continue;
                 }
 
@@ -69,39 +63,25 @@ impl QueryType {
 
 #[cfg(test)]
 mod tests {
-    use geekorm_core::{Column, ColumnType, ColumnTypeOptions, Table};
-
     use super::*;
-    use crate::QueryType;
-    use crate::builder::QueryBuilder;
+    use crate::builder::{
+        columns::{Column, ColumnOptions, Columns},
+        columntypes::ColumnType,
+    };
+    use crate::{QueryType, builder::QueryBuilder, builder::table::Table};
 
     fn table() -> Table {
         Table {
-            name: "Test".to_string(),
-            database: None,
-            columns: vec![
-                Column::new(
+            name: "Test",
+            columns: Columns::new(vec![
+                Column::from((
                     "id".to_string(),
-                    ColumnType::Identifier(ColumnTypeOptions {
-                        primary_key: true,
-                        foreign_key: String::new(),
-                        unique: true,
-                        not_null: true,
-                        auto_increment: true,
-                    }),
-                ),
-                Column::new(
-                    "name".to_string(),
-                    ColumnType::Text(ColumnTypeOptions::default()),
-                ),
-                Column::new(
-                    "email".to_string(),
-                    ColumnType::Text(ColumnTypeOptions {
-                        unique: true,
-                        ..Default::default()
-                    }),
-                ),
-            ]
+                    ColumnType::Integer,
+                    ColumnOptions::primary_key(),
+                )),
+                Column::from(("name".to_string(), ColumnType::Text)),
+                Column::from(("email".to_string(), ColumnType::Text)),
+            ])
             .into(),
         }
     }

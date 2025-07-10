@@ -8,17 +8,15 @@ pub mod ordering;
 pub mod queries;
 pub mod table;
 
-pub use conditions::{QueryCondition, WhereCondition};
-use geekorm_core::backends::connect::{Backend, Connection};
-use geekorm_core::builder::joins::{TableJoin, TableJoinOptions, TableJoins};
-use geekorm_core::{Error, PrimaryKey, Table, Value, Values};
-pub use ordering::QueryOrder;
+use std::collections::HashMap;
 
-use crate::backends::QueryBackend;
-use crate::{Query, ToSql};
+pub use conditions::{QueryCondition, WhereClause, WhereCondition};
+pub use joins::{TableJoin, TableJoinOptions, TableJoins};
+pub use ordering::{OrderClause, QueryOrder};
+use table::Table;
 
-use self::conditions::WhereClause;
-use self::ordering::OrderClause;
+use crate::{Error, Query, QueryBackend, ToSql, Value, Values};
+use columns::Columns;
 
 /// Query Type enum
 #[derive(Debug, Clone, Default)]
@@ -49,7 +47,8 @@ pub struct QueryBuilder<'a> {
     /// Query type
     pub(crate) query_type: QueryType,
 
-    pub(crate) table: Option<&'a Table>,
+    /// Tables to query
+    pub(crate) database: Vec<&'a Table>,
 
     /// These are the columns for INSERT and UPDATE queries
     pub(crate) columns: Vec<String>,
@@ -82,7 +81,10 @@ impl ToSql for QueryType {
             QueryType::Insert => Ok(self.sql_insert(query)),
             QueryType::Update => Ok(self.sql_update(query)),
             QueryType::Delete => Ok(self.sql_delete(query)),
-            QueryType::Unknown => Err(Error::NotImplemented),
+            QueryType::Unknown => Err(Error::QueryBuilderError {
+                error: String::from("Unknown query type"),
+                location: String::from("to_sql"),
+            }),
         }
     }
 }
@@ -149,21 +151,22 @@ impl<'a> QueryBuilder<'a> {
         self
     }
 
-    /// Sets the backend based on a connection passed in
-    pub fn connection(&mut self, connection: &Connection<'_>) -> &mut Self {
-        self.backend = QueryBackend::from(connection);
+    /// Set the database to query
+    pub fn database(&mut self, database: Vec<&'a Table>) -> &mut Self {
+        self.database = database;
         self
     }
 
-    /// The table to query
-    pub fn table(&mut self, table: &'a Table) -> &mut Self {
-        self.table = Some(table);
+    /// Set the table to query
+    pub fn table(&mut self, table: impl Into<&'a Table>) -> &mut Self {
+        let table = table.into();
+        self.database.push(&table);
         self
     }
 
     /// Add columns to the query
-    pub fn columns(&mut self, columns: Vec<&str>) -> &mut Self {
-        self.columns = columns.iter().map(|s| s.to_string()).collect();
+    pub fn columns(&mut self, columns: Vec<String>) -> &mut Self {
+        self.columns = columns;
         self
     }
 
@@ -211,47 +214,51 @@ impl<'a> QueryBuilder<'a> {
                     child
                 }
                 _ => {
-                    self.set_error(Error::QueryBuilderError(
-                        format!("Table `{}` does not exist", ftable),
-                        String::from("where_eq"),
-                    ));
+                    self.set_error(Error::QueryBuilderError {
+                        error: format!("Table `{}` does not exist", ftable),
+                        location: String::from("where_eq"),
+                    });
 
-                    self.table.unwrap()
+                    self.database
+                        .iter()
+                        .find(|t| t.name == ftable)
+                        .clone()
+                        .unwrap()
                 }
             }
-        } else if let Some(table) = self.table {
+        } else if let Some(table) = self.find_table("self") {
             table
         } else {
-            self.set_error(Error::QueryBuilderError(
-                String::from("No table specified"),
-                String::from("where_eq"),
-            ));
+            self.set_error(Error::QueryBuilderError {
+                error: String::from("No table specified"),
+                location: String::from("where_eq"),
+            });
             return;
         };
 
-        if table.is_valid_column(column_name) {
-            // Check if the last condition was set
-            if !self.where_clause.is_empty() && !self.where_condition_last {
-                // Use the default where condition
-                if let Err(err) = self.where_clause.push_condition(WhereCondition::default()) {
-                    self.set_error(err);
-                }
-            }
-
-            // self.where_clause
-            //     .push(format!("{} {} ?", column, condition.sql()));
-            self.where_clause.push(column.to_string(), condition);
-            self.values.push(column.to_string(), value);
-            self.where_condition_last = false;
-        } else {
-            self.set_error(Error::QueryBuilderError(
-                format!(
-                    "Column `{}` does not exist in table `{}`",
-                    column_name, table.name
+        if self.validate_table_column(column_name).is_err() {
+            self.set_error(Error::QueryBuilderError {
+                error: format!(
+                    "Column `{column_name}` does not exist in table `{}`",
+                    table.name
                 ),
-                String::from("where_eq"),
-            ));
+                location: String::from("where_eq"),
+            });
         }
+
+        // Check if the last condition was set
+        if !self.where_clause.is_empty() && !self.where_condition_last {
+            // Use the default where condition
+            if let Err(err) = self.where_clause.push_condition(WhereCondition::default()) {
+                self.set_error(err);
+            }
+        }
+
+        // self.where_clause
+        //     .push(format!("{} {} ?", column, condition.sql()));
+        self.where_clause.push(column.to_string(), condition);
+        self.values.push(column.to_string(), value);
+        self.where_condition_last = false;
     }
 
     /// Where clause for equals
@@ -298,13 +305,14 @@ impl<'a> QueryBuilder<'a> {
 
     /// Where Primary Key
     pub fn where_primary_key(&mut self, value: impl Into<Value>) -> &mut Self {
-        if let Some(table) = self.table {
-            self.where_eq(table.get_primary_key().as_str(), value.into());
+        if let Some(table) = self.find_table("self") {
+            let pk = table.get_primary_key().unwrap();
+            self.where_eq(&pk.name(), value.into());
         } else {
-            self.set_error(Error::QueryBuilderError(
-                String::from("No table specified"),
-                String::from("where_primary_key"),
-            ));
+            self.set_error(Error::QueryBuilderError {
+                error: String::from("No table specified"),
+                location: String::from("where_primary_key"),
+            });
         }
         self
     }
@@ -332,21 +340,47 @@ impl<'a> QueryBuilder<'a> {
 
     /// Order the query by a particular column
     pub fn order_by(&mut self, column: &str, order: QueryOrder) -> &mut Self {
-        if let Some(table) = self.table {
-            if table.is_valid_column(column) {
-                self.order_by.push(column.to_string(), order);
-            } else {
-                self.set_error(Error::QueryBuilderError(
-                    format!(
-                        "Column `{}` does not exist in table `{}`",
-                        column, table.name
+        match self.validate_table_column(column) {
+            Ok(true) => self.order_by.push(column.to_string(), order),
+            Ok(false) => {
+                self.set_error(Error::QueryBuilderError {
+                    error: format!(
+                        "Column `{column}` does not exist in table `{}`",
+                        self.find_table("self").unwrap().name
                     ),
-                    String::from("order_by"),
-                ));
+                    location: String::from("order_by"),
+                });
+            }
+            Err(e) => {
+                self.set_error(e);
             }
         }
         // TODO(geekmasher): What if there is no table?
         self
+    }
+
+    /// Find a table in the database
+    fn find_table(&self, table: &str) -> Option<&'a Table> {
+        self.database.iter().find(|t| t.name == table).map(|t| &**t)
+    }
+
+    fn find_table_default(&self) -> Option<&'a Table> {
+        if self.database.is_empty() {
+            None
+        } else {
+            self.database.first().cloned()
+        }
+    }
+
+    fn validate_table_column(&self, column: &str) -> Result<bool, Error> {
+        if let Some(table) = self.find_table("self") {
+            Ok(table.columns.contains(&column))
+        } else {
+            return Err(Error::QueryBuilderError {
+                error: String::from("No table specified"),
+                location: String::from("validate_table_column"),
+            });
+        }
     }
 
     /// Add a limit to the query
@@ -354,10 +388,10 @@ impl<'a> QueryBuilder<'a> {
         if limit != 0 {
             self.limit = Some(limit);
         } else {
-            self.set_error(Error::QueryBuilderError(
-                String::from("Limit cannot be 0"),
-                String::from("limit"),
-            ));
+            self.set_error(Error::QueryBuilderError {
+                error: String::from("Limit cannot be 0"),
+                location: String::from("limit"),
+            });
         }
         self
     }
@@ -374,9 +408,10 @@ impl<'a> QueryBuilder<'a> {
     }
 
     /// Build a Query from the QueryBuilder
-    pub fn build(&self) -> Result<Query, geekorm_core::Error> {
+    pub fn build(&self) -> Result<Query, crate::Error> {
         let query = Query {
             query: self.query_type.to_sql(self)?,
+            query_type: self.query_type.clone(),
             values: self.values.clone(),
             params: self.values.clone(),
         };

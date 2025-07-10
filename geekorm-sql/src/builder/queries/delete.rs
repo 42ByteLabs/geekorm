@@ -9,10 +9,10 @@ impl QueryType {
     pub(crate) fn sql_delete(&self, query: &QueryBuilder) -> String {
         let mut full_query = String::new();
 
-        if let Some(table) = query.table {
+        if let Some(table) = query.find_table_default() {
             full_query.push_str("DELETE ");
 
-            let table_expr = TableExpr::new(&table.name);
+            let table_expr = TableExpr::new(table.name);
             table_expr.to_sql_stream(&mut full_query, query).unwrap();
 
             // WHERE
@@ -29,31 +29,24 @@ impl QueryType {
 
 #[cfg(test)]
 mod tests {
-    use geekorm_core::{Column, ColumnType, ColumnTypeOptions, Table, Values};
-
     use super::*;
-    use crate::{QueryType, ToSql};
+    use crate::builder::{
+        columns::{Column, ColumnOptions, Columns},
+        columntypes::ColumnType,
+    };
+    use crate::{QueryType, Table, ToSql};
 
     fn table() -> Table {
         Table {
-            name: "Test".to_string(),
-            database: None,
-            columns: vec![
-                Column::new(
+            name: "Test",
+            columns: Columns::new(vec![
+                Column::from((
                     "id".to_string(),
-                    ColumnType::Integer(ColumnTypeOptions {
-                        primary_key: true,
-                        foreign_key: String::new(),
-                        unique: true,
-                        not_null: true,
-                        auto_increment: true,
-                    }),
-                ),
-                Column::new(
-                    "name".to_string(),
-                    ColumnType::Text(ColumnTypeOptions::default()),
-                ),
-            ]
+                    ColumnType::Integer,
+                    ColumnOptions::primary_key(),
+                )),
+                Column::from(("name".to_string(), ColumnType::Text)),
+            ])
             .into(),
         }
     }

@@ -3,20 +3,18 @@
 use crate::builder::table::TableExpr;
 use crate::{QueryBuilder, QueryType, ToSql};
 
-use geekorm_core::{Error, ToSqlite};
-
 impl QueryType {
     pub(crate) fn sql_select(&self, query: &QueryBuilder) -> String {
         let mut full_query = String::new();
 
         // Resolve the rest of the query, and append if necessary
-        if let Some(ref table) = query.table {
-            let select_columns = table.columns.to_sql(query).unwrap();
+        if let Some(table) = query.find_table_default() {
+            full_query.push_str("SELECT ");
 
-            full_query = format!("SELECT {}", select_columns);
+            table.columns.to_sql_stream(&mut full_query, query).unwrap();
 
             // FROM {table}
-            let mut table = TableExpr::new(&table.name);
+            let mut table = TableExpr::new(table.name);
             if let Some(ref alias) = table.alias {
                 table.alias(alias.clone());
             }
@@ -64,35 +62,30 @@ impl QueryType {
 
 #[cfg(test)]
 mod tests {
-    use geekorm_core::{Column, ColumnType, ColumnTypeOptions, Table, Value, Values};
-
     use super::*;
-    use crate::{QueryOrder, QueryType, ToSql};
+    use crate::{
+        QueryOrder, QueryType, ToSql, Value, Values,
+        backends::QueryBackend,
+        builder::{
+            columns::{Column, ColumnOptions, Columns},
+            columntypes::ColumnType,
+            table::Table,
+        },
+    };
 
     fn table() -> Table {
         Table {
-            name: "Test".to_string(),
-            database: None,
-            columns: vec![
-                Column::new(
+            name: "Test",
+            columns: Columns::new(vec![
+                Column::from((
                     "id".to_string(),
-                    ColumnType::Integer(ColumnTypeOptions {
-                        primary_key: true,
-                        foreign_key: String::new(),
-                        unique: true,
-                        not_null: true,
-                        auto_increment: true,
-                    }),
-                ),
-                Column::new(
-                    "name".to_string(),
-                    ColumnType::Text(ColumnTypeOptions::default()),
-                ),
-                Column::new(
-                    "email".to_string(),
-                    ColumnType::Text(ColumnTypeOptions::default()),
-                ),
-            ]
+                    ColumnType::Integer,
+                    ColumnOptions::primary_key(),
+                )),
+                Column::from(("name".to_string(), ColumnType::Text)),
+                Column::from(("email".to_string(), ColumnType::Text)),
+                Column::from(("image_id".to_string(), ColumnType::ForeignKey)),
+            ])
             .into(),
         }
     }
@@ -101,7 +94,7 @@ mod tests {
     fn test_select_sqlite() {
         let table = table();
         let query = QueryBuilder::select()
-            .backend(crate::QueryBackend::Sqlite)
+            .backend(QueryBackend::Sqlite)
             .table(&table)
             .build()
             .unwrap();
@@ -113,7 +106,7 @@ mod tests {
     fn test_select_where() {
         let table = table();
         let query = QueryBuilder::select()
-            .backend(crate::QueryBackend::Sqlite)
+            .backend(QueryBackend::Sqlite)
             .table(&table)
             .where_eq("name", "test")
             .build()
@@ -134,7 +127,7 @@ mod tests {
     fn test_order_clause() {
         let table = table();
         let query = QueryBuilder::select()
-            .backend(crate::QueryBackend::Sqlite)
+            .backend(QueryBackend::Sqlite)
             .table(&table)
             .order_by("name", QueryOrder::Asc)
             .order_by("email", QueryOrder::Desc)

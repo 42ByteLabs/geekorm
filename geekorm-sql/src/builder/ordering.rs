@@ -9,7 +9,7 @@ pub struct OrderClause {
 }
 
 impl ToSql for OrderClause {
-    fn to_sql(&self, query: &super::QueryBuilder) -> Result<String, geekorm_core::Error> {
+    fn to_sql(&self, query: &super::QueryBuilder) -> Result<String, crate::Error> {
         let mut stream = String::new();
         self.to_sql_stream(&mut stream, query)?;
         Ok(stream)
@@ -19,7 +19,7 @@ impl ToSql for OrderClause {
         &self,
         stream: &mut String,
         _query: &super::QueryBuilder,
-    ) -> Result<(), geekorm_core::Error> {
+    ) -> Result<(), crate::Error> {
         if self.is_empty() {
             return Ok(());
         }
@@ -76,34 +76,20 @@ impl ToSql for QueryOrder {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ToSql;
-    use crate::builder::QueryBuilder;
-    use geekorm_core::{Column, ColumnType, ColumnTypeOptions, Table};
+    use crate::{Column, ColumnOptions, ColumnType, Columns, Table, ToSql, builder::QueryBuilder};
 
     fn table() -> Table {
         Table {
-            name: "Test".to_string(),
-            database: None,
-            columns: vec![
-                Column::new(
+            name: "Test",
+            columns: Columns::new(vec![
+                Column::from((
                     "id".to_string(),
-                    ColumnType::Identifier(ColumnTypeOptions {
-                        primary_key: true,
-                        foreign_key: String::new(),
-                        unique: true,
-                        not_null: true,
-                        auto_increment: true,
-                    }),
-                ),
-                Column::new(
-                    "name".to_string(),
-                    ColumnType::Text(ColumnTypeOptions::default()),
-                ),
-                Column::new(
-                    "email".to_string(),
-                    ColumnType::Text(ColumnTypeOptions::default()),
-                ),
-            ]
+                    ColumnType::Integer,
+                    ColumnOptions::primary_key(),
+                )),
+                Column::from(("name".to_string(), ColumnType::Text)),
+                Column::from(("email".to_string(), ColumnType::Text)),
+            ])
             .into(),
         }
     }
