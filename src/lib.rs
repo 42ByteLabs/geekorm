@@ -21,8 +21,7 @@ pub use geekorm_core::builder::models::{QueryCondition, QueryOrder, QueryType};
 pub use geekorm_core::builder::values::{Value, Values};
 
 // Query Modules
-pub use geekorm_core::queries::Query;
-pub use geekorm_core::queries::QueryBuilder;
+pub use geekorm_sql::{Query, QueryBuilder, ToSql};
 
 // Connection
 #[cfg(feature = "connect")]
@@ -128,6 +127,5 @@ pub mod prelude {
     // Query Builder Modules
     pub use geekorm_core::builder::models::{QueryCondition, QueryOrder, QueryType};
     // Query Modules
-    pub use geekorm_core::queries::Query;
-    pub use geekorm_core::queries::QueryBuilder;
+    pub use geekorm_sql::{Query, QueryBuilder, ToSql};
 }

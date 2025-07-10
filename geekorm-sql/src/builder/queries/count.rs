@@ -7,7 +7,7 @@ impl QueryType {
     pub(crate) fn sql_count(&self, query: &QueryBuilder) -> String {
         let mut full_query = "SELECT COUNT(1)".to_string();
 
-        if let Some(table) = query.table {
+        if let Some(table) = query.find_table_default() {
             let mut table = TableExpr::new(&table.name);
             if let Some(ref alias) = table.alias {
                 table.alias(alias.clone());
@@ -31,31 +31,29 @@ impl QueryType {
 
 #[cfg(test)]
 mod tests {
-    use geekorm_core::{Column, ColumnType, ColumnTypeOptions, Table, Values};
 
     use super::*;
-    use crate::{QueryType, ToSql};
+    use crate::{QueryType, Table, ToSql};
+    use crate::{
+        backends::QueryBackend,
+        builder::{
+            QueryBuilder,
+            columns::{Column, ColumnOptions, Columns},
+            columntypes::ColumnType,
+        },
+    };
 
     fn table() -> Table {
         Table {
-            name: "Test".to_string(),
-            database: None,
-            columns: vec![
-                Column::new(
+            name: "Test",
+            columns: Columns::new(vec![
+                Column::from((
                     "id".to_string(),
-                    ColumnType::Integer(ColumnTypeOptions {
-                        primary_key: true,
-                        foreign_key: String::new(),
-                        unique: true,
-                        not_null: true,
-                        auto_increment: true,
-                    }),
-                ),
-                Column::new(
-                    "name".to_string(),
-                    ColumnType::Text(ColumnTypeOptions::default()),
-                ),
-            ]
+                    ColumnType::Integer,
+                    ColumnOptions::primary_key(),
+                )),
+                Column::from(("name".to_string(), ColumnType::Text)),
+            ])
             .into(),
         }
     }
@@ -64,7 +62,7 @@ mod tests {
     fn test_count_sqlite() {
         let table = table();
         let query = QueryBuilder::count()
-            .backend(crate::QueryBackend::Sqlite)
+            .backend(QueryBackend::Sqlite)
             .table(&table)
             .build()
             .unwrap();
@@ -76,7 +74,7 @@ mod tests {
     fn test_count_where() {
         let table = table();
         let query = QueryBuilder::count()
-            .backend(crate::QueryBackend::Sqlite)
+            .backend(QueryBackend::Sqlite)
             .table(&table)
             .where_eq("id", 1)
             .build()

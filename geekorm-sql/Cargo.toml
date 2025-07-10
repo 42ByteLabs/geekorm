@@ -26,15 +26,23 @@ tag-name = "v{{version}}"
 all-features = true
 
 [features]
-default = ["geekorm"]
+default = []
 
-geekorm = ["dep:geekorm-core"]
+uuid = ["dep:uuid"]
+chrono = ["dep:chrono"]
+semver = ["dep:semver"]
 
 # Backends
-rusqlite = ["geekorm-core/rusqlite"]
-libsql = ["geekorm-core/libsql"]
-postgres = ["geekorm-core/postgres"]
+sqlite = []
+postgres = []
 
 [dependencies]
-geekorm-core = { version = "^0.11.4", path = "../geekorm-core", features = ["backends", "internal"], optional = true }
+thiserror = "^2.0"
+
+serde = { version = "^1.0", features = ["derive"] }
+serde_json = "^1.0"
+
+uuid = { version = "^1.9", features = ["v4", "serde"], optional = true }
+chrono = { version = "^0.4", features = ["serde"], optional = true }
+semver = { version = "^1.0", features = ["serde"], optional = true }
 
