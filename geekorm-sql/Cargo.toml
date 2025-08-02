@@ -27,6 +27,7 @@ all-features = true
 
 [features]
 default = []
+all = ["uuid", "chrono", "semver", "sqlite", "postgres"]
 
 uuid = ["dep:uuid"]
 chrono = ["dep:chrono"]

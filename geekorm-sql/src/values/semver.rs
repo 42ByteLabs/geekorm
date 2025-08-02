@@ -45,10 +45,12 @@ impl From<&Version> for Value {
     }
 }
 
-impl From<Value> for Version {
-    fn from(value: Value) -> Self {
+impl TryFrom<Value> for Version {
+    type Error = crate::Error;
+
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
         // TODO: This unwrap isn't great...
-        Version::parse(&value.to_string()).unwrap()
+        Ok(Version::parse(&value.to_string())?)
     }
 }
 
