@@ -38,7 +38,7 @@ where
     type Error = crate::Error;
 
     fn try_from(value: Value) -> Result<Self, Self::Error> {
-        let tz = Tz::from_offset(&Utc::now().offset()); // Get the timezone offset
+        let tz = Tz::from_offset(&Utc); // Get the timezone offset
         match value {
             Value::Text(text) => match DateTime::parse_from_rfc3339(&text) {
                 Ok(dt) => Ok(dt.with_timezone(&tz)),
