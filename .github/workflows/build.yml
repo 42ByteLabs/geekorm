@@ -16,6 +16,7 @@ jobs:
     secrets: inherit
     permissions:
       contents: read
+      actions: read
       security-events: write
     with:
       features: "all"
