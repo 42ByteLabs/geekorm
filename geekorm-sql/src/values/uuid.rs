@@ -1,15 +1,17 @@
-//! UUID value implementation for the Value enum.
+//! # UUID
+//!
+//! This is the UUID value type for the GeekORM SQL library.
 use super::Value;
-use crate::builder::keys::primary::PrimaryKeyUuid;
+use uuid::Uuid;
 
-impl From<PrimaryKeyUuid> for Value {
-    fn from(value: PrimaryKeyUuid) -> Self {
-        Value::Text(value.value.to_string())
+impl From<Uuid> for Value {
+    fn from(value: Uuid) -> Self {
+        Value::Text(value.to_string())
     }
 }
 
-impl From<&PrimaryKeyUuid> for Value {
-    fn from(value: &PrimaryKeyUuid) -> Self {
-        Value::Text(value.value.to_string())
+impl From<&Uuid> for Value {
+    fn from(value: &Uuid) -> Self {
+        Value::Text(value.to_string())
     }
 }
