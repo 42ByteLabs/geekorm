@@ -44,6 +44,15 @@ impl Table {
             .find(|col| col.foreign_key.as_deref() == Some(&name))
     }
 
+    /// Get all foreign key columns in the table.
+    pub fn get_foreign_keys(&self) -> Vec<&Column> {
+        self.columns
+            .columns
+            .iter()
+            .filter(|col| col.foreign_key.is_some())
+            .collect()
+    }
+
     /// Get a column by its name or alias
     pub fn find_column(&self, name: &str) -> Option<&Column> {
         self.columns
