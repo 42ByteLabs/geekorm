@@ -12,6 +12,7 @@ impl QueryType {
             if let Some(ref alias) = table.alias {
                 table.alias(alias.clone());
             }
+
             table.to_sql_stream(&mut full_query, query).unwrap();
 
             // WHERE

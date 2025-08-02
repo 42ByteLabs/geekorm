@@ -16,10 +16,12 @@ impl QueryType {
             table_expr.to_sql_stream(&mut full_query, query).unwrap();
 
             // WHERE
-            query
-                .where_clause
-                .to_sql_stream(&mut full_query, query)
-                .unwrap();
+            if !query.where_clause.is_empty() {
+                query
+                    .where_clause
+                    .to_sql_stream(&mut full_query, query)
+                    .unwrap();
+            }
         }
 
         full_query.push(';');
@@ -56,7 +58,7 @@ mod tests {
         let table = table();
         let query = QueryBuilder::delete()
             .table(&table)
-            .where_primary_key(1)
+            .where_eq("id", 1)
             .build()
             .unwrap();
 
