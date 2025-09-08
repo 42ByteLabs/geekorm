@@ -31,10 +31,10 @@ jobs:
     if: ${{ github.event_name == 'workflow_dispatch' }}
     steps:
       - name: "Checkout"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: "Patch Release Me"
-        uses: 42ByteLabs/patch-release-me@0.6.1
+        uses: 42ByteLabs/patch-release-me@0.6.2
         with:
           mode: ${{ github.event.inputs.bump }}
 
