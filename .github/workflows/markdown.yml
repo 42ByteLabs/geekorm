@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 'Checkout Repository'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: "Filter Changes"
         uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36
