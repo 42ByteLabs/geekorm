@@ -349,6 +349,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "migrations")]
     fn test_alter_to_sql() {
         let query = crate::AlterQuery::new(AlterMode::AddColumn, "Table", "colname");
 
