@@ -10,43 +10,43 @@
 #![deny(missing_docs)]
 
 pub mod backends;
-pub mod builder;
 pub mod error;
+#[cfg(feature = "parser")]
+pub mod parser;
+pub mod queries;
 pub mod query;
+pub mod sql;
 pub mod values;
 
 pub use backends::QueryBackend;
-pub use builder::{
-    QueryBuilder, QueryCondition, QueryOrder, QueryType, WhereCondition,
+pub use error::Error;
+pub use query::{
+    Query, QueryBuilder, QueryCondition, QueryOrder, QueryType, WhereCondition,
     columns::{Column, ColumnOptions, Columns},
     columntypes::ColumnType,
     table::{Table, TableExpr},
 };
-pub use error::Error;
-pub use query::Query;
+pub use sql::SqlQuery;
 pub use values::{value::Value, values::Values};
 
 /// To SQL trait
 pub trait ToSql {
-    /// Convert to SQL string
+    /// Convert to SQL string, no other input
     fn sql(&self) -> String {
-        let mut sql = String::new();
-        self.to_sql_stream(&mut sql, &QueryBuilder::default())
-            .unwrap();
-        sql
+        String::new()
     }
 
-    /// Convert to SQL string with query
-    fn to_sql(&self, query: &QueryBuilder) -> Result<String, Error> {
-        let mut sql = String::new();
+    /// Convert to SqlQuery string
+    fn to_sql(&self, query: &Query) -> Result<SqlQuery, Error> {
+        let mut sql = SqlQuery::new();
         self.to_sql_stream(&mut sql, query)?;
         Ok(sql)
     }
 
     /// Construct SQL string using a stream
-    fn to_sql_stream(&self, stream: &mut String, query: &QueryBuilder) -> Result<(), Error> {
+    fn to_sql_stream(&self, stream: &mut SqlQuery, query: &Query) -> Result<(), Error> {
         let sql = self.to_sql(query)?;
-        stream.push_str(&sql);
+        stream.push_str(&sql.to_string());
         Ok(())
     }
 }
