@@ -93,7 +93,6 @@ migrations = ["geekorm-core/migrations", "dep:lazy_static"]
 [dependencies]
 geekorm-core = { version = "^0.11.4", path = "geekorm-core" }
 geekorm-derive = { version = "^0.11.4", path = "geekorm-derive" }
-geekorm-sql = { version = "^0.0.1", path = "geekorm-sql" }
 
 lazy_static = { version = "^1", optional = true }
 
@@ -151,4 +150,3 @@ required-features = ["all", "rusqlite"]
 name = "rocket"
 path = "./examples/server-rocket/src/main.rs"
 required-features = ["all", "libsql", "backends-tokio"]
-
