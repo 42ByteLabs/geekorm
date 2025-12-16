@@ -1,11 +1,12 @@
 //! # Count Query Builder
 
-use crate::builder::table::TableExpr;
-use crate::{QueryBuilder, QueryType, ToSql};
+use crate::query::table::TableExpr;
+use crate::{Query, QueryType, SqlQuery, ToSql};
 
 impl QueryType {
-    pub(crate) fn sql_count(&self, query: &QueryBuilder) -> String {
-        let mut full_query = "SELECT COUNT(1)".to_string();
+    pub(crate) fn sql_count(&self, query: &Query) -> SqlQuery {
+        let mut full_query = SqlQuery::new();
+        full_query.push_str("SELECT COUNT(1)");
 
         if let Some(table) = query.find_table_default() {
             let mut table = TableExpr::new(&table.name);
@@ -36,8 +37,8 @@ mod tests {
     use crate::{QueryType, Table, ToSql};
     use crate::{
         backends::QueryBackend,
-        builder::{
-            QueryBuilder,
+        query::{
+            Query,
             columns::{Column, ColumnOptions, Columns},
             columntypes::ColumnType,
         },
@@ -59,27 +60,32 @@ mod tests {
     }
 
     #[test]
-    fn test_count_sqlite() {
+    fn test_count_table() {
         let table = table();
-        let query = QueryBuilder::count()
+        let query = Query::count()
             .backend(QueryBackend::Sqlite)
-            .table(&table)
+            .table(table)
             .build()
-            .unwrap();
+            .expect("Failed to build count query");
+        let output = query.to_sql();
 
-        assert_eq!(query.query, "SELECT COUNT(1) FROM Test;");
+        assert_eq!(output.unwrap().to_string(), "SELECT COUNT(1) FROM Test;");
     }
 
     #[test]
-    fn test_count_where() {
+    fn test_count_where_eq() {
         let table = table();
-        let query = QueryBuilder::count()
+        let query = Query::count()
             .backend(QueryBackend::Sqlite)
-            .table(&table)
+            .table(table)
             .where_eq("id", 1)
             .build()
-            .unwrap();
+            .expect("Failed to build count query with WHERE clause");
+        let output = query.to_sql().unwrap();
 
-        assert_eq!(query.query, "SELECT COUNT(1) FROM Test WHERE id = ?;");
+        assert_eq!(
+            output.to_string(),
+            "SELECT COUNT(1) FROM Test WHERE id = ?;"
+        );
     }
 }

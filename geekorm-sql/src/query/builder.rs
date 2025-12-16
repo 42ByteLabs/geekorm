@@ -1,54 +1,23 @@
-//! # Query Builder module
+//! # Query Builder
 
-pub mod columns;
-pub mod columntypes;
-pub mod conditions;
-pub mod joins;
-pub mod ordering;
-pub mod queries;
-pub mod table;
-
-use std::collections::HashMap;
-
-pub use conditions::{QueryCondition, WhereClause, WhereCondition};
-pub use joins::{TableJoin, TableJoinOptions, TableJoins};
-pub use ordering::{OrderClause, QueryOrder};
-use table::Table;
-
-use crate::{Error, Query, QueryBackend, ToSql, Value, Values};
-use columns::Columns;
-
-/// Query Type enum
-#[derive(Debug, Clone, Default)]
-pub enum QueryType {
-    /// Create Query
-    Create,
-    /// Count Query
-    Count,
-    /// Select Query
-    Select,
-    /// Insert Query
-    Insert,
-    /// Update Query
-    Update,
-    /// Delete Query
-    Delete,
-
-    /// Unknown Query
-    #[default]
-    Unknown,
-}
+use crate::backends::QueryBackend;
+use crate::queries::Queries;
+use crate::query::conditions::{QueryCondition, WhereClause, WhereCondition};
+use crate::query::joins::{TableJoin, TableJoinOptions, TableJoins};
+use crate::query::ordering::{OrderClause, QueryOrder};
+use crate::query::qtype::QueryType;
+use crate::{Error, Table, ToSql, Value, Values, sql::*};
 
 /// Query struct
 #[derive(Debug, Clone, Default)]
-pub struct QueryBuilder<'a> {
+pub struct QueryBuilder {
     /// Query Backend
     pub(crate) backend: QueryBackend,
     /// Query type
     pub(crate) query_type: QueryType,
 
     /// Tables to query
-    pub(crate) database: Vec<&'a Table>,
+    pub(crate) database: Vec<Table>,
 
     /// These are the columns for INSERT and UPDATE queries
     pub(crate) columns: Vec<String>,
@@ -72,79 +41,7 @@ pub struct QueryBuilder<'a> {
     pub(crate) errors: Vec<String>,
 }
 
-impl ToSql for QueryType {
-    fn to_sql(&self, query: &crate::QueryBuilder) -> Result<String, Error> {
-        match self {
-            QueryType::Create => Ok(self.sql_create(query)),
-            QueryType::Select => Ok(self.sql_select(query)),
-            QueryType::Count => Ok(self.sql_count(query)),
-            QueryType::Insert => Ok(self.sql_insert(query)),
-            QueryType::Update => Ok(self.sql_update(query)),
-            QueryType::Delete => Ok(self.sql_delete(query)),
-            QueryType::Unknown => Err(Error::QueryBuilderError {
-                error: String::from("Unknown query type"),
-                location: String::from("to_sql"),
-            }),
-        }
-    }
-}
-
-impl<'a> QueryBuilder<'a> {
-    /// Count query builder
-    pub fn count() -> Self {
-        Self {
-            query_type: QueryType::Count,
-            ..Default::default()
-        }
-    }
-    /// Select query builder
-    pub fn select() -> Self {
-        Self {
-            query_type: QueryType::Select,
-            ..Default::default()
-        }
-    }
-
-    /// Build a create query
-    pub fn create() -> Self {
-        Self {
-            query_type: QueryType::Create,
-            ..Default::default()
-        }
-    }
-
-    /// Build a "get all rows" query
-    pub fn all() -> Self {
-        Self {
-            query_type: QueryType::Select,
-            ..Default::default()
-        }
-    }
-
-    /// Build an insert query
-    pub fn insert() -> Self {
-        Self {
-            query_type: QueryType::Insert,
-            ..Default::default()
-        }
-    }
-
-    /// Build an update query
-    pub fn update() -> Self {
-        Self {
-            query_type: QueryType::Update,
-            ..Default::default()
-        }
-    }
-
-    /// Build a delete query
-    pub fn delete() -> Self {
-        Self {
-            query_type: QueryType::Delete,
-            ..Default::default()
-        }
-    }
-
+impl QueryBuilder {
     /// Sets the Backend for the query
     pub fn backend(&mut self, backend: QueryBackend) -> &mut Self {
         self.backend = backend;
@@ -152,15 +49,15 @@ impl<'a> QueryBuilder<'a> {
     }
 
     /// Set the database to query
-    pub fn database(&mut self, database: Vec<&'a Table>) -> &mut Self {
+    pub fn database(&mut self, database: Vec<Table>) -> &mut Self {
         self.database = database;
         self
     }
 
     /// Set the table to query
-    pub fn table(&mut self, table: impl Into<&'a Table>) -> &mut Self {
+    pub fn table(&mut self, table: impl Into<Table>) -> &mut Self {
         let table = table.into();
-        self.database.push(&table);
+        self.database.push(table);
         self
     }
 
@@ -207,11 +104,11 @@ impl<'a> QueryBuilder<'a> {
         let mut column_name: &str = column;
 
         // Check if there is a `.` in the column name
-        let table = if let Some((ftable, fcolumn)) = column.split_once('.') {
+        let table: Table = if let Some((ftable, fcolumn)) = column.split_once('.') {
             match self.joins.get(ftable) {
                 Some(TableJoin::InnerJoin(TableJoinOptions { child, .. })) => {
                     column_name = fcolumn;
-                    child
+                    child.clone()
                 }
                 _ => {
                     self.set_error(Error::QueryBuilderError {
@@ -224,8 +121,11 @@ impl<'a> QueryBuilder<'a> {
                         .find(|t| t.name == ftable)
                         .clone()
                         .unwrap()
+                        .clone()
                 }
             }
+        } else if let Some(table) = self.find_column(column) {
+            table
         } else if let Some(table) = self.find_table("self") {
             table
         } else {
@@ -236,7 +136,7 @@ impl<'a> QueryBuilder<'a> {
             return;
         };
 
-        if self.validate_table_column(column_name).is_err() {
+        if table.find_column(column_name).is_none() {
             self.set_error(Error::QueryBuilderError {
                 error: format!(
                     "Column `{column_name}` does not exist in table `{}`",
@@ -305,7 +205,10 @@ impl<'a> QueryBuilder<'a> {
 
     /// Where Primary Key
     pub fn where_primary_key(&mut self, value: impl Into<Value>) -> &mut Self {
-        if let Some(table) = self.find_table("self") {
+        if let Some(table) = self.find_table_default() {
+            let pk = table.get_primary_key().unwrap();
+            self.where_eq(&pk.name(), value.into());
+        } else if let Some(table) = self.find_table("self") {
             let pk = table.get_primary_key().unwrap();
             self.where_eq(&pk.name(), value.into());
         } else {
@@ -360,11 +263,27 @@ impl<'a> QueryBuilder<'a> {
     }
 
     /// Find a table in the database
-    fn find_table(&self, table: &str) -> Option<&'a Table> {
-        self.database.iter().find(|t| t.name == table).map(|t| &**t)
+    fn find_table(&self, table: &str) -> Option<Table> {
+        self.database.iter().find_map(|t| {
+            if t.name == table {
+                Some(t.clone())
+            } else {
+                None
+            }
+        })
     }
 
-    fn find_table_default(&self) -> Option<&'a Table> {
+    /// Find the columns for the default table
+    fn find_column(&self, column: &str) -> Option<Table> {
+        if let Some(table) = self.find_table_default() {
+            if table.columns.contains(&column.to_string()) {
+                return Some(table);
+            }
+        }
+        None
+    }
+
+    pub(crate) fn find_table_default(&self) -> Option<Table> {
         if self.database.is_empty() {
             None
         } else {
@@ -373,7 +292,9 @@ impl<'a> QueryBuilder<'a> {
     }
 
     fn validate_table_column(&self, column: &str) -> Result<bool, Error> {
-        if let Some(table) = self.find_table("self") {
+        if let Some(table) = self.find_column(column) {
+            Ok(table.columns.contains(&column))
+        } else if let Some(table) = self.find_table("self") {
             Ok(table.columns.contains(&column))
         } else {
             return Err(Error::QueryBuilderError {
@@ -407,15 +328,26 @@ impl<'a> QueryBuilder<'a> {
         self.errors.push(error.to_string());
     }
 
-    /// Build a Query from the QueryBuilder
-    pub fn build(&self) -> Result<Query, crate::Error> {
-        let query = Query {
-            query: self.query_type.to_sql(self)?,
-            query_type: self.query_type.clone(),
-            values: self.values.clone(),
-            params: self.values.clone(),
-        };
+    /// Build the query
+    pub fn build(&self) -> Result<crate::Query, Error> {
+        if !self.errors.is_empty() {
+            return Err(Error::QueryBuilderError {
+                error: self.errors.join(", "),
+                location: String::from("build"),
+            });
+        }
 
-        Ok(query)
+        Ok(crate::Query {
+            query_type: self.query_type.clone(),
+            backend: self.backend.clone(),
+            database: self.database.clone(),
+            columns: self.columns.clone(),
+            where_clause: self.where_clause.clone(),
+            joins: self.joins.clone(),
+            order_by: self.order_by.clone(),
+            limit: self.limit,
+            offset: self.offset,
+            values: self.values.clone(),
+        })
     }
 }

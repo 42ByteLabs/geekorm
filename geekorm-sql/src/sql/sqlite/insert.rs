@@ -1,11 +1,12 @@
 //! # Insert Query Builder
 
-use crate::builder::table::TableExpr;
-use crate::{QueryBuilder, QueryType, ToSql, Value, Values};
+use crate::query::table::TableExpr;
+use crate::{Query, QueryType, SqlQuery, ToSql, Value, Values};
 
 impl QueryType {
-    pub(crate) fn sql_insert(&self, query: &QueryBuilder) -> String {
-        let mut full_query = String::new();
+    pub(crate) fn sql_insert(&self, query: &Query) -> SqlQuery {
+        let mut full_query = SqlQuery::new();
+
         if let Some(table) = query.find_table_default() {
             full_query.push_str("INSERT INTO ");
             full_query.push_str(&table.name);
@@ -54,7 +55,7 @@ impl QueryType {
 
             full_query.push(';');
         } else {
-            return String::from("No table specified");
+            full_query.push_str("-- No table specified for INSERT");
         }
 
         full_query
@@ -64,11 +65,11 @@ impl QueryType {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::builder::{
+    use crate::query::{
         columns::{Column, ColumnOptions, Columns},
         columntypes::ColumnType,
     };
-    use crate::{QueryType, builder::QueryBuilder, builder::table::Table};
+    use crate::{QueryType, query::Query, query::table::Table};
 
     fn table() -> Table {
         Table {
@@ -89,14 +90,18 @@ mod tests {
     #[test]
     fn test_insert_query() {
         let table = table();
-        let query = crate::QueryBuilder::insert()
-            .table(&table)
+        let query = crate::Query::insert()
+            .table(table)
             .add_value("id", 1)
             .add_value("name", "John Doe")
             .add_value("email", "john.doe@example.com")
             .build()
             .unwrap();
+        let output = query.to_sql().unwrap();
 
-        assert_eq!(query.query, "INSERT INTO Test (name, email) VALUES (?, ?);");
+        assert_eq!(
+            output.to_string(),
+            "INSERT INTO Test (name, email) VALUES (?, ?);"
+        );
     }
 }

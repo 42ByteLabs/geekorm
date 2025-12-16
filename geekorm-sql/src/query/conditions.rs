@@ -1,7 +1,7 @@
 //! # Query Conditions
 
-use super::QueryBuilder;
-use crate::{Error, ToSql};
+use super::Query;
+use crate::{Error, SqlQuery, ToSql};
 
 /// Query Condition (EQ, NE, etc.)
 #[derive(Debug, Clone, Default)]
@@ -104,12 +104,12 @@ impl WhereClause {
 }
 
 impl ToSql for WhereClause {
-    fn to_sql_stream(&self, stream: &mut String, _query: &QueryBuilder) -> Result<(), Error> {
+    fn to_sql_stream(&self, stream: &mut SqlQuery, _query: &Query) -> Result<(), Error> {
         if self.is_empty() {
             return Ok(());
         }
         // If the last char is not a space, add a space
-        if !stream.is_empty() && !stream.ends_with(' ') {
+        if !stream.is_empty() && !stream.ends_with(" ") {
             stream.push(' ');
         }
 
@@ -134,7 +134,7 @@ impl ToSql for WhereClause {
 mod tests {
     use super::*;
     use crate::ToSql;
-    use crate::builder::QueryBuilder;
+    use crate::query::Query;
 
     #[test]
     fn test_where_clause() {
@@ -143,11 +143,11 @@ mod tests {
         where_clause.push_condition(WhereCondition::And).unwrap();
         where_clause.push("name".to_string(), QueryCondition::Like);
 
-        let mut query = String::new();
+        let mut query = SqlQuery::new();
         where_clause
-            .to_sql_stream(&mut query, &QueryBuilder::default())
+            .to_sql_stream(&mut query, &Query::default())
             .unwrap();
 
-        assert_eq!(query, "WHERE id = ? AND name LIKE ?");
+        assert_eq!(query.to_string(), "WHERE id = ? AND name LIKE ?");
     }
 }

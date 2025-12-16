@@ -25,14 +25,14 @@ impl ColumnType {
     pub fn to_sql_with_options(
         &self,
         options: &ColumnOptions,
-        query: &super::QueryBuilder,
+        _query: &super::Query,
     ) -> Result<String, Error> {
         let mut stream = String::new();
 
         match self {
             ColumnType::ForeignKey => {
                 stream.push_str("INTEGER");
-                let opts = options.to_sql(query)?;
+                let opts = options.sql();
                 if !opts.is_empty() {
                     stream.push(' ');
                     stream.push_str(&opts);
@@ -40,7 +40,7 @@ impl ColumnType {
             }
             ColumnType::Text => {
                 stream.push_str("TEXT");
-                let opts = options.to_sql(query)?;
+                let opts = options.sql();
                 if !opts.is_empty() {
                     stream.push(' ');
                     stream.push_str(&opts);
@@ -48,7 +48,7 @@ impl ColumnType {
             }
             ColumnType::Integer => {
                 stream.push_str("INTEGER");
-                let opts = options.to_sql(query)?;
+                let opts = options.sql();
                 if !opts.is_empty() {
                     stream.push(' ');
                     stream.push_str(&opts);
@@ -56,7 +56,7 @@ impl ColumnType {
             }
             ColumnType::Boolean => {
                 stream.push_str("INTEGER");
-                let opts = options.to_sql(query)?;
+                let opts = options.sql();
                 if !opts.is_empty() {
                     stream.push(' ');
                     stream.push_str(&opts);
@@ -64,7 +64,7 @@ impl ColumnType {
             }
             ColumnType::Blob => {
                 stream.push_str("BLOB");
-                let opts = options.to_sql(query)?;
+                let opts = options.sql();
 
                 if !opts.is_empty() {
                     stream.push(' ');
@@ -78,11 +78,8 @@ impl ColumnType {
 }
 
 impl ToSql for ColumnOptions {
-    fn to_sql_stream(
-        &self,
-        stream: &mut String,
-        _query: &super::QueryBuilder,
-    ) -> Result<(), Error> {
+    fn sql(&self) -> String {
+        let mut stream = String::new();
         let mut sql = Vec::new();
 
         if self.primary_key {
@@ -100,7 +97,7 @@ impl ToSql for ColumnOptions {
         }
 
         stream.push_str(&sql.join(" "));
-        Ok(())
+        stream
     }
 }
 
@@ -109,8 +106,8 @@ mod tests {
     use super::*;
     use crate::{
         QueryType, Table,
-        builder::{
-            QueryBuilder,
+        query::{
+            Query,
             columns::{Column, Columns},
         },
     };
@@ -132,8 +129,8 @@ mod tests {
         }
     }
 
-    fn query() -> crate::QueryBuilder<'static> {
-        crate::QueryBuilder::default()
+    fn query() -> crate::Query {
+        crate::Query::default()
     }
 
     #[test]
@@ -166,24 +163,27 @@ mod tests {
 
     #[test]
     fn test_column_type_options_to_sql() {
-        let query = query();
         let column_type_options = ColumnOptions::default();
-        assert_eq!(column_type_options.to_sql(&query).unwrap(), "");
+        assert_eq!(column_type_options.sql(), "");
 
         let column_type_options = ColumnOptions {
             primary_key: true,
             ..Default::default()
         };
-        assert_eq!(column_type_options.to_sql(&query).unwrap(), "PRIMARY KEY");
+        assert_eq!(column_type_options.sql(), "PRIMARY KEY");
 
         let column_type_options = ColumnOptions {
             primary_key: true,
             auto_increment: true,
             ..Default::default()
         };
-        assert_eq!(
-            column_type_options.to_sql(&query).unwrap(),
-            "PRIMARY KEY AUTOINCREMENT"
-        );
+        assert_eq!(column_type_options.sql(), "PRIMARY KEY AUTOINCREMENT");
+
+        // Unique
+        let column_type_options = ColumnOptions {
+            unique: true,
+            ..Default::default()
+        };
+        assert_eq!(column_type_options.sql(), "UNIQUE");
     }
 }

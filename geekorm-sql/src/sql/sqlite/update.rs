@@ -1,11 +1,12 @@
 //! # Update Query Builder
 
-use crate::builder::table::TableExpr;
-use crate::{QueryBuilder, QueryType, ToSql};
+use crate::query::table::TableExpr;
+use crate::{Query, QueryType, SqlQuery, ToSql};
 
 impl QueryType {
-    pub(crate) fn sql_update(&self, query: &QueryBuilder) -> String {
-        let mut full_query = "UPDATE ".to_string();
+    pub(crate) fn sql_update(&self, query: &Query) -> SqlQuery {
+        let mut full_query = SqlQuery::new();
+        full_query.push_str("UPDATE ");
 
         if let Some(table) = query.find_table_default() {
             let mut table = TableExpr::new(&table.name);
@@ -32,11 +33,11 @@ impl QueryType {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{QueryType, ToSql, builder::table::Table};
+    use crate::{QueryType, ToSql, query::table::Table};
     use crate::{
         backends::QueryBackend,
-        builder::{
-            QueryBuilder,
+        query::{
+            Query,
             columns::{Column, ColumnOptions, Columns},
             columntypes::ColumnType,
         },
@@ -61,15 +62,16 @@ mod tests {
     #[test]
     fn test_update_query() {
         let table = table();
-        let query = QueryBuilder::select()
+        let query = Query::select()
             .backend(QueryBackend::Sqlite)
-            .table(&table)
+            .table(table)
             .where_primary_key("1")
             .build()
             .unwrap();
+        let output = query.to_sql().unwrap();
 
         assert_eq!(
-            query.query,
+            output.to_string(),
             "UPDATE id, name, email FROM Test WHERE id = ?;"
         );
     }

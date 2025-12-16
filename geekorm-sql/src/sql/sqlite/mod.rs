@@ -1,4 +1,4 @@
-//! # Queries
+//! # SQLite Query Module
 
 pub mod count;
 pub mod create;

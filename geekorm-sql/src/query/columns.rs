@@ -4,7 +4,7 @@
 
 use super::QueryType;
 use super::columntypes::ColumnType;
-use crate::{Error, ToSql};
+use crate::{Error, SqlQuery, ToSql};
 
 /// Columns is a collection of `Column` definitions for a table.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -42,6 +42,17 @@ impl Column {
             alias.clone()
         } else {
             self.name.clone()
+        }
+    }
+
+    /// Create a new primary key column.
+    pub fn primary_key(name: impl Into<String>) -> Self {
+        Column {
+            name: name.into(),
+            column_type: ColumnType::Integer,
+            column_options: ColumnOptions::primary_key(),
+            alias: None,
+            foreign_key: None,
         }
     }
 
@@ -102,26 +113,54 @@ impl ColumnOptions {
             auto_increment: true,
         }
     }
+
+    /// Unique option
+    pub fn unique() -> Self {
+        ColumnOptions {
+            unique: true,
+            ..Default::default()
+        }
+    }
 }
 
 impl ToSql for Column {
-    fn to_sql_stream(&self, stream: &mut String, query: &super::QueryBuilder) -> Result<(), Error> {
+    fn sql(&self) -> String {
+        let mut stream = String::new();
+        let name = self.name();
+
+        if let Some(alias) = &self.alias {
+            stream.push_str(&self.name);
+            if !alias.is_empty() {
+                stream.push_str(" AS ");
+                stream.push_str(alias);
+            }
+        } else {
+            stream.push_str(&name);
+        }
+        stream
+    }
+
+    fn to_sql_stream(&self, stream: &mut SqlQuery, query: &super::Query) -> Result<(), Error> {
         match query.query_type {
             QueryType::Create => {
                 stream.push_str(&self.name);
                 stream.push(' ');
-                self.column_type
-                    .to_sql_with_options(&self.column_options, query)?;
+                stream.push_str(
+                    self.column_type
+                        .to_sql_with_options(&self.column_options, query)?,
+                );
             }
             _ => {
                 let name = self.name();
 
-                stream.push_str(&name);
                 if let Some(alias) = &self.alias {
                     if !alias.is_empty() {
+                        stream.push_str(&self.name);
                         stream.push_str(" AS ");
                         stream.push_str(alias);
                     }
+                } else {
+                    stream.push_str(&name);
                 }
 
                 if query.joins.is_empty() {
@@ -138,26 +177,16 @@ impl ToSql for Column {
 }
 
 impl ToSql for Columns {
-    fn to_sql_stream(&self, stream: &mut String, query: &super::QueryBuilder) -> Result<(), Error> {
-        let mut sql = Vec::new();
-
+    fn to_sql_stream(&self, stream: &mut SqlQuery, query: &super::Query) -> Result<(), Error> {
+        let last_column = self.columns.last();
         for col in &self.columns {
-            sql.push(col.to_sql(query)?);
+            // sql.push(col.sql());
+            col.to_sql_stream(stream, query)?;
+            if Some(col) != last_column {
+                stream.push_str(", ");
+            }
         }
 
-        for foreign_key in self.get_foreign_keys() {
-            let (ctable, ccolumn) = foreign_key.get_foreign_key().unwrap();
-
-            sql.push("FOREIGN KEY (".to_string());
-            sql.push(foreign_key.name.clone());
-            sql.push(") REFERENCES ".to_string());
-            sql.push(ctable.to_string());
-            sql.push("(".to_string());
-            sql.push(ccolumn.to_string());
-            sql.push(")".to_string());
-        }
-
-        stream.push_str(&sql.join(", "));
         Ok(())
     }
 }
@@ -205,7 +234,6 @@ impl From<(String, ColumnType, ColumnOptions)> for Column {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::builder::QueryBuilder;
     use crate::{Query, Table};
 
     fn table() -> Table {
@@ -226,29 +254,53 @@ mod tests {
     }
 
     #[test]
-    fn test_single_column_to_sql() {
-        let table = table();
-        let mut query = QueryBuilder::select();
-        query.table(&table);
-
+    fn test_column() {
         let column = Column::from(("id".to_string(), ColumnType::Integer));
 
-        let column_sql = column.to_sql(&query).unwrap();
-
-        assert_eq!(column_sql.as_str(), "id");
+        assert_eq!(column.name, "id");
+        assert_eq!(column.column_type, ColumnType::Integer);
+        assert_eq!(column.alias, None);
+        assert_eq!(column.sql(), "id");
     }
 
     #[test]
-    fn test_columns_to_sql() {
+    fn test_column_with_alias() {
+        let column_with_alias = Column::from(("name".to_string(), "username".to_string()));
+        assert_eq!(column_with_alias.name, "name");
+        assert_eq!(column_with_alias.alias.clone().unwrap(), "username");
+        assert_eq!(column_with_alias.sql(), "name AS username");
+    }
+
+    #[test]
+    fn test_column_foreign_key() {
+        let column = Column::new_foreign_key("image_id", "Images.id");
+        let (foreign_key_table, foreign_key_col) = column.get_foreign_key().unwrap();
+
+        assert_eq!(foreign_key_table, "Images");
+        assert_eq!(foreign_key_col, "id");
+    }
+
+    #[test]
+    fn test_columns_create() {
         let table = table();
-        let mut query = QueryBuilder::select();
-        query.table(&table);
+        let query = Query::create().table(table.clone()).build().unwrap();
+
+        let mut sql = SqlQuery::new();
+        Columns::to_sql_stream(&table.columns, &mut sql, &query).unwrap();
+
+        assert_eq!(
+            sql.to_string(),
+            "id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, email TEXT, image_id INTEGER"
+        );
+    }
+
+    #[test]
+    fn test_columns_select_to_sql() {
+        let table = table();
+        let query = Query::select().table(table.clone()).build().unwrap();
 
         let columns = Columns::to_sql(&table.columns, &query).unwrap();
 
-        assert_eq!(
-            columns.as_str(),
-            "id, name, email, image_id, FOREIGN KEY (image_id) REFERENCES images(id)"
-        );
+        assert_eq!(columns.to_string(), "id, name, email, image_id");
     }
 }

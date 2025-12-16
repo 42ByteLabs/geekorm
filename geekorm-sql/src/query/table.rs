@@ -1,7 +1,7 @@
 //! # Table Expression
 
 use super::columns::{Column, Columns};
-use crate::ToSql;
+use crate::{SqlQuery, ToSql};
 
 /// Table structure representing a database table.
 #[derive(Debug, Clone, Default)]
@@ -44,6 +44,18 @@ impl Table {
             .find(|col| col.foreign_key.as_deref() == Some(&name))
     }
 
+    /// Find the foreign key column that references the given table
+    pub fn find_foreign_key(&self, table: &str) -> Option<&Column> {
+        self.columns.columns.iter().find(|col| {
+            if let Some(fk) = &col.foreign_key {
+                if let Some((fk_table, _)) = fk.split_once('.') {
+                    return fk_table == table;
+                }
+            }
+            false
+        })
+    }
+
     /// Get a column by its name or alias
     pub fn find_column(&self, name: &str) -> Option<&Column> {
         self.columns
@@ -79,10 +91,10 @@ impl ToSql for TableExpr {
 
     fn to_sql_stream(
         &self,
-        stream: &mut String,
-        _query: &super::QueryBuilder,
+        stream: &mut SqlQuery,
+        _query: &super::Query,
     ) -> Result<(), crate::Error> {
-        if !stream.is_empty() && !stream.ends_with(' ') {
+        if !stream.is_empty() && !stream.ends_with(" ") {
             stream.push(' ');
         }
 
@@ -110,26 +122,22 @@ impl TableExpr {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::QueryBuilder;
+    use crate::Query;
 
     #[test]
     fn test_table() {
         let table = TableExpr::new("users");
-        let mut sql = String::new();
-        table
-            .to_sql_stream(&mut sql, &QueryBuilder::default())
-            .unwrap();
-        assert_eq!(sql, "FROM users");
+        let mut sql = SqlQuery::new();
+        table.to_sql_stream(&mut sql, &Query::default()).unwrap();
+        assert_eq!(sql.to_string(), "FROM users");
     }
 
     #[test]
     fn test_table_expr_alias() {
         let mut table = TableExpr::new("users");
         table.alias("u".to_string());
-        let mut sql = String::new();
-        table
-            .to_sql_stream(&mut sql, &QueryBuilder::default())
-            .unwrap();
-        assert_eq!(sql, "FROM users AS u");
+        let mut sql = SqlQuery::new();
+        table.to_sql_stream(&mut sql, &Query::default()).unwrap();
+        assert_eq!(sql.to_string(), "FROM users AS u");
     }
 }

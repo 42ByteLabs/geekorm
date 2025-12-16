@@ -1,77 +1,134 @@
-//! # Query Builder
+//! # Query Builder module
 
-use std::fmt::Display;
-use std::path::PathBuf;
+pub mod builder;
+pub mod columns;
+pub mod columntypes;
+pub mod conditions;
+pub mod joins;
+pub mod ordering;
+pub mod qtype;
+pub mod table;
 
-use crate::{Error, QueryType, Values};
+use std::collections::HashMap;
 
-/// A collection of queries to be executed in a batch
-pub struct BatchQueries {
-    pub(crate) queries: Vec<Query>,
-}
+pub use builder::QueryBuilder;
+pub use conditions::{QueryCondition, WhereClause, WhereCondition};
+pub use joins::{TableJoin, TableJoinOptions, TableJoins};
+pub use ordering::{OrderClause, QueryOrder};
+pub use qtype::QueryType;
+use table::Table;
 
-/// Query Builder
+use crate::{Error, QueryBackend, ToSql, Value, Values, sql::*};
+use columns::Columns;
+
+/// Query struct
+#[derive(Debug, Clone, Default)]
 pub struct Query {
-    /// The SQL query string
-    pub(crate) query: String,
-
-    /// The type of query
+    /// Query Backend
+    pub(crate) backend: QueryBackend,
+    /// Query type
     pub(crate) query_type: QueryType,
 
-    /// Values are data for inserting
-    pub(crate) values: Values,
+    /// Tables to query
+    pub(crate) database: Vec<Table>,
 
-    /// Parameters are data for binding
-    pub(crate) params: Values,
+    /// These are the columns for INSERT and UPDATE queries
+    pub(crate) columns: Vec<String>,
+
+    /// Query where conditions
+    pub(crate) where_clause: WhereClause,
+
+    /// Joins
+    pub(crate) joins: TableJoins,
+
+    /// Order by conditions
+    pub(crate) order_by: OrderClause,
+
+    /// Limit the number of rows returned
+    pub(crate) limit: Option<usize>,
+
+    /// Offset the starting point of the rows returned
+    pub(crate) offset: Option<usize>,
+
+    /// Parameters
+    pub(crate) values: Values,
 }
 
 impl Query {
-    /// Get the SQL query string
-    pub fn query(&self) -> String {
-        self.query.clone()
+    /// Count query builder
+    pub fn count() -> QueryBuilder {
+        QueryBuilder {
+            query_type: QueryType::Count,
+            ..Default::default()
+        }
+    }
+    /// Select query builder
+    pub fn select() -> QueryBuilder {
+        QueryBuilder {
+            query_type: QueryType::Select,
+            ..Default::default()
+        }
+    }
+
+    /// Build a create query
+    pub fn create() -> QueryBuilder {
+        QueryBuilder {
+            query_type: QueryType::Create,
+            ..Default::default()
+        }
+    }
+
+    /// Build a "get all rows" query
+    pub fn all() -> QueryBuilder {
+        QueryBuilder {
+            query_type: QueryType::Select,
+            ..Default::default()
+        }
+    }
+
+    /// Build an insert query
+    pub fn insert() -> QueryBuilder {
+        QueryBuilder {
+            query_type: QueryType::Insert,
+            ..Default::default()
+        }
+    }
+
+    /// Build an update query
+    pub fn update() -> QueryBuilder {
+        QueryBuilder {
+            query_type: QueryType::Update,
+            ..Default::default()
+        }
+    }
+
+    /// Build a delete query
+    pub fn delete() -> QueryBuilder {
+        QueryBuilder {
+            query_type: QueryType::Delete,
+            ..Default::default()
+        }
+    }
+
+    /// Find the default table in the query
+    pub(crate) fn find_table_default(&self) -> Option<Table> {
+        if self.database.is_empty() {
+            None
+        } else {
+            self.database.first().cloned()
+        }
+    }
+
+    /// Convert the query to SQL
+    pub fn to_sql(&self) -> Result<SqlQuery, Error> {
+        self.query_type.to_sql(self)
     }
 }
 
-impl BatchQueries {
-    /// Load a SQL file
-    pub fn load(path: impl Into<PathBuf>) -> Result<Self, Error> {
-        let path = path.into();
-        if !path.exists() && !path.is_file() {
-            return Err(Error::SqlFileNotFound {
-                path: path.display().to_string(),
-            });
-        }
-        let query = std::fs::read_to_string(path)?;
-
-        // Split by semicolon to get individual queries
-        let queries: Vec<String> = query
-            .lines()
-            .filter_map(|line| {
-                let trimmed = line.trim();
-                if !trimmed.is_empty() && !trimmed.starts_with("--") {
-                    Some(trimmed.to_string())
-                } else {
-                    None
-                }
-            })
-            .collect();
-
-        let mut batch_queries = BatchQueries {
-            queries: Vec::new(),
-        };
-        for query in queries {
-            // TODO: Determine query type based on the content of the query
-            let query_type = QueryType::Unknown;
-            let values = Values::new(); // Placeholder for actual values
-            let params = Values::new(); // Placeholder for actual parameters
-
-            batch_queries.queries.push(Query {
-                query,
-                query_type,
-                values,
-                params,
-            });
-        }
-        Ok(batch_queries)
-    }
-}
+// impl<'a> ToSql for Query<'a> {
+//     fn to_sql_stream(&self, stream: &mut SqlQuery, _query: &Query) -> Result<(), Error> {
+//         let sql = self.to_sql()?;
+//         stream.push_str(&sql);
+//         Ok(())
+//     }
+// }

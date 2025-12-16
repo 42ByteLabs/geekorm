@@ -2,12 +2,12 @@
 //!
 //! Delete queries are only supported for tables with a primary key.
 
-use crate::builder::table::TableExpr;
-use crate::{QueryBuilder, QueryType, ToSql};
+use crate::query::table::TableExpr;
+use crate::{Query, QueryType, SqlQuery, ToSql};
 
 impl QueryType {
-    pub(crate) fn sql_delete(&self, query: &QueryBuilder) -> String {
-        let mut full_query = String::new();
+    pub(crate) fn sql_delete(&self, query: &Query) -> SqlQuery {
+        let mut full_query = SqlQuery::new();
 
         if let Some(table) = query.find_table_default() {
             full_query.push_str("DELETE ");
@@ -30,7 +30,7 @@ impl QueryType {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::builder::{
+    use crate::query::{
         columns::{Column, ColumnOptions, Columns},
         columntypes::ColumnType,
     };
@@ -40,11 +40,7 @@ mod tests {
         Table {
             name: "Test",
             columns: Columns::new(vec![
-                Column::from((
-                    "id".to_string(),
-                    ColumnType::Integer,
-                    ColumnOptions::primary_key(),
-                )),
+                Column::primary_key("id"),
                 Column::from(("name".to_string(), ColumnType::Text)),
             ])
             .into(),
@@ -54,13 +50,14 @@ mod tests {
     #[test]
     fn test_sql_delete() {
         let table = table();
-        let query = QueryBuilder::delete()
-            .table(&table)
+        let query = Query::delete()
+            .table(table)
             .where_primary_key(1)
             .build()
             .unwrap();
+        let output = query.to_sql().unwrap();
 
-        assert_eq!(query.query, "DELETE FROM Test WHERE id = ?;");
+        assert_eq!(output.to_string(), "DELETE FROM Test WHERE id = ?;");
         assert_eq!(query.values.len(), 1);
     }
 }
