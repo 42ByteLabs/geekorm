@@ -16,6 +16,8 @@ pub use geekorm_core::builder::keys::foreign::{ForeignKey, ForeignKeyInteger};
 pub use geekorm_core::builder::keys::primary::PrimaryKeyUuid;
 pub use geekorm_core::builder::keys::primary::{PrimaryKey, PrimaryKeyInteger, PrimaryKeyString};
 
+pub use geekorm_core::queries::{Query, QueryBuilder};
+
 // Query Builder Modules
 pub use geekorm_core::builder::models::{QueryCondition, QueryOrder, QueryType};
 pub use geekorm_core::builder::values::{Value, Values};
@@ -96,6 +98,9 @@ pub mod prelude {
     pub use geekorm_core::ToSqlite;
     // Backends Module
     pub use geekorm_core::{GeekConnection, GeekConnector};
+
+    // Queries Module
+    pub use geekorm_core::queries::{Query, QueryBuilder};
 
     // Builder Modules
     pub use geekorm_core::builder::columns::{Column, Columns};
