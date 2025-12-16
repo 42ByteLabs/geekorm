@@ -19,10 +19,10 @@ pub use geekorm_core::builder::keys::primary::{PrimaryKey, PrimaryKeyInteger, Pr
 pub use geekorm_core::queries::{Query, QueryBuilder};
 
 // Query Builder Modules
-pub use geekorm_core::builder::models::{QueryCondition, QueryOrder, QueryType};
-pub use geekorm_core::builder::values::{Value, Values};
 #[cfg(feature = "migrations")]
 pub use geekorm_core::builder::alter::{AlterMode, AlterQuery};
+pub use geekorm_core::builder::models::{QueryCondition, QueryOrder, QueryType};
+pub use geekorm_core::builder::values::{Value, Values};
 
 // Connection
 #[cfg(feature = "connect")]
@@ -103,11 +103,11 @@ pub mod prelude {
     pub use geekorm_core::queries::{Query, QueryBuilder};
 
     // Builder Modules
+    #[cfg(feature = "migrations")]
+    pub use geekorm_core::builder::alter::{AlterMode, AlterQuery};
     pub use geekorm_core::builder::columns::{Column, Columns};
     pub use geekorm_core::builder::columntypes::{ColumnType, ColumnTypeOptions};
     pub use geekorm_core::builder::table::Table as BuilderTable;
-    #[cfg(feature = "migrations")]
-    pub use geekorm_core::builder::alter::{AlterMode, AlterQuery};
     #[cfg(feature = "pagination")]
     pub use geekorm_core::queries::pages::Page;
     #[cfg(feature = "pagination")]
