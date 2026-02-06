@@ -23,8 +23,8 @@ authors.workspace = true
 geekorm = { path = "../", version = "^0.11.4", features = ["utils", "migrations"] }
 geekorm-core = { path = "../geekorm-core", version = "^0.11.4", features = ["migrations", "rusqlite"] }
 
-# libsql = { version = "0.6", optional = true }
-rusqlite = { version = "0.37" }
+# libsql = { version = "0.9", optional = true }
+rusqlite = { version = "0.38" }
 
 # CLI
 clap = { version = "4.0", features = ["derive", "env"] }
@@ -33,9 +33,9 @@ dialoguer = { version = "0.11", features = ["fuzzy-select", "password"] }
 indicatif = "0.18"
 dotenvy = { version = "0.15", features = ["cli"] }
 
-tokio = { version = "1.0", features = ["full"] }
+tokio = { version = "1", features = ["full"] }
 
-anyhow = "1.0"
+anyhow = "1"
 log = "0.4"
 env_logger = "0.11"
 
@@ -47,6 +47,5 @@ serde = { version = "1.0", features = ["derive"] }
 serde_yaml = "0.9"
 serde_json = "1"
 toml = "0.8"
-glob = "0.3.1"
-chrono = { version = "0.4.38", features = ["serde"] }
-
+glob = "0.3"
+chrono = { version = "0.4", features = ["serde"] }
