@@ -24,7 +24,7 @@ jobs:
     secrets: inherit
     with:
       crate: geekorm
-      crates: geekorm-core,geekorm-sql,geekorm-derive,geekorm,geekorm-cli
+      crates: geekorm-core,geekorm-derive,geekorm,geekorm-cli
 
   auto-release:
     runs-on: ubuntu-latest
