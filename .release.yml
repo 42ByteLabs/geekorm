@@ -1,6 +1,6 @@
 name: "geekorm"
 repository: "42ByteLabs/geekorm"
-version: 0.11.4
+version: 0.11.5
 
 ecosystems:
   - Docs
