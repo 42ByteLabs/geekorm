@@ -8,11 +8,14 @@ impl QueryType {
         let mut full_query = "UPDATE ".to_string();
 
         if let Some(table) = query.find_table_default() {
-            let mut table = TableExpr::new(&table.name);
-            if let Some(ref alias) = table.alias {
-                table.alias(alias.clone());
+            let mut table_expr = TableExpr::new(table.name);
+
+            table.columns.to_sql_stream(&mut full_query, query).unwrap();
+
+            if let Some(ref alias) = table_expr.alias {
+                table_expr.alias(alias.clone());
             }
-            table.to_sql_stream(&mut full_query, query).unwrap();
+            table_expr.to_sql_stream(&mut full_query, query).unwrap();
 
             // WHERE
             if !query.where_clause.is_empty() {
@@ -61,10 +64,10 @@ mod tests {
     #[test]
     fn test_update_query() {
         let table = table();
-        let query = QueryBuilder::select()
+        let query = QueryBuilder::update()
             .backend(QueryBackend::Sqlite)
             .table(&table)
-            .where_primary_key("1")
+            .where_eq("id", 1)
             .build()
             .unwrap();
 
