@@ -958,7 +958,7 @@ dependencies = [
 
 [[package]]
 name = "geekorm"
-version = "0.11.5"
+version = "0.11.6"
 dependencies = [
  "anyhow",
  "chrono",
@@ -979,7 +979,7 @@ dependencies = [
 
 [[package]]
 name = "geekorm-cli"
-version = "0.11.5"
+version = "0.11.6"
 dependencies = [
  "anyhow",
  "chrono",
@@ -1006,7 +1006,7 @@ dependencies = [
 
 [[package]]
 name = "geekorm-core"
-version = "0.11.5"
+version = "0.11.6"
 dependencies = [
  "anyhow",
  "argon2",
@@ -1040,7 +1040,7 @@ dependencies = [
 
 [[package]]
 name = "geekorm-derive"
-version = "0.11.5"
+version = "0.11.6"
 dependencies = [
  "chrono",
  "geekorm",
