@@ -226,7 +226,7 @@ impl<'a> QueryBuilder<'a> {
                         .unwrap()
                 }
             }
-        } else if let Some(table) = self.find_table("self") {
+        } else if let Some(table) = self.find_table_default() {
             table
         } else {
             self.set_error(Error::QueryBuilderError {
@@ -305,7 +305,7 @@ impl<'a> QueryBuilder<'a> {
 
     /// Where Primary Key
     pub fn where_primary_key(&mut self, value: impl Into<Value>) -> &mut Self {
-        if let Some(table) = self.find_table("self") {
+        if let Some(table) = self.find_table_default() {
             let pk = table.get_primary_key().unwrap();
             self.where_eq(&pk.name(), value.into());
         } else {
@@ -346,7 +346,7 @@ impl<'a> QueryBuilder<'a> {
                 self.set_error(Error::QueryBuilderError {
                     error: format!(
                         "Column `{column}` does not exist in table `{}`",
-                        self.find_table("self").unwrap().name
+                        self.find_table_default().unwrap().name
                     ),
                     location: String::from("order_by"),
                 });
@@ -355,7 +355,6 @@ impl<'a> QueryBuilder<'a> {
                 self.set_error(e);
             }
         }
-        // TODO(geekmasher): What if there is no table?
         self
     }
 
@@ -373,8 +372,8 @@ impl<'a> QueryBuilder<'a> {
     }
 
     fn validate_table_column(&self, column: &str) -> Result<bool, Error> {
-        if let Some(table) = self.find_table("self") {
-            Ok(table.columns.contains(&column))
+        if let Some(table) = self.find_table_default() {
+            Ok(table.columns.contains(column))
         } else {
             return Err(Error::QueryBuilderError {
                 error: String::from("No table specified"),

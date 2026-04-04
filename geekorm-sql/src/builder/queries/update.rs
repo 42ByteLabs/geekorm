@@ -8,11 +8,8 @@ impl QueryType {
         let mut full_query = "UPDATE ".to_string();
 
         if let Some(table) = query.find_table_default() {
-            let mut table = TableExpr::new(&table.name);
-            if let Some(ref alias) = table.alias {
-                table.alias(alias.clone());
-            }
-            table.to_sql_stream(&mut full_query, query).unwrap();
+            let table_expr = TableExpr::new(&table.name);
+            full_query.push_str(&table_expr.sql());
 
             // WHERE
             if !query.where_clause.is_empty() {
@@ -61,16 +58,41 @@ mod tests {
     #[test]
     fn test_update_query() {
         let table = table();
-        let query = QueryBuilder::select()
+        let query = QueryBuilder::update()
             .backend(QueryBackend::Sqlite)
             .table(&table)
             .where_primary_key("1")
             .build()
             .unwrap();
 
-        assert_eq!(
-            query.query,
-            "UPDATE id, name, email FROM Test WHERE id = ?;"
-        );
+        assert_eq!(query.query, "UPDATE Test WHERE id = ?;");
+    }
+
+    #[test]
+    fn test_update_query_postgres() {
+        let table = table();
+        let query = QueryBuilder::update()
+            .backend(QueryBackend::Postgres)
+            .table(&table)
+            .where_primary_key("1")
+            .build()
+            .unwrap();
+
+        assert_eq!(query.query, "UPDATE Test WHERE id = $1;");
+    }
+
+    #[test]
+    fn test_update_query_postgres_multiple_conditions() {
+        let table = table();
+        let query = QueryBuilder::update()
+            .backend(QueryBackend::Postgres)
+            .table(&table)
+            .where_eq("id", 5)
+            .and()
+            .where_eq("name", "test")
+            .build()
+            .unwrap();
+
+        assert_eq!(query.query, "UPDATE Test WHERE id = $1 AND name = $2;");
     }
 }

@@ -13,6 +13,7 @@ impl QueryType {
             let mut columns: Vec<String> = Vec::new();
             let mut values: Vec<String> = Vec::new();
             let mut parameters = Values::new();
+            let mut param_index = 1;
 
             for (cname, value) in query.values.values() {
                 let column = table.find_column(cname).unwrap();
@@ -31,12 +32,28 @@ impl QueryType {
                     Value::Identifier(_) | Value::Text(_) | Value::Json(_) => {
                         // Security: String values should never be directly inserted into the query
                         // This is to prevent SQL injection attacks
-                        values.push(String::from("?"));
+                        match query.backend {
+                            crate::QueryBackend::Postgres => {
+                                values.push(format!("${}", param_index));
+                                param_index += 1;
+                            }
+                            _ => {
+                                values.push(String::from("?"));
+                            }
+                        }
                         parameters.push(column_name, value.clone());
                     }
                     Value::Blob(value) => {
                         // Security: Blods should never be directly inserted into the query
-                        values.push(String::from("?"));
+                        match query.backend {
+                            crate::QueryBackend::Postgres => {
+                                values.push(format!("${}", param_index));
+                                param_index += 1;
+                            }
+                            _ => {
+                                values.push(String::from("?"));
+                            }
+                        }
                         parameters.push(column_name, value.clone());
                     }
                     Value::Integer(value) => values.push(value.to_string()),
@@ -68,7 +85,7 @@ mod tests {
         columns::{Column, ColumnOptions, Columns},
         columntypes::ColumnType,
     };
-    use crate::{QueryType, builder::QueryBuilder, builder::table::Table};
+    use crate::{QueryBackend, QueryType, builder::QueryBuilder, builder::table::Table};
 
     fn table() -> Table {
         Table {
@@ -98,5 +115,42 @@ mod tests {
             .unwrap();
 
         assert_eq!(query.query, "INSERT INTO Test (name, email) VALUES (?, ?);");
+    }
+
+    #[test]
+    fn test_insert_query_postgres() {
+        let table = table();
+        let query = crate::QueryBuilder::insert()
+            .backend(QueryBackend::Postgres)
+            .table(&table)
+            .add_value("id", 1)
+            .add_value("name", "John Doe")
+            .add_value("email", "john.doe@example.com")
+            .build()
+            .unwrap();
+
+        assert_eq!(
+            query.query,
+            "INSERT INTO Test (name, email) VALUES ($1, $2);"
+        );
+    }
+
+    #[test]
+    fn test_insert_query_postgres_with_integers() {
+        let table = table();
+        let query = crate::QueryBuilder::insert()
+            .backend(QueryBackend::Postgres)
+            .table(&table)
+            .add_value("id", 1)
+            .add_value("name", "Jane Doe")
+            .add_value("email", "jane@example.com")
+            .build()
+            .unwrap();
+
+        // Integer values are directly inserted, only text values use placeholders
+        assert_eq!(
+            query.query,
+            "INSERT INTO Test (name, email) VALUES ($1, $2);"
+        );
     }
 }

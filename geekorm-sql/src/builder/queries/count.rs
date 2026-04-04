@@ -82,4 +82,29 @@ mod tests {
 
         assert_eq!(query.query, "SELECT COUNT(1) FROM Test WHERE id = ?;");
     }
+
+    #[test]
+    fn test_count_postgres() {
+        let table = table();
+        let query = QueryBuilder::count()
+            .backend(QueryBackend::Postgres)
+            .table(&table)
+            .build()
+            .unwrap();
+
+        assert_eq!(query.query, "SELECT COUNT(1) FROM Test;");
+    }
+
+    #[test]
+    fn test_count_where_postgres() {
+        let table = table();
+        let query = QueryBuilder::count()
+            .backend(QueryBackend::Postgres)
+            .table(&table)
+            .where_eq("id", 1)
+            .build()
+            .unwrap();
+
+        assert_eq!(query.query, "SELECT COUNT(1) FROM Test WHERE id = $1;");
+    }
 }

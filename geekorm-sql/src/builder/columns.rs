@@ -110,19 +110,13 @@ impl ToSql for Column {
             QueryType::Create => {
                 stream.push_str(&self.name);
                 stream.push(' ');
-                self.column_type
+                let col_type_sql = self
+                    .column_type
                     .to_sql_with_options(&self.column_options, query)?;
+                stream.push_str(&col_type_sql);
             }
             _ => {
                 let name = self.name();
-
-                stream.push_str(&name);
-                if let Some(alias) = &self.alias {
-                    if !alias.is_empty() {
-                        stream.push_str(" AS ");
-                        stream.push_str(alias);
-                    }
-                }
 
                 if query.joins.is_empty() {
                     stream.push_str(&name);
@@ -130,6 +124,13 @@ impl ToSql for Column {
                     let table = query.find_table_default().unwrap();
                     let fullname = table.get_fullname(name.as_str());
                     stream.push_str(&fullname);
+                }
+
+                if let Some(alias) = &self.alias {
+                    if !alias.is_empty() {
+                        stream.push_str(" AS ");
+                        stream.push_str(alias);
+                    }
                 }
             }
         }
@@ -145,16 +146,17 @@ impl ToSql for Columns {
             sql.push(col.to_sql(query)?);
         }
 
-        for foreign_key in self.get_foreign_keys() {
-            let (ctable, ccolumn) = foreign_key.get_foreign_key().unwrap();
-
-            sql.push("FOREIGN KEY (".to_string());
-            sql.push(foreign_key.name.clone());
-            sql.push(") REFERENCES ".to_string());
-            sql.push(ctable.to_string());
-            sql.push("(".to_string());
-            sql.push(ccolumn.to_string());
-            sql.push(")".to_string());
+        // Only add foreign key references for CREATE queries
+        if matches!(query.query_type, QueryType::Create) {
+            for foreign_key in self.get_foreign_keys() {
+                if let Some((ctable, ccolumn)) = foreign_key.get_foreign_key() {
+                    let fk_sql = format!(
+                        "FOREIGN KEY ({}) REFERENCES {}({})",
+                        foreign_key.name, ctable, ccolumn
+                    );
+                    sql.push(fk_sql);
+                }
+            }
         }
 
         stream.push_str(&sql.join(", "));
@@ -219,7 +221,7 @@ mod tests {
                 )),
                 Column::from(("name".to_string(), ColumnType::Text)),
                 Column::from(("email".to_string(), ColumnType::Text)),
-                Column::from(("image_id".to_string(), ColumnType::ForeignKey)),
+                Column::new_foreign_key("image_id", "images.id"),
             ])
             .into(),
         }
@@ -241,14 +243,14 @@ mod tests {
     #[test]
     fn test_columns_to_sql() {
         let table = table();
-        let mut query = QueryBuilder::select();
+        let mut query = QueryBuilder::create();
         query.table(&table);
 
         let columns = Columns::to_sql(&table.columns, &query).unwrap();
 
         assert_eq!(
             columns.as_str(),
-            "id, name, email, image_id, FOREIGN KEY (image_id) REFERENCES images(id)"
+            "id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, email TEXT, image_id INTEGER, FOREIGN KEY (image_id) REFERENCES images(id)"
         );
     }
 }

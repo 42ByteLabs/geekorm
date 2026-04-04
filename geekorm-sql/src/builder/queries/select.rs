@@ -99,7 +99,7 @@ mod tests {
             .build()
             .unwrap();
 
-        assert_eq!(query.query, "SELECT id, name, email FROM Test;");
+        assert_eq!(query.query, "SELECT id, name, email, image_id FROM Test;");
     }
 
     #[test]
@@ -114,7 +114,7 @@ mod tests {
 
         assert_eq!(
             query.query,
-            "SELECT id, name, email FROM Test WHERE name = ?;"
+            "SELECT id, name, email, image_id FROM Test WHERE name = ?;"
         );
         assert_eq!(query.values.len(), 1);
 
@@ -136,7 +136,94 @@ mod tests {
 
         assert_eq!(
             query.query,
-            "SELECT id, name, email FROM Test ORDER BY name ASC, email DESC;"
+            "SELECT id, name, email, image_id FROM Test ORDER BY name ASC, email DESC;"
+        );
+    }
+
+    // PostgreSQL tests
+    #[test]
+    fn test_select_postgres() {
+        let table = table();
+        let query = QueryBuilder::select()
+            .backend(QueryBackend::Postgres)
+            .table(&table)
+            .build()
+            .unwrap();
+
+        assert_eq!(query.query, "SELECT id, name, email, image_id FROM Test;");
+    }
+
+    #[test]
+    fn test_select_where_postgres() {
+        let table = table();
+        let query = QueryBuilder::select()
+            .backend(QueryBackend::Postgres)
+            .table(&table)
+            .where_eq("name", "test")
+            .build()
+            .unwrap();
+
+        assert_eq!(
+            query.query,
+            "SELECT id, name, email, image_id FROM Test WHERE name = $1;"
+        );
+        assert_eq!(query.values.len(), 1);
+
+        let mut values = Values::new();
+        values.push("name".to_string(), Value::from("test"));
+        assert_eq!(query.values, values);
+    }
+
+    #[test]
+    fn test_select_where_multiple_postgres() {
+        let table = table();
+        let query = QueryBuilder::select()
+            .backend(QueryBackend::Postgres)
+            .table(&table)
+            .where_eq("name", "test")
+            .and()
+            .where_eq("email", "test@example.com")
+            .build()
+            .unwrap();
+
+        assert_eq!(
+            query.query,
+            "SELECT id, name, email, image_id FROM Test WHERE name = $1 AND email = $2;"
+        );
+        assert_eq!(query.values.len(), 2);
+    }
+
+    #[test]
+    fn test_select_order_postgres() {
+        let table = table();
+        let query = QueryBuilder::select()
+            .backend(QueryBackend::Postgres)
+            .table(&table)
+            .order_by("name", QueryOrder::Asc)
+            .order_by("email", QueryOrder::Desc)
+            .build()
+            .unwrap();
+
+        assert_eq!(
+            query.query,
+            "SELECT id, name, email, image_id FROM Test ORDER BY name ASC, email DESC;"
+        );
+    }
+
+    #[test]
+    fn test_select_limit_offset_postgres() {
+        let table = table();
+        let query = QueryBuilder::select()
+            .backend(QueryBackend::Postgres)
+            .table(&table)
+            .limit(10)
+            .offset(5)
+            .build()
+            .unwrap();
+
+        assert_eq!(
+            query.query,
+            "SELECT id, name, email, image_id FROM Test LIMIT 10 OFFSET 5;"
         );
     }
 }

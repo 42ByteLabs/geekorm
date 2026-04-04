@@ -104,7 +104,7 @@ impl WhereClause {
 }
 
 impl ToSql for WhereClause {
-    fn to_sql_stream(&self, stream: &mut String, _query: &QueryBuilder) -> Result<(), Error> {
+    fn to_sql_stream(&self, stream: &mut String, query: &QueryBuilder) -> Result<(), Error> {
         if self.is_empty() {
             return Ok(());
         }
@@ -116,11 +116,22 @@ impl ToSql for WhereClause {
         // Add the where clause to the SQL string
         stream.push_str("WHERE ");
 
+        let mut param_index = 1;
         for (column, qcondition, wcondition) in &self.conditions {
             stream.push_str(&column);
             stream.push(' ');
             stream.push_str(&qcondition.sql());
-            stream.push_str(" ?");
+
+            // Use different placeholder syntax based on backend
+            match query.backend {
+                crate::QueryBackend::Postgres => {
+                    stream.push_str(&format!(" ${}", param_index));
+                    param_index += 1;
+                }
+                _ => {
+                    stream.push_str(" ?");
+                }
+            }
 
             if let Some(next_condition) = wcondition {
                 stream.push_str(&format!(" {} ", next_condition.sql()));
@@ -133,6 +144,7 @@ impl ToSql for WhereClause {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::QueryBackend;
     use crate::ToSql;
     use crate::builder::QueryBuilder;
 
@@ -149,5 +161,43 @@ mod tests {
             .unwrap();
 
         assert_eq!(query, "WHERE id = ? AND name LIKE ?");
+    }
+
+    #[test]
+    fn test_where_clause_postgres() {
+        let mut where_clause = WhereClause::default();
+        where_clause.push("id".to_string(), QueryCondition::Eq);
+        where_clause.push_condition(WhereCondition::And).unwrap();
+        where_clause.push("name".to_string(), QueryCondition::Like);
+
+        let mut query_builder = QueryBuilder::default();
+        query_builder.backend(QueryBackend::Postgres);
+
+        let mut query = String::new();
+        where_clause
+            .to_sql_stream(&mut query, &query_builder)
+            .unwrap();
+
+        assert_eq!(query, "WHERE id = $1 AND name LIKE $2");
+    }
+
+    #[test]
+    fn test_where_clause_postgres_multiple() {
+        let mut where_clause = WhereClause::default();
+        where_clause.push("age".to_string(), QueryCondition::Gt);
+        where_clause.push_condition(WhereCondition::Or).unwrap();
+        where_clause.push("status".to_string(), QueryCondition::Eq);
+        where_clause.push_condition(WhereCondition::And).unwrap();
+        where_clause.push("active".to_string(), QueryCondition::Eq);
+
+        let mut query_builder = QueryBuilder::default();
+        query_builder.backend(QueryBackend::Postgres);
+
+        let mut query = String::new();
+        where_clause
+            .to_sql_stream(&mut query, &query_builder)
+            .unwrap();
+
+        assert_eq!(query, "WHERE age > $1 OR status = $2 AND active = $3");
     }
 }

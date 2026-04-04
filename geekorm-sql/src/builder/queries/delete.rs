@@ -34,7 +34,7 @@ mod tests {
         columns::{Column, ColumnOptions, Columns},
         columntypes::ColumnType,
     };
-    use crate::{QueryType, Table, ToSql};
+    use crate::{QueryBackend, QueryType, Table, ToSql};
 
     fn table() -> Table {
         Table {
@@ -62,5 +62,35 @@ mod tests {
 
         assert_eq!(query.query, "DELETE FROM Test WHERE id = ?;");
         assert_eq!(query.values.len(), 1);
+    }
+
+    #[test]
+    fn test_sql_delete_postgres() {
+        let table = table();
+        let query = QueryBuilder::delete()
+            .backend(QueryBackend::Postgres)
+            .table(&table)
+            .where_primary_key(1)
+            .build()
+            .unwrap();
+
+        assert_eq!(query.query, "DELETE FROM Test WHERE id = $1;");
+        assert_eq!(query.values.len(), 1);
+    }
+
+    #[test]
+    fn test_sql_delete_multiple_conditions_postgres() {
+        let table = table();
+        let query = QueryBuilder::delete()
+            .backend(QueryBackend::Postgres)
+            .table(&table)
+            .where_eq("id", 1)
+            .and()
+            .where_eq("name", "test")
+            .build()
+            .unwrap();
+
+        assert_eq!(query.query, "DELETE FROM Test WHERE id = $1 AND name = $2;");
+        assert_eq!(query.values.len(), 2);
     }
 }
