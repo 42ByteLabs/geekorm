@@ -1,4 +1,5 @@
-use rand::Rng;
+//! # Random module
+use rand::RngExt;
 
 /// Character set for generating random strings
 pub const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ\
