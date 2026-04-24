@@ -84,7 +84,7 @@ mod tests {
                 )),
                 Column::from(("name".to_string(), ColumnType::Text)),
                 Column::from(("email".to_string(), ColumnType::Text)),
-                Column::from(("image_id".to_string(), ColumnType::ForeignKey)),
+                Column::new_foreign_key("image_id", "Images.id"),
             ])
             .into(),
         }
@@ -99,7 +99,7 @@ mod tests {
             .build()
             .unwrap();
 
-        assert_eq!(query.query, "SELECT id, name, email FROM Test;");
+        assert_eq!(query.query, "SELECT id, name, email, image_id FROM Test;");
     }
 
     #[test]
@@ -114,7 +114,7 @@ mod tests {
 
         assert_eq!(
             query.query,
-            "SELECT id, name, email FROM Test WHERE name = ?;"
+            "SELECT id, name, email, image_id FROM Test WHERE name = ?;"
         );
         assert_eq!(query.values.len(), 1);
 
@@ -136,7 +136,7 @@ mod tests {
 
         assert_eq!(
             query.query,
-            "SELECT id, name, email FROM Test ORDER BY name ASC, email DESC;"
+            "SELECT id, name, email, image_id FROM Test ORDER BY name ASC, email DESC;"
         );
     }
 }

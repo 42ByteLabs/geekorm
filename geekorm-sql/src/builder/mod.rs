@@ -19,7 +19,7 @@ use crate::{Error, Query, QueryBackend, ToSql, Value, Values};
 use columns::Columns;
 
 /// Query Type enum
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub enum QueryType {
     /// Create Query
     Create,
@@ -226,7 +226,7 @@ impl<'a> QueryBuilder<'a> {
                         .unwrap()
                 }
             }
-        } else if let Some(table) = self.find_table("self") {
+        } else if let Some(table) = self.find_table_default() {
             table
         } else {
             self.set_error(Error::QueryBuilderError {
@@ -263,43 +263,43 @@ impl<'a> QueryBuilder<'a> {
 
     /// Where clause for equals
     pub fn where_eq(&mut self, column: &str, value: impl Into<Value>) -> &mut Self {
-        QueryBuilder::add_where(self, column, QueryCondition::Eq, value.into());
+        self.add_where(column, QueryCondition::Eq, value.into());
         self
     }
 
     /// Where clause for not equals
     pub fn where_ne(&mut self, column: &str, value: impl Into<Value>) -> &mut Self {
-        QueryBuilder::add_where(self, column, QueryCondition::Ne, value.into());
+        self.add_where(column, QueryCondition::Ne, value.into());
         self
     }
 
     /// Where clause for like
     pub fn where_like(&mut self, column: &str, value: impl Into<Value>) -> &mut Self {
-        QueryBuilder::add_where(self, column, QueryCondition::Like, value.into());
+        self.add_where(column, QueryCondition::Like, value.into());
         self
     }
 
     /// Where clause for greater than
     pub fn where_gt(&mut self, column: &str, value: impl Into<Value>) -> &mut Self {
-        QueryBuilder::add_where(self, column, QueryCondition::Gt, value.into());
+        self.add_where(column, QueryCondition::Gt, value.into());
         self
     }
 
     /// Where clause for less than
     pub fn where_lt(&mut self, column: &str, value: impl Into<Value>) -> &mut Self {
-        QueryBuilder::add_where(self, column, QueryCondition::Lt, value.into());
+        self.add_where(column, QueryCondition::Lt, value.into());
         self
     }
 
     /// Where clause for greater than or equal to
     pub fn where_gte(&mut self, column: &str, value: impl Into<Value>) -> &mut Self {
-        QueryBuilder::add_where(self, column, QueryCondition::Gte, value.into());
+        self.add_where(column, QueryCondition::Gte, value.into());
         self
     }
 
     /// Where clause for less than or equal to
     pub fn where_lte(&mut self, column: &str, value: impl Into<Value>) -> &mut Self {
-        QueryBuilder::add_where(self, column, QueryCondition::Lte, value.into());
+        self.add_where(column, QueryCondition::Lte, value.into());
         self
     }
 
@@ -373,7 +373,7 @@ impl<'a> QueryBuilder<'a> {
     }
 
     fn validate_table_column(&self, column: &str) -> Result<bool, Error> {
-        if let Some(table) = self.find_table("self") {
+        if let Some(table) = self.find_table_default() {
             Ok(table.columns.contains(&column))
         } else {
             return Err(Error::QueryBuilderError {
