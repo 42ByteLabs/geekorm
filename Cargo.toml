@@ -103,7 +103,7 @@ anyhow = "1.0"
 env_logger = "0.11"
 log = "0.4"
 serde = { version = "1.0", features = ["derive"] }
-tokio = { version = "1.51", features = ["full"] }
+tokio = { version = "1.52", features = ["full"] }
 chrono = { version = "0.4", features = ["serde"] }
 semver = { version = "1.0", features = ["serde"] }
 totp-rs = { version = "5.7", features = ["serde_support", "gen_secret"] }
