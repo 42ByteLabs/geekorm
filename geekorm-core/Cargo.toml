@@ -86,7 +86,7 @@ rand_core = { version = "0.6", features = ["std"], optional = true }
 # For hashing data
 pbkdf2 = { version = "0.12", features = ["simple"], optional = true }
 argon2 = { version = "0.5", features = ["std", "simple"], optional = true }
-sha-crypt = { version = "0.5", optional = true }
+sha-crypt = { version = "0.6", optional = true }
 password-hash = { version = "0.6", features = ["getrandom"], optional = true }
 
 # Backends
@@ -99,10 +99,10 @@ quote = { version = "1.0", optional = true }
 syn = { version = "2.0", optional = true }
 proc-macro2 = { version = "1.0", optional = true }
 
-tokio = { version = "1.51", features = ["full"], optional = true }
+tokio = { version = "1.52", features = ["full"], optional = true }
 async-trait = "0.1"
 
 [dev-dependencies]
 geekorm = { path = ".." }
 anyhow = "1.0"
-tokio = { version = "1.51", features = ["full"] }
+tokio = { version = "1.52", features = ["full"] }
