@@ -1,10 +1,10 @@
 [workspace]
 resolver = "2"
 members = [
-    ".",
     "geekorm-core",
     # "geekorm-sql",
     "geekorm-derive",
+    ".",
     "geekorm-cli",
 ]
 
