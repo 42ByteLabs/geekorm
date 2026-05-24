@@ -50,7 +50,7 @@ all-features = true
 [features]
 default = ["all", "backends"]
 # All features (minus backends)
-all = ["uuid", "chrono", "new", "pagination", "helpers", "rand", "hash"]
+all = ["uuid", "chrono", "new", "pagination", "helpers", "rand", "hash-all"]
 
 utils = ["geekorm-core/utils"]
 
