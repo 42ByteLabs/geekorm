@@ -3,13 +3,14 @@ name: "Release"
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
     inputs:
       bump:
         type: choice
         description: "Version Bump"
-        options: 
+        options:
+          - none
           - patch
           - minor
           - major
@@ -29,7 +30,7 @@ jobs:
 
   auto-release:
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' }}
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.bump != "none" }}
     steps:
       - name: "Checkout"
         uses: actions/checkout@v6
@@ -59,4 +60,3 @@ jobs:
           labels: version
           body: |
             This is an automated PR to create a new release. The release will be created once this PR is merged.
-

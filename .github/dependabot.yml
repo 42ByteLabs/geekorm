@@ -10,8 +10,6 @@ updates:
       time: "09:00"
       timezone: "UTC"
     open-pull-requests-limit: 5
-    reviewers:
-      - "GeekMasher"
     assignees:
       - "GeekMasher"
     commit-message:
@@ -42,8 +40,6 @@ updates:
       time: "09:00"
       timezone: "UTC"
     open-pull-requests-limit: 10
-    reviewers:
-      - "GeekMasher"
     assignees:
       - "GeekMasher"
     commit-message:
@@ -142,4 +138,3 @@ updates:
         update-types:
           - "minor"
           - "patch"
-
