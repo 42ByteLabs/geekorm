@@ -1,40 +1,145 @@
 version: 2
+
 updates:
   # ---------- GitHub Actions ----------
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
     reviewers:
-      - "geekmasher"
-    target-branch: "main"
+      - "GeekMasher"
+    assignees:
+      - "GeekMasher"
     commit-message:
-      prefix: deps
-      prefix-development: chore
+      prefix: "chore"
+      include: "scope"
     labels:
       - "dependencies"
+      - "github-actions"
+    rebase-strategy: "auto"
+    pull-request-branch-name:
+      separator: "-"
+    cooldown:
+      default-days: 1
     groups:
-      production-dependencies:
-        dependency-type: "production"
-      development-dependencies:
-        dependency-type: "development"
+      actions:
+        patterns:
+          - "actions/*"
+        update-types:
+          - "minor"
+          - "patch"
 
   # ---------- Rust / Cargo ----------
   - package-ecosystem: "cargo"
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
     reviewers:
-      - "geekmasher"
-    target-branch: "main"
+      - "GeekMasher"
+    assignees:
+      - "GeekMasher"
     commit-message:
-      prefix: deps
-      prefix-development: chore
+      prefix: "chore"
+      prefix-development: "chore(dev)"
+      include: "scope"
     labels:
       - "dependencies"
+      - "rust"
+    rebase-strategy: "auto"
+    pull-request-branch-name:
+      separator: "-"
+    cooldown:
+      default-days: 1
+      semver-major-days: 7
+      semver-minor-days: 3
+      semver-patch-days: 1
     groups:
-      production-dependencies:
-        dependency-type: "production"
+      # Procedural macro dependencies
+      proc-macro-dependencies:
+        patterns:
+          - "syn"
+          - "quote"
+          - "proc-macro2"
+        update-types:
+          - "minor"
+          - "patch"
+      # Database backends
+      database-dependencies:
+        patterns:
+          - "rusqlite"
+          - "libsql"
+        update-types:
+          - "minor"
+          - "patch"
+      # Async runtime
+      async-dependencies:
+        patterns:
+          - "tokio"
+          - "async-trait"
+        update-types:
+          - "minor"
+          - "patch"
+      # Serialization
+      serde-dependencies:
+        patterns:
+          - "serde"
+          - "serde_json"
+          - "serde_yaml"
+        update-types:
+          - "minor"
+          - "patch"
+      # CLI dependencies
+      cli-dependencies:
+        patterns:
+          - "clap"
+          - "dialoguer"
+          - "indicatif"
+          - "console"
+        update-types:
+          - "minor"
+          - "patch"
+      # Error handling
+      error-dependencies:
+        patterns:
+          - "thiserror"
+          - "anyhow"
+        update-types:
+          - "minor"
+          - "patch"
+      # Security/Crypto dependencies
+      security-dependencies:
+        patterns:
+          - "pbkdf2"
+          - "argon2"
+          - "sha-crypt"
+          - "password-hash"
+          - "totp-rs"
+        update-types:
+          - "minor"
+          - "patch"
+      # Utility dependencies
+      utility-dependencies:
+        patterns:
+          - "uuid"
+          - "chrono"
+          - "semver"
+          - "url"
+          - "rand"
+        update-types:
+          - "minor"
+          - "patch"
+      # Development dependencies
       development-dependencies:
         dependency-type: "development"
+        update-types:
+          - "minor"
+          - "patch"
 
