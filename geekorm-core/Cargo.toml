@@ -81,12 +81,12 @@ semver = { version = "1.0", optional = true, features = ["serde"] }
 totp-rs = { version = "5.7", features = ["serde_support", "gen_secret"], optional = true }
 # Random number generation
 rand = { version = "0.10", optional = true }
-rand_core = { version = "0.6", features = ["std"], optional = true }
+rand_core = { version = "0.10", optional = true }
 
 # For hashing data
-pbkdf2 = { version = "0.12", features = ["simple"], optional = true }
+pbkdf2 = { version = "0.13", features = ["phc"], optional = true }
 argon2 = { version = "0.5", features = ["std", "simple"], optional = true }
-sha-crypt = { version = "0.6", optional = true }
+sha-crypt = { version = "0.6", features = ["password-hash"], optional = true }
 password-hash = { version = "0.6", features = ["getrandom"], optional = true }
 
 # Backends
