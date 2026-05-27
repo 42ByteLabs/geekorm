@@ -109,7 +109,7 @@ semver = { version = "1.0", features = ["serde"] }
 totp-rs = { version = "5.7", features = ["serde_support", "gen_secret"] }
 
 libsql = "0.9"
-rusqlite = "0.39"
+rusqlite = "0.40"
 
 rocket = { version = "0.5" }
 
@@ -150,3 +150,11 @@ required-features = ["all", "rusqlite"]
 name = "rocket"
 path = "./examples/server-rocket/src/main.rs"
 required-features = ["all", "libsql", "backends-tokio"]
+
+[[example]]
+name = "sqlite-wal"
+path = "./examples/sqlite-wal/src/main.rs"
+required-features = ["all", "rusqlite"]
+
+
+

@@ -144,12 +144,17 @@ impl ConnectionManager {
             ..Default::default()
         };
 
+        #[cfg(feature = "rusqlite")]
+        {
+            crate::backends::rusqlite::connect(&manager, &path)
+                .await
+                .expect("Failed to create `rusqlite` connection");
+        }
         #[cfg(feature = "libsql")]
         {
-            let db = ::libsql::Builder::new_local(path).build().await?;
-            let conn = db.connect().unwrap();
-
-            manager.insert_backend(Backend::Libsql { conn });
+            crate::backends::libsql::connect(&manager, &path)
+                .await
+                .expect("Failed to create `libsql` connection");
         }
         Ok(manager)
     }
