@@ -1,14 +1,16 @@
+# Release workflow for all of the crates in this workspace
 name: "Release"
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
     inputs:
       bump:
         type: choice
         description: "Version Bump"
-        options: 
+        options:
+          - none
           - patch
           - minor
           - major
@@ -24,17 +26,17 @@ jobs:
     secrets: inherit
     with:
       crate: geekorm
-      crates: geekorm-core,geekorm-sql,geekorm-derive,geekorm,geekorm-cli
+      crates: geekorm-core,geekorm-derive,geekorm,geekorm-cli
 
   auto-release:
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' }}
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.bump != 'none' }}
     steps:
       - name: "Checkout"
         uses: actions/checkout@v6
 
       - name: "Patch Release Me"
-        uses: 42ByteLabs/patch-release-me@0.6.4
+        uses: 42ByteLabs/patch-release-me@0.6.6
         with:
           mode: ${{ github.event.inputs.bump }}
 
@@ -58,4 +60,3 @@ jobs:
           labels: version
           body: |
             This is an automated PR to create a new release. The release will be created once this PR is merged.
-

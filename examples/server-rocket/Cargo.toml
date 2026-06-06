@@ -13,6 +13,6 @@ geekorm = { path = "../../", features = ["all", "libsql", "backends-tokio"] }
 anyhow = "1"
 
 rocket = { version = "^0.5", features = ["json"] }
-libsql = "^0.6"
+libsql = "^0.9"
 serde = "1"
 tokio = { version = "1", features = ["full"] }

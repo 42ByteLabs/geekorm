@@ -1,5 +1,6 @@
 [package]
-name = "geekorm-example-rusqlite"
+name = "sqlite-wal"
+
 version.workspace = true
 license.workspace = true
 edition.workspace = true
@@ -17,4 +18,4 @@ anyhow = "1"
 serde = { version = "1", features = ["derive"] }
 tokio = { version = "1", features = ["full"] }
 
-rusqlite = "^0.38"
+rusqlite = "^0.39"

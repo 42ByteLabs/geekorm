@@ -41,13 +41,30 @@ use libsql::{de, params::IntoValue};
 use log::{debug, error};
 use serde::{Serialize, de::DeserializeOwned};
 use std::collections::HashMap;
+use std::path::PathBuf;
 
 use crate::{
     GeekConnection, QueryBuilderTrait, TableBuilder, Value, Values, builder::models::QueryType,
 };
 
+use super::connect::ConnectionManager;
+
 #[cfg(feature = "backends-tokio")]
 mod mutex;
+
+/// Create a connection using libsql
+///
+/// WAL mode is NOT enabled
+pub(crate) async fn connect(
+    manager: &ConnectionManager,
+    path: &PathBuf,
+) -> Result<(), crate::Error> {
+    let db = ::libsql::Builder::new_local(path).build().await?;
+    let conn = db.connect().unwrap();
+
+    manager.insert_backend(super::connect::Backend::Libsql { conn });
+    Ok(())
+}
 
 impl GeekConnection for libsql::Connection {
     type Connection = libsql::Connection;

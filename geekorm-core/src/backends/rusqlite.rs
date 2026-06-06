@@ -36,8 +36,29 @@
 use log::debug;
 use rusqlite::ToSql;
 use serde_rusqlite::*;
+use std::path::PathBuf;
+use std::sync::Arc;
 
 use super::GeekConnection;
+use super::connect::ConnectionManager;
+
+/// Create a connector with Rusqlite
+///
+/// Make sure that WAL mode is enabled
+pub(crate) async fn connect(manager: &ConnectionManager, path: &PathBuf) -> Result<()> {
+    let conn = ::rusqlite::Connection::open(path)?;
+    // Make sure WAL mode is enabled
+    let journal_mode: String =
+        conn.pragma_update_and_check(None, "journal_mode", "wal", |row| row.get(0))?;
+    assert_eq!(journal_mode, "wal");
+    #[cfg(feature = "log")]
+    log::debug!("WAL mode enabled");
+
+    manager.insert_backend(crate::backends::connect::Backend::Rusqlite {
+        conn: Arc::new(conn),
+    });
+    Ok(())
+}
 
 impl GeekConnection for rusqlite::Connection {
     type Connection = rusqlite::Connection;

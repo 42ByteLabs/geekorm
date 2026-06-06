@@ -122,8 +122,8 @@ geekorm = { version = "0.9.0", features = ["all", "backends", "migrations"] }
 lazy_static = "1"
 
 # Backend Drivers will also be added here
-# libsql = "0.6.0"
-# rusqlite = "0.32.0"
+# libsql = "0.9.0"
+# rusqlite = "0.38.0"
 ```
 
 Inside this directory, you'll see new Cargo project along with a `lib.rs` file that contains the following code:

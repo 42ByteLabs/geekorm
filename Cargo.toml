@@ -1,15 +1,15 @@
 [workspace]
 resolver = "2"
 members = [
-    ".",
     "geekorm-core",
     # "geekorm-sql",
     "geekorm-derive",
+    ".",
     "geekorm-cli",
 ]
 
 [workspace.package]
-version = "0.11.4"
+version = "0.11.7"
 license = "MIT"
 
 edition = "2024"
@@ -50,7 +50,7 @@ all-features = true
 [features]
 default = ["all", "backends"]
 # All features (minus backends)
-all = ["uuid", "chrono", "new", "pagination", "helpers", "rand", "hash"]
+all = ["uuid", "chrono", "new", "pagination", "helpers", "rand", "hash-all"]
 
 utils = ["geekorm-core/utils"]
 
@@ -91,27 +91,27 @@ rusqlite = ["backends", "geekorm-derive/rusqlite", "geekorm-core/rusqlite"]
 migrations = ["geekorm-core/migrations", "dep:lazy_static"]
 
 [dependencies]
-geekorm-core = { version = "^0.11.4", path = "geekorm-core" }
-geekorm-derive = { version = "^0.11.4", path = "geekorm-derive" }
+geekorm-core = { version = "^0.11.7", path = "geekorm-core" }
+geekorm-derive = { version = "^0.11.7", path = "geekorm-derive" }
 
-lazy_static = { version = "^1", optional = true }
+lazy_static = { version = "1.5.0", optional = true }
 
 [dev-dependencies]
 geekorm = { path = ".", features = ["all", "semver", "tfa"] }
 
-anyhow = "^1"
-env_logger = "^0.11"
-log = "^0.4"
-serde = { version = "^1.0", features = ["derive"] }
-tokio = { version = "^1.38", features = ["full"] }
-chrono = { version = "^0.4", features = ["serde"] }
+anyhow = "1.0"
+env_logger = "0.11"
+log = "0.4"
+serde = { version = "1.0", features = ["derive"] }
+tokio = { version = "1.52", features = ["full"] }
+chrono = { version = "0.4", features = ["serde"] }
 semver = { version = "1.0", features = ["serde"] }
-totp-rs = { version = "^5.5", features = ["serde_support", "gen_secret"] }
+totp-rs = { version = "5.7", features = ["serde_support", "gen_secret"] }
 
-libsql = "^0.9"
-rusqlite = "^0.37"
+libsql = "0.9"
+rusqlite = "0.40"
 
-rocket = { version = "^0.5" }
+rocket = { version = "0.5" }
 
 [profile.test]
 opt-level = 1
@@ -150,3 +150,11 @@ required-features = ["all", "rusqlite"]
 name = "rocket"
 path = "./examples/server-rocket/src/main.rs"
 required-features = ["all", "libsql", "backends-tokio"]
+
+[[example]]
+name = "sqlite-wal"
+path = "./examples/sqlite-wal/src/main.rs"
+required-features = ["all", "rusqlite"]
+
+
+
