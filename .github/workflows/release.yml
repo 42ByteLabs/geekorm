@@ -36,7 +36,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: "Patch Release Me"
-        uses: 42ByteLabs/patch-release-me@0.6.5
+        uses: 42ByteLabs/patch-release-me@0.6.6
         with:
           mode: ${{ github.event.inputs.bump }}
 
