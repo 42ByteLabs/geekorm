@@ -33,7 +33,7 @@ jobs:
     if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.bump != 'none' }}
     steps:
       - name: "Checkout"
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: "Patch Release Me"
         uses: 42ByteLabs/patch-release-me@0.6.6
