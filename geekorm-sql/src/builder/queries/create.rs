@@ -8,12 +8,26 @@ impl QueryType {
         let mut full_query = String::new();
         if let Some(table) = query.find_table_default() {
             full_query.push_str("CREATE TABLE IF NOT EXISTS ");
-            full_query.push_str(&table.name);
+            full_query.push_str(table.name);
 
             full_query.push_str(" (");
 
             table.columns.to_sql_stream(&mut full_query, query).unwrap();
             full_query.push(')');
+
+            // Only add foreign keys in CREATE queries
+            for foreign_key in table.get_foreign_keys() {
+                let (ctable, ccolumn) = foreign_key.get_foreign_key().unwrap();
+
+                full_query.push_str("FOREIGN KEY (");
+                full_query.push_str(&foreign_key.name);
+
+                full_query.push_str(") REFERENCES ");
+                full_query.push_str(ctable);
+                full_query.push('(');
+                full_query.push_str(ccolumn);
+                full_query.push(')');
+            }
         }
         full_query.push(';');
 
@@ -42,7 +56,11 @@ mod tests {
                     ColumnOptions::primary_key(),
                 )),
                 Column::from(("name".to_string(), ColumnType::Text)),
-                Column::from(("email".to_string(), ColumnType::Text)),
+                Column::from((
+                    "email".to_string(),
+                    ColumnType::Text,
+                    ColumnOptions::unique(),
+                )),
             ])
             .into(),
         }
@@ -58,7 +76,7 @@ mod tests {
 
         assert_eq!(
             sql,
-            "CREATE TABLE IF NOT EXISTS Test (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, email TEXT UNIQUE);"
+            "CREATE TABLE IF NOT EXISTS Test (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, email TEXT NOT NULL UNIQUE);"
         );
     }
 }
