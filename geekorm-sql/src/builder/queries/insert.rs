@@ -1,5 +1,6 @@
 //! # Insert Query Builder
 
+use crate::backends::SqliteBackendOptions;
 use crate::builder::table::TableExpr;
 use crate::{Query, QueryBuilder, QueryType, ToSql, Value, Values};
 
@@ -7,8 +8,13 @@ impl QueryType {
     pub(crate) fn sql_insert(&self, query: &QueryBuilder) -> String {
         let mut full_query = String::new();
         if let Some(table) = query.find_table_default() {
-            full_query.push_str("INSERT INTO ");
-            full_query.push_str(table.name);
+            // Update or rollback
+            full_query = match query.backend {
+                crate::QueryBackend::Sqlite {
+                    options: SqliteBackendOptions { transactions: true },
+                } => format!("INSERT OR ROLLBACK INTO {}", table.name),
+                _ => format!("INSERT INTO {}", table.name),
+            };
 
             let mut columns: Vec<String> = Vec::new();
             let mut values: Vec<String> = Vec::new();
@@ -87,7 +93,7 @@ mod tests {
     }
 
     #[test]
-    fn test_insert_query() {
+    fn sqlite_insert_query() {
         let table = table();
         let query = crate::QueryBuilder::insert()
             .table(&table)
@@ -98,5 +104,25 @@ mod tests {
             .unwrap();
 
         assert_eq!(query.query, "INSERT INTO Test (name, email) VALUES (?, ?);");
+    }
+
+    #[test]
+    fn sqlite_insert_rollback() {
+        let table = table();
+        let query = crate::QueryBuilder::insert()
+            .backend(crate::QueryBackend::Sqlite {
+                options: SqliteBackendOptions { transactions: true },
+            })
+            .table(&table)
+            .add_value("id", 1)
+            .add_value("name", "John Doe")
+            .add_value("email", "john.doe@example.com")
+            .build()
+            .unwrap();
+
+        assert_eq!(
+            query.query,
+            "INSERT OR ROLLBACK INTO Test (name, email) VALUES (?, ?);"
+        );
     }
 }

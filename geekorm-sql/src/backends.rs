@@ -20,5 +20,5 @@ pub enum QueryBackend {
 #[derive(Debug, Clone, Default)]
 pub struct SqliteBackendOptions {
     /// Is transactions enabled
-    transactions: bool,
+    pub transactions: bool,
 }

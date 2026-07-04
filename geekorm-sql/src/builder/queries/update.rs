@@ -2,6 +2,7 @@
 //!
 //!
 
+use crate::backends::SqliteBackendOptions;
 use crate::builder::table::TableExpr;
 use crate::{QueryBuilder, QueryType, ToSql, Value, Values};
 
@@ -13,7 +14,13 @@ impl QueryType {
         let mut parameters = Values::new();
 
         if let Some(table) = query.find_table_default() {
-            full_query = format!("UPDATE {} SET ", table.name);
+            // Update or rollback
+            full_query = match query.backend {
+                crate::QueryBackend::Sqlite {
+                    options: SqliteBackendOptions { transactions: true },
+                } => format!("UPDATE OR ROLLBACK {} SET ", table.name),
+                _ => format!("UPDATE {} SET ", table.name),
+            };
 
             let values = query.values.values();
             assert_ne!(values.len(), 0);
@@ -94,12 +101,9 @@ mod tests {
     }
 
     #[test]
-    fn test_sqlite_update_query() {
+    fn sqlite_update_query() {
         let table = table();
         let query = QueryBuilder::update()
-            .backend(QueryBackend::Sqlite {
-                options: SqliteBackendOptions::default(),
-            })
             .table(&table)
             .add_value("id", "1")
             .add_value("name", "bob")
@@ -110,6 +114,26 @@ mod tests {
         assert_eq!(
             query.query,
             "UPDATE Test SET name = ?, email = ? WHERE id = 1;"
+        );
+    }
+
+    #[test]
+    fn sqlite_update_rollback() {
+        let table = table();
+        let query = QueryBuilder::update()
+            .backend(QueryBackend::Sqlite {
+                options: SqliteBackendOptions { transactions: true },
+            })
+            .table(&table)
+            .add_value("id", "1")
+            .add_value("name", "bob")
+            .add_value("email", "bob@example.com")
+            .build()
+            .unwrap();
+
+        assert_eq!(
+            query.query,
+            "UPDATE OR ROLLBACK Test SET name = ?, email = ? WHERE id = 1;"
         );
     }
 }
