@@ -39,3 +39,13 @@ impl Error {
         Error::GeneralError(error.into())
     }
 }
+
+impl From<&Vec<String>> for Error {
+    fn from(value: &Vec<String>) -> Self {
+        let full_error = value.join(", ");
+        Error::QueryBuilderError {
+            error: full_error,
+            location: "".to_string(),
+        }
+    }
+}

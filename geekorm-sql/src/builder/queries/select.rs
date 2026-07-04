@@ -26,20 +26,17 @@ impl QueryType {
             //     full_query.push_str(qb.joins.on_select(qb)?.as_str());
             // }
 
-            // WHERE {where_clause} ORDER BY {order_by}
-            if !query.where_clause.is_empty() {
-                query
-                    .where_clause
-                    .to_sql_stream(&mut full_query, query)
-                    .unwrap();
-            }
+            // WHERE {where_clause}
+            query
+                .where_clause
+                .to_sql_stream(&mut full_query, query)
+                .unwrap();
 
-            if !query.order_by.is_empty() {
-                query
-                    .order_by
-                    .to_sql_stream(&mut full_query, query)
-                    .unwrap();
-            }
+            // ORDER BY {order_by}
+            query
+                .order_by
+                .to_sql_stream(&mut full_query, query)
+                .unwrap();
 
             // LIMIT {limit} OFFSET {offset}
             if let Some(limit) = query.limit {
@@ -83,8 +80,16 @@ mod tests {
                     ColumnOptions::primary_key(),
                 )),
                 Column::from(("name".to_string(), ColumnType::Text)),
-                Column::from(("email".to_string(), ColumnType::Text)),
-                Column::from(("image_id".to_string(), ColumnType::ForeignKey)),
+                Column::from((
+                    "email".to_string(),
+                    ColumnType::Text,
+                    ColumnOptions::unique(),
+                )),
+                Column::from((
+                    "image_id".to_string(),
+                    ColumnType::ForeignKey,
+                    "Images.id".to_string(),
+                )),
             ])
             .into(),
         }
@@ -99,7 +104,7 @@ mod tests {
             .build()
             .unwrap();
 
-        assert_eq!(query.query, "SELECT id, name, email FROM Test;");
+        assert_eq!(query.query, "SELECT id, name, email, image_id FROM Test;");
     }
 
     #[test]
@@ -112,11 +117,11 @@ mod tests {
             .build()
             .unwrap();
 
+        assert_eq!(query.values.len(), 1);
         assert_eq!(
             query.query,
-            "SELECT id, name, email FROM Test WHERE name = ?;"
+            "SELECT id, name, email, image_id FROM Test WHERE name = ?;"
         );
-        assert_eq!(query.values.len(), 1);
 
         let mut values = Values::new();
         values.push("name".to_string(), Value::from("test"));
@@ -136,7 +141,7 @@ mod tests {
 
         assert_eq!(
             query.query,
-            "SELECT id, name, email FROM Test ORDER BY name ASC, email DESC;"
+            "SELECT id, name, email, image_id FROM Test ORDER BY name ASC, email DESC;"
         );
     }
 }

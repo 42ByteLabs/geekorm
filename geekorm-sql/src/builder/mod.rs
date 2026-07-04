@@ -9,6 +9,7 @@ pub mod queries;
 pub mod table;
 
 use std::collections::HashMap;
+use std::fmt::format;
 
 pub use conditions::{QueryCondition, WhereClause, WhereCondition};
 pub use joins::{TableJoin, TableJoinOptions, TableJoins};
@@ -19,7 +20,7 @@ use crate::{Error, Query, QueryBackend, ToSql, Value, Values};
 use columns::Columns;
 
 /// Query Type enum
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub enum QueryType {
     /// Create Query
     Create,
@@ -49,9 +50,6 @@ pub struct QueryBuilder<'a> {
 
     /// Tables to query
     pub(crate) database: Vec<&'a Table>,
-
-    /// These are the columns for INSERT and UPDATE queries
-    pub(crate) columns: Vec<String>,
 
     /// Query where conditions
     pub(crate) where_clause: WhereClause,
@@ -164,12 +162,6 @@ impl<'a> QueryBuilder<'a> {
         self
     }
 
-    /// Add columns to the query
-    pub fn columns(&mut self, columns: Vec<String>) -> &mut Self {
-        self.columns = columns;
-        self
-    }
-
     /// Add a value to the list of values for parameterized queries
     pub fn add_value(&mut self, column: &str, value: impl Into<Value>) -> &mut Self {
         self.values.push(column.to_string(), value.into());
@@ -226,7 +218,7 @@ impl<'a> QueryBuilder<'a> {
                         .unwrap()
                 }
             }
-        } else if let Some(table) = self.find_table("self") {
+        } else if let Some(table) = self.find_table_default() {
             table
         } else {
             self.set_error(Error::QueryBuilderError {
@@ -254,10 +246,8 @@ impl<'a> QueryBuilder<'a> {
             }
         }
 
-        // self.where_clause
-        //     .push(format!("{} {} ?", column, condition.sql()));
+        self.add_value(column, value);
         self.where_clause.push(column.to_string(), condition);
-        self.values.push(column.to_string(), value);
         self.where_condition_last = false;
     }
 
@@ -373,7 +363,7 @@ impl<'a> QueryBuilder<'a> {
     }
 
     fn validate_table_column(&self, column: &str) -> Result<bool, Error> {
-        if let Some(table) = self.find_table("self") {
+        if let Some(table) = self.find_table_default() {
             Ok(table.columns.contains(&column))
         } else {
             return Err(Error::QueryBuilderError {
@@ -409,6 +399,10 @@ impl<'a> QueryBuilder<'a> {
 
     /// Build a Query from the QueryBuilder
     pub fn build(&self) -> Result<Query, crate::Error> {
+        if !self.errors.is_empty() {
+            return Err(crate::Error::from(&self.errors));
+        }
+
         let query = Query {
             query: self.query_type.to_sql(self)?,
             query_type: self.query_type.clone(),

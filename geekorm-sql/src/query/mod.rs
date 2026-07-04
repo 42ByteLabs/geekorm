@@ -3,7 +3,7 @@
 use std::fmt::Display;
 use std::path::PathBuf;
 
-use crate::{Error, QueryType, Values};
+use crate::{Error, QueryBuilder, QueryType, ToSql, Values};
 
 /// A collection of queries to be executed in a batch
 pub struct BatchQueries {
@@ -29,6 +29,16 @@ impl Query {
     /// Get the SQL query string
     pub fn query(&self) -> String {
         self.query.clone()
+    }
+
+    /// Get the parameters for the query
+    pub fn parameters(&self) -> &Values {
+        &self.params
+    }
+
+    /// Push a string onto the query
+    pub(crate) fn push(&mut self, value: String) {
+        self.query.push_str(&value);
     }
 }
 

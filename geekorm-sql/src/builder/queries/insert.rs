@@ -1,14 +1,14 @@
 //! # Insert Query Builder
 
 use crate::builder::table::TableExpr;
-use crate::{QueryBuilder, QueryType, ToSql, Value, Values};
+use crate::{Query, QueryBuilder, QueryType, ToSql, Value, Values};
 
 impl QueryType {
     pub(crate) fn sql_insert(&self, query: &QueryBuilder) -> String {
         let mut full_query = String::new();
         if let Some(table) = query.find_table_default() {
             full_query.push_str("INSERT INTO ");
-            full_query.push_str(&table.name);
+            full_query.push_str(table.name);
 
             let mut columns: Vec<String> = Vec::new();
             let mut values: Vec<String> = Vec::new();
