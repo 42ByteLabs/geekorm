@@ -62,7 +62,7 @@ mod tests {
     use super::*;
     use crate::{
         QueryOrder, QueryType, ToSql, Value, Values,
-        backends::QueryBackend,
+        backends::{QueryBackend, SqliteBackendOptions},
         builder::{
             columns::{Column, ColumnOptions, Columns},
             columntypes::ColumnType,
@@ -99,7 +99,9 @@ mod tests {
     fn test_select_sqlite() {
         let table = table();
         let query = QueryBuilder::select()
-            .backend(QueryBackend::Sqlite)
+            .backend(QueryBackend::Sqlite {
+                options: SqliteBackendOptions::default(),
+            })
             .table(&table)
             .build()
             .unwrap();
@@ -111,7 +113,9 @@ mod tests {
     fn test_select_where() {
         let table = table();
         let query = QueryBuilder::select()
-            .backend(QueryBackend::Sqlite)
+            .backend(QueryBackend::Sqlite {
+                options: SqliteBackendOptions::default(),
+            })
             .table(&table)
             .where_eq("name", "test")
             .build()
@@ -132,7 +136,9 @@ mod tests {
     fn test_order_clause() {
         let table = table();
         let query = QueryBuilder::select()
-            .backend(QueryBackend::Sqlite)
+            .backend(QueryBackend::Sqlite {
+                options: SqliteBackendOptions::default(),
+            })
             .table(&table)
             .order_by("name", QueryOrder::Asc)
             .order_by("email", QueryOrder::Desc)

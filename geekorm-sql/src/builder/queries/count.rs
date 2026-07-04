@@ -30,6 +30,7 @@ impl QueryType {
 mod tests {
 
     use super::*;
+    use crate::backends::SqliteBackendOptions;
     use crate::{QueryType, Table, ToSql};
     use crate::{
         backends::QueryBackend,
@@ -59,7 +60,9 @@ mod tests {
     fn test_count_sqlite() {
         let table = table();
         let query = QueryBuilder::count()
-            .backend(QueryBackend::Sqlite)
+            .backend(QueryBackend::Sqlite {
+                options: SqliteBackendOptions::default(),
+            })
             .table(&table)
             .build()
             .unwrap();
@@ -71,7 +74,9 @@ mod tests {
     fn test_count_where() {
         let table = table();
         let query = QueryBuilder::count()
-            .backend(QueryBackend::Sqlite)
+            .backend(QueryBackend::Sqlite {
+                options: SqliteBackendOptions::default(),
+            })
             .table(&table)
             .where_eq("name", "geekmasher")
             .build()

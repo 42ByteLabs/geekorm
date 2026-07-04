@@ -66,6 +66,7 @@ impl QueryType {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::backends::SqliteBackendOptions;
     use crate::{QueryType, ToSql, builder::table::Table};
     use crate::{
         backends::QueryBackend,
@@ -96,7 +97,9 @@ mod tests {
     fn test_sqlite_update_query() {
         let table = table();
         let query = QueryBuilder::update()
-            .backend(QueryBackend::Sqlite)
+            .backend(QueryBackend::Sqlite {
+                options: SqliteBackendOptions::default(),
+            })
             .table(&table)
             .add_value("id", "1")
             .add_value("name", "bob")
