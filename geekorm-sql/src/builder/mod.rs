@@ -5,6 +5,7 @@ pub mod columntypes;
 pub mod conditions;
 pub mod joins;
 pub mod ordering;
+pub mod pagination;
 pub mod queries;
 pub mod table;
 
@@ -16,7 +17,7 @@ pub use joins::{TableJoin, TableJoinOptions, TableJoins};
 pub use ordering::{OrderClause, QueryOrder};
 use table::Table;
 
-use crate::{Error, Query, QueryBackend, ToSql, Value, Values};
+use crate::{Error, Query, QueryBackend, ToSql, Value, Values, builder::pagination::Page};
 use columns::Columns;
 
 /// Query Type enum
@@ -371,6 +372,14 @@ impl<'a> QueryBuilder<'a> {
                 location: String::from("validate_table_column"),
             });
         }
+    }
+
+    /// Pagination using a page (cursor)
+    pub fn page(&mut self, page: &Page) -> &mut Self {
+        // TODO(geekmasher): Does converting to usize cause any issues
+        self.limit(page.limit() as usize);
+        self.offset(page.offset() as usize);
+        self
     }
 
     /// Add a limit to the query
