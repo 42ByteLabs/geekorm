@@ -1,12 +1,14 @@
 //! # GeekORM Pages
 
+use crate::ToSql;
+
 /// Default limit for max page size
 const DEFAULT_LIMIT: u32 = 100;
 
 /// Page struct for pagination.
 ///
 /// This is a simple struct to handle pagination for queries.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Page {
     pub(crate) page: u32,
     pub(crate) limit: u32,
@@ -90,6 +92,37 @@ impl Default for Page {
     }
 }
 
+impl ToSql for Page {
+    fn sql(&self) -> String {
+        let mut sql = String::new();
+
+        // LIMIT {limit} OFFSET {offset}
+        // TODO(geekmasher): Check offset
+        sql.push_str("LIMIT ");
+        sql.push_str(&self.limit.to_string());
+
+        let offset = self.offset();
+        if offset != 0 {
+            sql.push_str(" OFFSET ");
+            sql.push_str(&offset.to_string());
+        }
+        sql
+    }
+
+    fn to_sql_stream(
+        &self,
+        stream: &mut String,
+        query: &super::QueryBuilder,
+    ) -> Result<(), crate::Error> {
+        if !stream.ends_with(' ') {
+            stream.push(' ');
+        }
+
+        stream.push_str(&self.to_sql(query).unwrap());
+        Ok(())
+    }
+}
+
 impl From<(u32, u32)> for Page {
     fn from(p: (u32, u32)) -> Self {
         let limit = if p.1 > DEFAULT_LIMIT {
@@ -148,5 +181,24 @@ impl From<u32> for Page {
             limit: DEFAULT_LIMIT,
             ..Default::default()
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_limit() {
+        let page = Page::from(0);
+        let sql = page.sql();
+        assert_eq!(sql, "LIMIT 100");
+    }
+
+    #[test]
+    fn test_offset() {
+        let page = Page::from(1);
+        let sql = page.sql();
+        assert_eq!(sql, "LIMIT 100 OFFSET 100");
     }
 }

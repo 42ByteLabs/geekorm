@@ -39,14 +39,8 @@ impl QueryType {
                 .unwrap();
 
             // LIMIT {limit} OFFSET {offset}
-            if let Some(limit) = query.limit {
-                // TODO(geekmasher): Check offset
-                full_query.push_str(" LIMIT ");
-                full_query.push_str(&limit.to_string());
-                if let Some(offset) = query.offset {
-                    full_query.push_str(" OFFSET ");
-                    full_query.push_str(&offset.to_string());
-                }
+            if let Some(page) = query.page.as_ref() {
+                page.to_sql_stream(&mut full_query, query).unwrap();
             }
 
             // End

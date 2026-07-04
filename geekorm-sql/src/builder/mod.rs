@@ -61,10 +61,8 @@ pub struct QueryBuilder<'a> {
     /// Order by conditions
     pub(crate) order_by: OrderClause,
 
-    /// Limit the number of rows returned
-    pub(crate) limit: Option<usize>,
-    /// Offset the starting point of the rows returned
-    pub(crate) offset: Option<usize>,
+    /// Page
+    pub(crate) page: Option<Page>,
 
     pub(crate) values: Values,
 
@@ -377,15 +375,16 @@ impl<'a> QueryBuilder<'a> {
     /// Pagination using a page (cursor)
     pub fn page(&mut self, page: &Page) -> &mut Self {
         // TODO(geekmasher): Does converting to usize cause any issues
-        self.limit(page.limit() as usize);
-        self.offset(page.offset() as usize);
+        self.page = Some(page.clone());
         self
     }
 
     /// Add a limit to the query
     pub fn limit(&mut self, limit: usize) -> &mut Self {
         if limit != 0 {
-            self.limit = Some(limit);
+            if let Some(page) = self.page.as_mut() {
+                page.limit = limit as u32;
+            }
         } else {
             self.set_error(Error::QueryBuilderError {
                 error: String::from("Limit cannot be 0"),
@@ -397,7 +396,9 @@ impl<'a> QueryBuilder<'a> {
 
     /// Add an offset to the query
     pub fn offset(&mut self, offset: usize) -> &mut Self {
-        self.offset = Some(offset);
+        if let Some(page) = self.page.as_mut() {
+            page.page = page.limit / offset as u32;
+        }
         self
     }
 
