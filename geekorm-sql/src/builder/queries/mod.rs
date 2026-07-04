@@ -1,5 +1,6 @@
 //! # Queries
 
+pub mod alter;
 pub mod count;
 pub mod create;
 pub mod delete;

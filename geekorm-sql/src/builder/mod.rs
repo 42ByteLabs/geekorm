@@ -17,8 +17,11 @@ pub use joins::{TableJoin, TableJoinOptions, TableJoins};
 pub use ordering::{OrderClause, QueryOrder};
 use table::Table;
 
+use crate::Column;
 use crate::{Error, Query, QueryBackend, ToSql, Value, Values, builder::pagination::Page};
 use columns::Columns;
+
+use self::queries::alter::{AlterMode, AlterQuery};
 
 /// Query Type enum
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -35,6 +38,8 @@ pub enum QueryType {
     Update,
     /// Delete Query
     Delete,
+    /// Alter Query
+    Alter,
 
     /// Unknown Query
     #[default]
@@ -56,6 +61,7 @@ pub struct QueryBuilder<'a> {
     pub(crate) where_clause: WhereClause,
     pub(crate) where_condition_last: bool,
 
+    /// Joins
     pub(crate) joins: TableJoins,
 
     /// Order by conditions
@@ -66,6 +72,10 @@ pub struct QueryBuilder<'a> {
 
     pub(crate) values: Values,
 
+    /// For Alter queries
+    pub(crate) alter: Option<AlterQuery>,
+
+    /// Errors during the process (report all at once)
     pub(crate) errors: Vec<String>,
 }
 
@@ -78,6 +88,7 @@ impl ToSql for QueryType {
             QueryType::Insert => Ok(self.sql_insert(query)),
             QueryType::Update => Ok(self.sql_update(query)),
             QueryType::Delete => Ok(self.sql_delete(query)),
+            QueryType::Alter => Ok(self.sql_alter(query)),
             QueryType::Unknown => Err(Error::QueryBuilderError {
                 error: String::from("Unknown query type"),
                 location: String::from("to_sql"),
@@ -140,6 +151,11 @@ impl<'a> QueryBuilder<'a> {
             query_type: QueryType::Delete,
             ..Default::default()
         }
+    }
+
+    /// Alter query
+    pub fn alter() -> AlterQuery {
+        AlterQuery::new()
     }
 
     /// Sets the Backend for the query
