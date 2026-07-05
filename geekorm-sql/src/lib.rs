@@ -56,3 +56,14 @@ pub trait ToValue {
     /// Convert to Value
     fn to_value(&self) -> Value;
 }
+
+/// Trait for converting from a Value to
+pub trait TryFromValue {
+    /// Error
+    type Error;
+
+    /// Function
+    fn try_from_value(value: Value) -> Result<Self, Self::Error>
+    where
+        Self: Sized;
+}

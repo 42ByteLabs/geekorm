@@ -27,11 +27,9 @@ all-features = true
 
 [features]
 default = []
-all = ["uuid", "chrono", "semver", "sqlite", "postgres"]
+all = ["uuid", "sqlite", "postgres"]
 
 uuid = ["dep:uuid"]
-chrono = ["dep:chrono"]
-semver = ["dep:semver"]
 
 # Backends
 sqlite = []
@@ -43,7 +41,5 @@ thiserror = "2.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
-uuid = { version = "1.23", features = ["v7", "serde"], optional = true }
-chrono = { version = "0.4", features = ["serde"], optional = true }
-semver = { version = "1.0", features = ["serde"], optional = true }
+uuid = { version = "1.23", features = ["v4", "v7", "serde"], optional = true }
 

@@ -3,7 +3,7 @@
 //! These are the core values passed to and from the database
 
 use serde::{Deserialize, Serialize, Serializer};
-use std::fmt::Display;
+use std::fmt::{Display, write};
 
 /// A value for a column
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -15,6 +15,9 @@ pub enum Value {
     /// A boolean (i64) value (0 or 1)
     /// This is because SQLite does not have a boolean type
     Boolean(u8),
+    /// Datatime
+    /// No native datetime type in SQLite so we are using u64
+    Datetime(u64),
     /// Identifier Key type (Primary / Forigen Key) which is a u64
     Identifier(u64),
     /// A binary blob value (vector of bytes)
@@ -38,6 +41,7 @@ impl Display for Value {
             Value::Integer(value) => write!(f, "{}", value),
             Value::Boolean(value) => write!(f, "{}", value),
             Value::Identifier(value) => write!(f, "{}", value),
+            Value::Datetime(value) => write!(f, "{}", value),
             Value::Blob(value) | Value::Json(value) => {
                 write!(f, "{}", str::from_utf8(value).unwrap_or(""))
             }
@@ -172,6 +176,7 @@ impl Serialize for Value {
             Value::Integer(value) => serializer.serialize_i64(*value),
             Value::Boolean(value) => serializer.serialize_u8(*value),
             Value::Identifier(value) => serializer.serialize_u64(*value),
+            Value::Datetime(value) => serializer.serialize_u64(*value),
             // TODO(geekmasher): This might not be the correct way to serialize a blob
             Value::Blob(value) => serializer.serialize_bytes(value),
             // JSON

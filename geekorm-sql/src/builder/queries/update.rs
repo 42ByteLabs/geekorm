@@ -47,6 +47,9 @@ impl QueryType {
                     Value::Integer(value) => {
                         columns.push(format!("{} = {}", column_name, value));
                     }
+                    Value::Datetime(value) => {
+                        columns.push(format!("{} = {}", column_name, value));
+                    }
                     Value::Boolean(value) => columns.push(format!("{} = {}", column_name, value)),
                     Value::Null => columns.push(format!("{} = NULL", column_name)),
                 }

@@ -47,6 +47,7 @@ impl QueryType {
                     }
                     Value::Integer(value) => values.push(value.to_string()),
                     Value::Boolean(value) => values.push(value.to_string()),
+                    Value::Datetime(value) => values.push(value.to_string()),
                     Value::Null => values.push("NULL".to_string()),
                 }
             }
