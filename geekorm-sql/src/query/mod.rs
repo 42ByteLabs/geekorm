@@ -26,8 +26,33 @@ pub struct Query {
 }
 
 impl Query {
+    /// Start building a select query
+    pub fn select() -> QueryBuilder<'static> {
+        QueryBuilder::select()
+    }
+
+    /// CREATE table Query
+    pub fn create() -> QueryBuilder<'static> {
+        QueryBuilder::create()
+    }
+
+    /// INSERT Query
+    pub fn insert() -> QueryBuilder<'static> {
+        QueryBuilder::insert()
+    }
+
+    /// UPDATE Query
+    pub fn update() -> QueryBuilder<'static> {
+        QueryBuilder::update()
+    }
+
+    /// DELETE Query
+    pub fn delete() -> QueryBuilder<'static> {
+        QueryBuilder::delete()
+    }
+
     /// Get the SQL query string
-    pub fn query(&self) -> String {
+    pub fn sql(&self) -> String {
         self.query.clone()
     }
 
