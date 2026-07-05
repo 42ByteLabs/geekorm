@@ -2,6 +2,7 @@
 
 use super::QueryType;
 use super::columns::ColumnOptions;
+use super::queries::alter::AlterQuery;
 use crate::{Error, ToSql};
 
 /// Column types

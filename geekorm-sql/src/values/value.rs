@@ -1,4 +1,6 @@
 //! # SQL Values
+//!
+//! These are the core values passed to and from the database
 
 use serde::{Deserialize, Serialize, Serializer};
 use std::fmt::Display;

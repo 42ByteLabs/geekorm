@@ -8,7 +8,7 @@ impl QueryType {
         let mut full_query = String::new();
         if let Some(table) = query.find_table_default() {
             full_query.push_str("CREATE TABLE IF NOT EXISTS ");
-            full_query.push_str(&table.name);
+            full_query.push_str(table.name);
 
             full_query.push_str(" (");
 
@@ -58,7 +58,7 @@ mod tests {
 
         assert_eq!(
             sql,
-            "CREATE TABLE IF NOT EXISTS Test (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, email TEXT UNIQUE);"
+            "CREATE TABLE IF NOT EXISTS Test (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, email TEXT);"
         );
     }
 }

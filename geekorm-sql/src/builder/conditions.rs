@@ -104,27 +104,33 @@ impl WhereClause {
 }
 
 impl ToSql for WhereClause {
-    fn to_sql_stream(&self, stream: &mut String, _query: &QueryBuilder) -> Result<(), Error> {
-        if self.is_empty() {
-            return Ok(());
-        }
-        // If the last char is not a space, add a space
-        if !stream.is_empty() && !stream.ends_with(' ') {
-            stream.push(' ');
-        }
+    fn sql(&self) -> String {
+        let mut stream = String::new();
+        if !self.is_empty() {
+            // Add the where clause to the SQL string
+            stream.push_str("WHERE ");
 
-        // Add the where clause to the SQL string
-        stream.push_str("WHERE ");
+            for (column, qcondition, wcondition) in &self.conditions {
+                stream.push_str(column);
+                stream.push(' ');
+                stream.push_str(&qcondition.sql());
+                stream.push_str(" ?");
 
-        for (column, qcondition, wcondition) in &self.conditions {
-            stream.push_str(&column);
-            stream.push(' ');
-            stream.push_str(&qcondition.sql());
-            stream.push_str(" ?");
-
-            if let Some(next_condition) = wcondition {
-                stream.push_str(&format!(" {} ", next_condition.sql()));
+                if let Some(next_condition) = wcondition {
+                    stream.push_str(&format!(" {} ", next_condition.sql()));
+                }
             }
+        } else {
+            println!("BEANS");
+        }
+
+        stream
+    }
+
+    fn to_sql_stream(&self, stream: &mut String, query: &QueryBuilder) -> Result<(), Error> {
+        if !query.where_clause.is_empty() {
+            stream.push(' ');
+            stream.push_str(&self.sql());
         }
         Ok(())
     }
@@ -137,17 +143,36 @@ mod tests {
     use crate::builder::QueryBuilder;
 
     #[test]
-    fn test_where_clause() {
+    fn test_where_clause_eq() {
+        let mut where_clause = WhereClause::default();
+        where_clause.push("id".to_string(), QueryCondition::Eq);
+
+        let query = where_clause.sql();
+
+        assert_eq!(query, "WHERE id = ?");
+    }
+
+    #[test]
+    fn test_where_clause_and() {
         let mut where_clause = WhereClause::default();
         where_clause.push("id".to_string(), QueryCondition::Eq);
         where_clause.push_condition(WhereCondition::And).unwrap();
         where_clause.push("name".to_string(), QueryCondition::Like);
 
-        let mut query = String::new();
-        where_clause
-            .to_sql_stream(&mut query, &QueryBuilder::default())
-            .unwrap();
+        let query = where_clause.sql();
 
         assert_eq!(query, "WHERE id = ? AND name LIKE ?");
+    }
+
+    #[test]
+    fn test_where_clause_or() {
+        let mut where_clause = WhereClause::default();
+        where_clause.push("id".to_string(), QueryCondition::Eq);
+        where_clause.push_condition(WhereCondition::Or).unwrap();
+        where_clause.push("name".to_string(), QueryCondition::Like);
+
+        let query = where_clause.sql();
+
+        assert_eq!(query, "WHERE id = ? OR name LIKE ?");
     }
 }

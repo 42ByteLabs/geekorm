@@ -15,7 +15,7 @@ impl QueryType {
             let table_expr = TableExpr::new(table.name);
             table_expr.to_sql_stream(&mut full_query, query).unwrap();
 
-            // WHERE
+            // WHERE {where_clause}
             query
                 .where_clause
                 .to_sql_stream(&mut full_query, query)
@@ -56,11 +56,11 @@ mod tests {
         let table = table();
         let query = QueryBuilder::delete()
             .table(&table)
-            .where_primary_key(1)
+            .where_eq("id", 1)
             .build()
             .unwrap();
 
-        assert_eq!(query.query, "DELETE FROM Test WHERE id = ?;");
         assert_eq!(query.values.len(), 1);
+        assert_eq!(query.query, "DELETE FROM Test WHERE id = ?;");
     }
 }

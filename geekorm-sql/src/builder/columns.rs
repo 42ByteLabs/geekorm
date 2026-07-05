@@ -87,7 +87,7 @@ impl Columns {
     pub fn get_foreign_keys(&self) -> Vec<&Column> {
         self.columns
             .iter()
-            .filter(|col| col.column_type == ColumnType::ForeignKey)
+            .filter(|col| col.column_type == ColumnType::ForeignKey && col.foreign_key.is_some())
             .collect()
     }
 }
@@ -102,6 +102,16 @@ impl ColumnOptions {
             auto_increment: true,
         }
     }
+
+    /// Unique (not null)
+    pub fn unique() -> Self {
+        ColumnOptions {
+            primary_key: false,
+            unique: true,
+            not_null: true,
+            auto_increment: false,
+        }
+    }
 }
 
 impl ToSql for Column {
@@ -110,19 +120,13 @@ impl ToSql for Column {
             QueryType::Create => {
                 stream.push_str(&self.name);
                 stream.push(' ');
-                self.column_type
+                let col_type = self
+                    .column_type
                     .to_sql_with_options(&self.column_options, query)?;
+                stream.push_str(&col_type);
             }
             _ => {
-                let name = self.name();
-
-                stream.push_str(&name);
-                if let Some(alias) = &self.alias {
-                    if !alias.is_empty() {
-                        stream.push_str(" AS ");
-                        stream.push_str(alias);
-                    }
-                }
+                let name = self.name.to_string();
 
                 if query.joins.is_empty() {
                     stream.push_str(&name);
@@ -130,6 +134,14 @@ impl ToSql for Column {
                     let table = query.find_table_default().unwrap();
                     let fullname = table.get_fullname(name.as_str());
                     stream.push_str(&fullname);
+                }
+
+                // Append the alias
+                if let Some(alias) = &self.alias {
+                    if !alias.is_empty() {
+                        stream.push_str(" AS ");
+                        stream.push_str(alias);
+                    }
                 }
             }
         }
@@ -145,16 +157,18 @@ impl ToSql for Columns {
             sql.push(col.to_sql(query)?);
         }
 
-        for foreign_key in self.get_foreign_keys() {
-            let (ctable, ccolumn) = foreign_key.get_foreign_key().unwrap();
+        if query.query_type == QueryType::Create {
+            for foreign_key in self.get_foreign_keys() {
+                let (ctable, ccolumn) = foreign_key.get_foreign_key().unwrap();
 
-            sql.push("FOREIGN KEY (".to_string());
-            sql.push(foreign_key.name.clone());
-            sql.push(") REFERENCES ".to_string());
-            sql.push(ctable.to_string());
-            sql.push("(".to_string());
-            sql.push(ccolumn.to_string());
-            sql.push(")".to_string());
+                sql.push("FOREIGN KEY (".to_string());
+                sql.push(foreign_key.name.clone());
+                sql.push(") REFERENCES ".to_string());
+                sql.push(ctable.to_string());
+                sql.push("(".to_string());
+                sql.push(ccolumn.to_string());
+                sql.push(")".to_string());
+            }
         }
 
         stream.push_str(&sql.join(", "));
@@ -202,6 +216,18 @@ impl From<(String, ColumnType, ColumnOptions)> for Column {
     }
 }
 
+// ForeignKey
+impl From<(String, ColumnType, String)> for Column {
+    fn from((name, ctype, foreign_key): (String, ColumnType, String)) -> Self {
+        Column {
+            name,
+            column_type: ctype,
+            foreign_key: Some(foreign_key),
+            ..Default::default()
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -239,6 +265,25 @@ mod tests {
     }
 
     #[test]
+    fn test_column_alias() {
+        let table = table();
+        let mut query = QueryBuilder::select();
+        query.table(&table);
+
+        let column = Column {
+            name: "id".to_string(),
+            column_type: ColumnType::Integer,
+            alias: Some("pk".to_string()),
+            column_options: ColumnOptions::primary_key(),
+            ..Default::default()
+        };
+
+        let column_sql = column.to_sql(&query).unwrap();
+
+        assert_eq!(column_sql.as_str(), "id AS pk");
+    }
+
+    #[test]
     fn test_columns_to_sql() {
         let table = table();
         let mut query = QueryBuilder::select();
@@ -246,9 +291,6 @@ mod tests {
 
         let columns = Columns::to_sql(&table.columns, &query).unwrap();
 
-        assert_eq!(
-            columns.as_str(),
-            "id, name, email, image_id, FOREIGN KEY (image_id) REFERENCES images(id)"
-        );
+        assert_eq!(columns.as_str(), "id, name, email, image_id");
     }
 }

@@ -5,21 +5,26 @@ pub mod columntypes;
 pub mod conditions;
 pub mod joins;
 pub mod ordering;
+pub mod pagination;
 pub mod queries;
 pub mod table;
 
 use std::collections::HashMap;
+use std::fmt::format;
 
 pub use conditions::{QueryCondition, WhereClause, WhereCondition};
 pub use joins::{TableJoin, TableJoinOptions, TableJoins};
 pub use ordering::{OrderClause, QueryOrder};
 use table::Table;
 
-use crate::{Error, Query, QueryBackend, ToSql, Value, Values};
+use crate::Column;
+use crate::{Error, Query, QueryBackend, ToSql, Value, Values, builder::pagination::Page};
 use columns::Columns;
 
+use self::queries::alter::{AlterMode, AlterQuery};
+
 /// Query Type enum
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub enum QueryType {
     /// Create Query
     Create,
@@ -33,6 +38,8 @@ pub enum QueryType {
     Update,
     /// Delete Query
     Delete,
+    /// Alter Query
+    Alter,
 
     /// Unknown Query
     #[default]
@@ -50,25 +57,25 @@ pub struct QueryBuilder<'a> {
     /// Tables to query
     pub(crate) database: Vec<&'a Table>,
 
-    /// These are the columns for INSERT and UPDATE queries
-    pub(crate) columns: Vec<String>,
-
     /// Query where conditions
     pub(crate) where_clause: WhereClause,
     pub(crate) where_condition_last: bool,
 
+    /// Joins
     pub(crate) joins: TableJoins,
 
     /// Order by conditions
     pub(crate) order_by: OrderClause,
 
-    /// Limit the number of rows returned
-    pub(crate) limit: Option<usize>,
-    /// Offset the starting point of the rows returned
-    pub(crate) offset: Option<usize>,
+    /// Page
+    pub(crate) page: Option<Page>,
 
     pub(crate) values: Values,
 
+    /// For Alter queries
+    pub(crate) alter: Option<AlterQuery>,
+
+    /// Errors during the process (report all at once)
     pub(crate) errors: Vec<String>,
 }
 
@@ -81,6 +88,7 @@ impl ToSql for QueryType {
             QueryType::Insert => Ok(self.sql_insert(query)),
             QueryType::Update => Ok(self.sql_update(query)),
             QueryType::Delete => Ok(self.sql_delete(query)),
+            QueryType::Alter => Ok(self.sql_alter(query)),
             QueryType::Unknown => Err(Error::QueryBuilderError {
                 error: String::from("Unknown query type"),
                 location: String::from("to_sql"),
@@ -145,6 +153,11 @@ impl<'a> QueryBuilder<'a> {
         }
     }
 
+    /// Alter query
+    pub fn alter() -> AlterQuery {
+        AlterQuery::new()
+    }
+
     /// Sets the Backend for the query
     pub fn backend(&mut self, backend: QueryBackend) -> &mut Self {
         self.backend = backend;
@@ -161,12 +174,6 @@ impl<'a> QueryBuilder<'a> {
     pub fn table(&mut self, table: impl Into<&'a Table>) -> &mut Self {
         let table = table.into();
         self.database.push(&table);
-        self
-    }
-
-    /// Add columns to the query
-    pub fn columns(&mut self, columns: Vec<String>) -> &mut Self {
-        self.columns = columns;
         self
     }
 
@@ -226,7 +233,7 @@ impl<'a> QueryBuilder<'a> {
                         .unwrap()
                 }
             }
-        } else if let Some(table) = self.find_table("self") {
+        } else if let Some(table) = self.find_table_default() {
             table
         } else {
             self.set_error(Error::QueryBuilderError {
@@ -254,10 +261,8 @@ impl<'a> QueryBuilder<'a> {
             }
         }
 
-        // self.where_clause
-        //     .push(format!("{} {} ?", column, condition.sql()));
+        self.add_value(column, value);
         self.where_clause.push(column.to_string(), condition);
-        self.values.push(column.to_string(), value);
         self.where_condition_last = false;
     }
 
@@ -373,7 +378,7 @@ impl<'a> QueryBuilder<'a> {
     }
 
     fn validate_table_column(&self, column: &str) -> Result<bool, Error> {
-        if let Some(table) = self.find_table("self") {
+        if let Some(table) = self.find_table_default() {
             Ok(table.columns.contains(&column))
         } else {
             return Err(Error::QueryBuilderError {
@@ -383,10 +388,19 @@ impl<'a> QueryBuilder<'a> {
         }
     }
 
+    /// Pagination using a page (cursor)
+    pub fn page(&mut self, page: &Page) -> &mut Self {
+        // TODO(geekmasher): Does converting to usize cause any issues
+        self.page = Some(page.clone());
+        self
+    }
+
     /// Add a limit to the query
     pub fn limit(&mut self, limit: usize) -> &mut Self {
         if limit != 0 {
-            self.limit = Some(limit);
+            if let Some(page) = self.page.as_mut() {
+                page.limit = limit as u32;
+            }
         } else {
             self.set_error(Error::QueryBuilderError {
                 error: String::from("Limit cannot be 0"),
@@ -398,7 +412,9 @@ impl<'a> QueryBuilder<'a> {
 
     /// Add an offset to the query
     pub fn offset(&mut self, offset: usize) -> &mut Self {
-        self.offset = Some(offset);
+        if let Some(page) = self.page.as_mut() {
+            page.page = page.limit / offset as u32;
+        }
         self
     }
 
@@ -409,6 +425,10 @@ impl<'a> QueryBuilder<'a> {
 
     /// Build a Query from the QueryBuilder
     pub fn build(&self) -> Result<Query, crate::Error> {
+        if !self.errors.is_empty() {
+            return Err(crate::Error::from(&self.errors));
+        }
+
         let query = Query {
             query: self.query_type.to_sql(self)?,
             query_type: self.query_type.clone(),

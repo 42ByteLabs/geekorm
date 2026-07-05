@@ -8,20 +8,17 @@ impl QueryType {
         let mut full_query = "SELECT COUNT(1)".to_string();
 
         if let Some(table) = query.find_table_default() {
-            let mut table = TableExpr::new(&table.name);
+            let mut table = TableExpr::new(table.name);
             if let Some(ref alias) = table.alias {
                 table.alias(alias.clone());
             }
             table.to_sql_stream(&mut full_query, query).unwrap();
 
-            // WHERE
-            if !query.where_clause.is_empty() {
-                full_query.push(' ');
-                query
-                    .where_clause
-                    .to_sql_stream(&mut full_query, query)
-                    .unwrap();
-            }
+            // WHERE {where_clause}
+            query
+                .where_clause
+                .to_sql_stream(&mut full_query, query)
+                .unwrap();
         }
 
         full_query.push(';');
@@ -33,6 +30,7 @@ impl QueryType {
 mod tests {
 
     use super::*;
+    use crate::backends::SqliteBackendOptions;
     use crate::{QueryType, Table, ToSql};
     use crate::{
         backends::QueryBackend,
@@ -62,7 +60,9 @@ mod tests {
     fn test_count_sqlite() {
         let table = table();
         let query = QueryBuilder::count()
-            .backend(QueryBackend::Sqlite)
+            .backend(QueryBackend::Sqlite {
+                options: SqliteBackendOptions::default(),
+            })
             .table(&table)
             .build()
             .unwrap();
@@ -74,12 +74,15 @@ mod tests {
     fn test_count_where() {
         let table = table();
         let query = QueryBuilder::count()
-            .backend(QueryBackend::Sqlite)
+            .backend(QueryBackend::Sqlite {
+                options: SqliteBackendOptions::default(),
+            })
             .table(&table)
-            .where_eq("id", 1)
+            .where_eq("name", "geekmasher")
             .build()
             .unwrap();
 
-        assert_eq!(query.query, "SELECT COUNT(1) FROM Test WHERE id = ?;");
+        assert_eq!(query.values.len(), 1);
+        assert_eq!(query.query, "SELECT COUNT(1) FROM Test WHERE name = ?;");
     }
 }
