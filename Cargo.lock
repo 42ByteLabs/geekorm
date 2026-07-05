@@ -1091,6 +1091,8 @@ name = "geekorm-sql"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "geekorm",
+ "rusqlite",
  "semver",
  "serde",
  "serde_json",

@@ -1,6 +1,7 @@
 use core::fmt;
 use std::fmt::{Debug, Display};
 
+use geekorm_sql::Value;
 use serde::{Deserialize, Serialize, Serializer, de::Visitor};
 
 use crate::{PrimaryKey, TableBuilder};
@@ -251,6 +252,42 @@ where
 {
     fn from(value: PrimaryKey<String>) -> Self {
         Self::new(value.value)
+    }
+}
+
+impl<D> From<ForeignKeyInteger<D>> for Value
+where
+    D: TableBuilder + Default,
+{
+    fn from(value: ForeignKeyInteger<D>) -> Self {
+        Value::from(value.key)
+    }
+}
+
+impl<D> From<&ForeignKeyInteger<D>> for Value
+where
+    D: TableBuilder + Default,
+{
+    fn from(value: &ForeignKeyInteger<D>) -> Self {
+        Value::from(value.key)
+    }
+}
+
+impl<D> From<ForeignKeyIntegerOld<D>> for Value
+where
+    D: TableBuilder + Default,
+{
+    fn from(value: ForeignKeyIntegerOld<D>) -> Self {
+        Value::from(value.key)
+    }
+}
+
+impl<D> From<&ForeignKeyIntegerOld<D>> for Value
+where
+    D: TableBuilder + Default,
+{
+    fn from(value: &ForeignKeyIntegerOld<D>) -> Self {
+        Value::from(value.key)
     }
 }
 

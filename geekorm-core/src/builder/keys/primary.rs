@@ -83,6 +83,7 @@
 use core::fmt;
 use std::fmt::{Debug, Display};
 
+use geekorm_sql::Value;
 use serde::{Deserialize, Serialize, Serializer, de::Visitor};
 #[cfg(feature = "uuid")]
 use uuid::Uuid;
@@ -428,6 +429,31 @@ impl From<PrimaryKeyIntegerOld> for u64 {
 impl From<&PrimaryKeyIntegerOld> for u64 {
     fn from(value: &PrimaryKeyIntegerOld) -> Self {
         value.value as u64
+    }
+}
+
+impl From<&PrimaryKeyInteger> for Value {
+    fn from(value: &PrimaryKeyInteger) -> Self {
+        Value::Identifier(value.value)
+    }
+}
+
+impl From<&PrimaryKeyString> for Value {
+    fn from(value: &PrimaryKeyString) -> Self {
+        Value::Text(value.value.clone())
+    }
+}
+
+impl From<&PrimaryKeyIntegerOld> for Value {
+    fn from(value: &PrimaryKeyIntegerOld) -> Self {
+        Value::from(value.value)
+    }
+}
+
+#[cfg(feature = "uuid")]
+impl From<&PrimaryKeyUuid> for Value {
+    fn from(value: &PrimaryKeyUuid) -> Self {
+        Value::from(value.value)
     }
 }
 

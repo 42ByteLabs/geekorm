@@ -34,7 +34,6 @@
 
 #[cfg(feature = "log")]
 use log::debug;
-use rusqlite::ToSql;
 use serde_rusqlite::*;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -97,7 +96,7 @@ impl GeekConnection for rusqlite::Connection {
             .prepare(query.to_str())
             .map_err(|e| crate::Error::RuSQLiteError(e.to_string()))?;
 
-        let params = if !query.parameters.values.is_empty() {
+        let params = if !query.parameters.values().is_empty() {
             rusqlite::params_from_iter(query.parameters.into_iter())
         } else {
             rusqlite::params_from_iter(query.values.into_iter())
@@ -136,7 +135,7 @@ impl GeekConnection for rusqlite::Connection {
             .prepare(query.to_str())
             .map_err(|e| crate::Error::RuSQLiteError(e.to_string()))?;
 
-        let params = if !query.parameters.values.is_empty() {
+        let params = if !query.parameters.values().is_empty() {
             rusqlite::params_from_iter(query.parameters.into_iter())
         } else {
             rusqlite::params_from_iter(query.values.into_iter())
@@ -170,7 +169,7 @@ impl GeekConnection for rusqlite::Connection {
             .prepare(query.to_str())
             .map_err(|e| crate::Error::RuSQLiteError(e.to_string()))?;
 
-        let params = if !query.parameters.values.is_empty() {
+        let params = if !query.parameters.values().is_empty() {
             rusqlite::params_from_iter(query.parameters.into_iter())
         } else {
             rusqlite::params_from_iter(query.values.into_iter())
@@ -218,31 +217,6 @@ impl GeekConnection for rusqlite::Connection {
                 .get(0)
                 .map_err(|e| crate::Error::RuSQLiteError(e.to_string()))?),
             _ => Err(crate::Error::RuSQLiteError("No rows found".to_string())),
-        }
-    }
-}
-
-impl ToSql for crate::Value {
-    fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput<'_>> {
-        match self {
-            crate::Value::Identifier(value) => Ok(rusqlite::types::ToSqlOutput::Owned(
-                rusqlite::types::Value::Integer(*value as i64),
-            )),
-            crate::Value::Text(value) => Ok(rusqlite::types::ToSqlOutput::Owned(
-                rusqlite::types::Value::Text(value.clone()),
-            )),
-            crate::Value::Integer(value) => Ok(rusqlite::types::ToSqlOutput::Owned(
-                rusqlite::types::Value::Integer(*value),
-            )),
-            crate::Value::Blob(value) | crate::Value::Json(value) => Ok(
-                rusqlite::types::ToSqlOutput::Owned(rusqlite::types::Value::Blob(value.clone())),
-            ),
-            crate::Value::Boolean(value) => Ok(rusqlite::types::ToSqlOutput::Owned(
-                rusqlite::types::Value::Integer(*value as i64),
-            )),
-            crate::Value::Null => Ok(rusqlite::types::ToSqlOutput::Owned(
-                rusqlite::types::Value::Null,
-            )),
         }
     }
 }

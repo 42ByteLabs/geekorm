@@ -339,7 +339,7 @@ fn convert_values(query: &crate::Query) -> Result<Vec<libsql::Value>, crate::Err
         _ => &query.values,
     };
 
-    for (column_name, value) in &values.values {
+    for (column_name, value) in &values.values() {
         // Check if the column exists in the table
         // The column_name could be in another table not part of the query (joins)
         if let Some(column) = query.table.columns.get(column_name.as_str()) {
