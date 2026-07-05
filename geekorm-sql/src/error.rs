@@ -12,6 +12,13 @@ pub enum Error {
         location: String,
     },
 
+    /// Value Parsing error
+    #[error("Failed to convert from a Value: {field}")]
+    TryFromValueError {
+        /// Field that failed to parse
+        field: String,
+    },
+
     /// Failed to load SQL file
     #[error("SQL File not Found: {path}")]
     SqlFileNotFound {
@@ -23,10 +30,10 @@ pub enum Error {
     #[error("IO Error: {0}")]
     IoError(#[from] std::io::Error),
 
-    /// Version error
-    #[cfg(feature = "semver")]
-    #[error("Version Error: {0}")]
-    VersionError(#[from] semver::Error),
+    /// UUID Error
+    #[cfg(feature = "uuid")]
+    #[error("UUID Error: {0}")]
+    UuidError(#[from] uuid::Error),
 
     /// General error
     #[error("Error: {0}")]
