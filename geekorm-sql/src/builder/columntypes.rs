@@ -113,25 +113,9 @@ mod tests {
         builder::{
             QueryBuilder,
             columns::{Column, Columns},
+            tests::table_users,
         },
     };
-
-    fn table() -> Table {
-        Table {
-            name: "Test",
-            columns: Columns::new(vec![
-                Column::from((
-                    "id".to_string(),
-                    ColumnType::Integer,
-                    ColumnOptions::primary_key(),
-                )),
-                Column::from(("name".to_string(), ColumnType::Text)),
-                Column::from(("email".to_string(), ColumnType::Text)),
-                Column::from(("image_id".to_string(), ColumnType::ForeignKey)),
-            ])
-            .into(),
-        }
-    }
 
     fn query() -> crate::QueryBuilder<'static> {
         crate::QueryBuilder::default()

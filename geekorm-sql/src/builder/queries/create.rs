@@ -6,13 +6,28 @@ use crate::{Error, QueryBuilder, QueryType, ToSql};
 impl QueryType {
     pub(crate) fn sql_create(&self, query: &QueryBuilder) -> String {
         let mut full_query = String::new();
+
         if let Some(table) = query.find_table_default() {
-            full_query.push_str("CREATE TABLE IF NOT EXISTS ");
-            full_query.push_str(table.name);
+            full_query.push_str(&format!("CREATE TABLE IF NOT EXISTS {} (", table.name));
 
-            full_query.push_str(" (");
-
+            // Columns with types
             table.columns.to_sql_stream(&mut full_query, query).unwrap();
+
+            let fkeys = table.columns.get_foreign_keys();
+            if !fkeys.is_empty() {
+                full_query.push_str(") ");
+
+                for foreign_key in fkeys {
+                    let (ctable, ccolumn) = foreign_key
+                        .get_foreign_key()
+                        .expect("Failed to get FK in create query");
+
+                    full_query.push_str(&format!(
+                        "FOREIGN KEY ({}) REFERENCES {} ({})",
+                        foreign_key.name, ctable, ccolumn
+                    ));
+                }
+            }
             full_query.push(')');
         }
         full_query.push(';');
@@ -23,42 +38,43 @@ impl QueryType {
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
-    use crate::builder::{
-        QueryBuilder,
-        columns::{Column, ColumnOptions, Columns},
-        columntypes::ColumnType,
+    use crate::{
+        QueryType, Table,
+        builder::{
+            QueryBuilder,
+            columns::{Column, ColumnOptions, Columns},
+            columntypes::ColumnType,
+            tests::{table_images, table_users},
+        },
     };
-    use crate::{QueryType, Table};
 
-    fn table() -> Table {
-        Table {
-            name: "Test",
-            columns: Columns::new(vec![
-                Column::from((
-                    "id".to_string(),
-                    ColumnType::Integer,
-                    ColumnOptions::primary_key(),
-                )),
-                Column::from(("name".to_string(), ColumnType::Text)),
-                Column::from(("email".to_string(), ColumnType::Text)),
-            ])
-            .into(),
-        }
+    #[test]
+    fn sqlite_create_query() {
+        let table = table_images();
+        let query = QueryBuilder::create()
+            .table(&table)
+            .build()
+            .expect("Failed to create query");
+
+        assert_eq!(
+            query.query.as_str(),
+            "CREATE TABLE IF NOT EXISTS Images (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, url TEXT);"
+        );
     }
 
     #[test]
-    fn test_create_query() {
-        let table = table();
-        let mut query = QueryBuilder::create();
-        query.table(&table);
+    fn sqlite_create_joins() {
+        let table = table_users();
 
-        let sql = query.query_type.sql_create(&query);
+        let query = QueryBuilder::create()
+            .table(&table)
+            .build()
+            .expect("Failed to create query");
 
         assert_eq!(
-            sql,
-            "CREATE TABLE IF NOT EXISTS Test (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, email TEXT);"
+            query.query.as_str(),
+            "CREATE TABLE IF NOT EXISTS Users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT, email TEXT NOT NULL UNIQUE, roles INTEGER, profile INTEGER) FOREIGN KEY (roles) REFERENCES Roles (id)FOREIGN KEY (profile) REFERENCES Images (id));"
         );
     }
 }

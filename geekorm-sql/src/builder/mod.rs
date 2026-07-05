@@ -8,6 +8,8 @@ pub mod ordering;
 pub mod pagination;
 pub mod queries;
 pub mod table;
+#[cfg(test)]
+mod tests;
 
 use std::collections::HashMap;
 use std::fmt::format;
@@ -56,6 +58,8 @@ pub struct QueryBuilder<'a> {
 
     /// Tables to query
     pub(crate) database: Vec<&'a Table>,
+    /// Root table for this builder
+    pub(crate) table: Option<&'a Table>,
 
     /// Query where conditions
     pub(crate) where_clause: WhereClause,
@@ -173,7 +177,12 @@ impl<'a> QueryBuilder<'a> {
     /// Set the table to query
     pub fn table(&mut self, table: impl Into<&'a Table>) -> &mut Self {
         let table = table.into();
-        self.database.push(&table);
+        if self.table.is_none() {
+            self.table = Some(table);
+        }
+        if !self.database.iter().any(|t| t.name == table.name) {
+            self.database.push(table);
+        }
         self
     }
 
@@ -216,9 +225,9 @@ impl<'a> QueryBuilder<'a> {
         // Check if there is a `.` in the column name
         let table = if let Some((ftable, fcolumn)) = column.split_once('.') {
             match self.joins.get(ftable) {
-                Some(TableJoin::InnerJoin(TableJoinOptions { child, .. })) => {
+                Some(TableJoin::Join { .. }) => {
                     column_name = fcolumn;
-                    child
+                    self.find_table(ftable).expect("No join table found")
                 }
                 _ => {
                     self.set_error(Error::QueryBuilderError {
@@ -322,6 +331,56 @@ impl<'a> QueryBuilder<'a> {
         self
     }
 
+    /// Adds a table to join with the current table
+    ///
+    /// Current Restrictions:
+    /// - INNER JOINS only
+    /// - One join per table
+    pub fn join(&mut self, right: impl Into<&'a Table>) -> &mut Self {
+        let right_table = right.into();
+
+        // TODO(geekmasher): Support recursive joins
+        if let Some(left_table) = self.find_table_default() {
+            if left_table.name == right_table.name {
+                self.set_error(Error::QueryBuilderError {
+                    error: String::from("Left and Right tables are the same"),
+                    location: String::from("join"),
+                });
+                return self;
+            }
+
+            // Add the table to the database
+            self.table(right_table);
+
+            // images_id
+            if let Some(left_fk) = left_table.get_foreign_key(right_table.name.to_string()) {
+                let right_pk = right_table
+                    .get_primary_key()
+                    .expect("Failed to get right side FK");
+
+                // Create a Join Table
+                self.joins.push(TableJoin::new(
+                    left_table.get_fullname(&left_fk.name),
+                    right_table.get_fullname(&right_pk.name),
+                ));
+            } else {
+                self.set_error(Error::QueryBuilderError {
+                    error: format!(
+                        "Column `{}` does not exist in table `{}`",
+                        left_table.name, right_table.name
+                    ),
+                    location: String::from("join"),
+                });
+            }
+        } else {
+            self.set_error(Error::QueryBuilderError {
+                error: String::from("No table specified"),
+                location: String::from("join"),
+            });
+        }
+        self
+    }
+
     /// Filter the query by multiple fields
     pub fn filter(&mut self, fields: Vec<(&str, impl Into<Value>)>) -> &mut Self {
         for (field, value) in fields {
@@ -369,11 +428,14 @@ impl<'a> QueryBuilder<'a> {
         self.database.iter().find(|t| t.name == table).map(|t| &**t)
     }
 
+    /// Find the "default" or "root" table
     fn find_table_default(&self) -> Option<&'a Table> {
-        if self.database.is_empty() {
-            None
-        } else {
+        if self.table.is_some() {
+            self.table
+        } else if !self.database.is_empty() {
             self.database.first().cloned()
+        } else {
+            None
         }
     }
 

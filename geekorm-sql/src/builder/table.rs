@@ -15,12 +15,23 @@ pub struct Table {
 impl Table {
     /// Create a new table with the given name and columns.
     pub fn new(name: &'static str, columns: Columns) -> Self {
-        Table { name, columns }
+        let mut new_columns = columns.clone();
+        for column in new_columns.columns.iter_mut() {
+            column.table_name = Some(name.to_string());
+        }
+
+        Table {
+            name,
+            columns: new_columns,
+        }
     }
 
     /// Add a column to the table.
-    pub fn add_column(&mut self, column: Column) {
-        self.columns.columns.push(column);
+    pub fn add_column(&mut self, column: &Column) {
+        let mut col = column.clone();
+        col.table_name = Some(self.name.to_string());
+
+        self.columns.columns.push(col);
     }
 
     /// Is the table column valid?
@@ -38,10 +49,14 @@ impl Table {
 
     /// Get a foreign key column by its name
     pub fn get_foreign_key(&self, name: String) -> Option<&Column> {
-        self.columns
-            .columns
-            .iter()
-            .find(|col| col.foreign_key.as_deref() == Some(&name))
+        self.columns.columns.iter().find(|col| {
+            // TODO(geekmasher): Is there a better way?
+            if let Some((table, column)) = col.get_foreign_key() {
+                table == name || format!("{}.{}", table, column) == name
+            } else {
+                false
+            }
+        })
     }
 
     /// Get a column by its name or alias
