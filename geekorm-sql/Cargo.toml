@@ -26,7 +26,7 @@ tag-name = "v{{version}}"
 all-features = true
 
 [features]
-default = []
+default = ["sqlite"]
 all = ["uuid", "sqlite", "postgres"]
 
 uuid = ["dep:uuid"]
