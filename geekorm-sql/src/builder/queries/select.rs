@@ -20,11 +20,8 @@ impl QueryType {
             }
             table.to_sql_stream(&mut full_query, query).unwrap();
 
-            // // JOIN
-            // if !qb.joins.is_empty() {
-            //     full_query.push(' ');
-            //     full_query.push_str(qb.joins.on_select(qb)?.as_str());
-            // }
+            // JOIN
+            query.joins.to_sql_stream(&mut full_query, query).unwrap();
 
             // WHERE {where_clause}
             query
@@ -61,87 +58,74 @@ mod tests {
             columns::{Column, ColumnOptions, Columns},
             columntypes::ColumnType,
             table::Table,
+            tests::{table_images, table_users},
         },
     };
 
-    fn table() -> Table {
-        Table {
-            name: "Test",
-            columns: Columns::new(vec![
-                Column::from((
-                    "id".to_string(),
-                    ColumnType::Integer,
-                    ColumnOptions::primary_key(),
-                )),
-                Column::from(("name".to_string(), ColumnType::Text)),
-                Column::from((
-                    "email".to_string(),
-                    ColumnType::Text,
-                    ColumnOptions::unique(),
-                )),
-                Column::from((
-                    "image_id".to_string(),
-                    ColumnType::ForeignKey,
-                    "Images.id".to_string(),
-                )),
-            ])
-            .into(),
-        }
-    }
-
     #[test]
-    fn test_select_sqlite() {
-        let table = table();
+    fn sqlite_select_basic() {
+        let table = table_images();
         let query = QueryBuilder::select()
-            .backend(QueryBackend::Sqlite {
-                options: SqliteBackendOptions::default(),
-            })
             .table(&table)
             .build()
-            .unwrap();
+            .expect("Failed to build basic SQL query");
 
-        assert_eq!(query.query, "SELECT id, name, email, image_id FROM Test;");
+        assert_eq!(query.query, "SELECT id, title, url FROM Images;");
     }
 
     #[test]
-    fn test_select_where() {
-        let table = table();
+    fn sqlite_select_where() {
+        let table = table_images();
         let query = QueryBuilder::select()
-            .backend(QueryBackend::Sqlite {
-                options: SqliteBackendOptions::default(),
-            })
             .table(&table)
-            .where_eq("name", "test")
+            .where_eq("title", "test")
             .build()
             .unwrap();
 
         assert_eq!(query.values.len(), 1);
         assert_eq!(
             query.query,
-            "SELECT id, name, email, image_id FROM Test WHERE name = ?;"
+            "SELECT id, title, url FROM Images WHERE title = ?;"
         );
 
         let mut values = Values::new();
-        values.push("name".to_string(), Value::from("test"));
+        values.push("title".to_string(), Value::from("test"));
         assert_eq!(query.values, values);
     }
 
     #[test]
-    fn test_order_clause() {
-        let table = table();
+    fn sqlite_order_clause() {
+        let table = table_images();
         let query = QueryBuilder::select()
             .backend(QueryBackend::Sqlite {
                 options: SqliteBackendOptions::default(),
             })
             .table(&table)
-            .order_by("name", QueryOrder::Asc)
-            .order_by("email", QueryOrder::Desc)
+            .order_by("title", QueryOrder::Asc)
+            .order_by("url", QueryOrder::Desc)
             .build()
             .unwrap();
 
         assert_eq!(
             query.query,
-            "SELECT id, name, email, image_id FROM Test ORDER BY name ASC, email DESC;"
+            "SELECT id, title, url FROM Images ORDER BY title ASC, url DESC;"
+        );
+    }
+
+    #[test]
+    fn sqlite_inner_join() {
+        let table = table_users();
+        let image_table = table_images();
+
+        let query = QueryBuilder::select()
+            .table(&table)
+            .join(&image_table)
+            .build()
+            .unwrap();
+
+        assert_eq!(
+            query.query,
+            "SELECT Users.id, Users.username, Users.email, Users.roles, Users.profile, Images.id, Images.title, Images.url FROM Users JOIN Images ON Users.profile = Images.id;"
         );
     }
 }

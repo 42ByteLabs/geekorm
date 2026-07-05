@@ -5,7 +5,7 @@ use crate::{Table, ToSql};
 /// Struct for joining tables
 #[derive(Debug, Clone, Default)]
 pub struct TableJoins {
-    joins: Vec<TableJoin>,
+    pub(crate) joins: Vec<TableJoin>,
 }
 
 impl Iterator for TableJoins {
@@ -25,7 +25,8 @@ impl TableJoins {
     /// Get the join by name
     pub fn get(&self, name: &str) -> Option<&TableJoin> {
         self.joins.iter().find(|join| match join {
-            TableJoin::InnerJoin(opts) => opts.child.name == name,
+            TableJoin::Join { left, .. } => left == name,
+            TableJoin::InnerJoin { left, .. } => left == name,
         })
     }
 
@@ -39,44 +40,64 @@ impl ToSql for TableJoins {
     fn to_sql(&self, query: &super::QueryBuilder) -> Result<String, crate::Error> {
         let mut full_query = String::new();
         for join in self.joins.iter() {
-            let sql = join.to_sql(query)?;
+            let sql = join.sql();
             full_query.push_str(sql.as_str());
         }
         Ok(full_query)
+    }
+
+    fn to_sql_stream(
+        &self,
+        stream: &mut String,
+        query: &super::QueryBuilder,
+    ) -> Result<(), crate::Error> {
+        if !self.is_empty() {
+            stream.push(' ');
+            stream.push_str(&self.to_sql(query)?);
+        }
+        Ok(())
     }
 }
 
 /// Enum for joining tables
 #[derive(Debug, Clone)]
 pub enum TableJoin {
+    /// Join
+    Join {
+        /// Left side (parent)
+        left: String,
+        /// Right side (child)
+        right: String,
+    },
     /// Inner Join
-    InnerJoin(TableJoinOptions),
+    InnerJoin {
+        /// Left side (parent)
+        left: String,
+        /// Right side (child)
+        right: String,
+    },
 }
 
 impl TableJoin {
-    /// Create a new inner join between two tables
-    pub fn new(parent: Table, child: Table) -> Self {
-        TableJoin::InnerJoin(TableJoinOptions { parent, child })
-    }
-
-    /// Check if a Table.Column is valid
-    pub fn is_valid_column(&self, column: &str) -> bool {
-        match self {
-            TableJoin::InnerJoin(opts) => opts.parent.is_valid_column(column),
+    /// Create a new join between 2 tables
+    pub fn new(left: impl Into<String>, right: impl Into<String>) -> Self {
+        TableJoin::Join {
+            left: left.into(),
+            right: right.into(),
         }
     }
 }
 
 impl ToSql for TableJoin {
-    fn to_sql(&self, query: &super::QueryBuilder) -> Result<String, crate::Error> {
+    fn sql(&self) -> String {
         match self {
-            TableJoin::InnerJoin(opts) => {
-                let mut inner_join = String::new();
-                inner_join.push_str("INNER JOIN ");
-                inner_join.push_str(&opts.child.name);
-                inner_join.push_str(" ON ");
-                inner_join.push_str(&opts.to_sql(query)?);
-                Ok(inner_join)
+            TableJoin::Join { left, right } => {
+                let (right_table, _) = right.split_once('.').unwrap();
+                format!("JOIN {} ON {} = {}", right_table, left, right)
+            }
+            TableJoin::InnerJoin { left, right } => {
+                let (right_table, _) = right.split_once('.').unwrap();
+                format!("INNER JOIN {} ON {} = {}", right_table, left, right)
             }
         }
     }
@@ -111,7 +132,10 @@ impl ToSql for TableJoinOptions {
         stream.push('.');
         // Get the column to join on or use the primary key of the table
         // TODO: Add support for dynamic column lookup
-        let ccolumn = self.child.get_primary_key().unwrap();
+        let ccolumn = self
+            .child
+            .get_primary_key()
+            .expect("Failed to get child primary key");
         stream.push_str(&ccolumn.name);
 
         stream.push_str(" = ");
@@ -122,7 +146,7 @@ impl ToSql for TableJoinOptions {
         let pcolumn = self
             .parent
             .get_foreign_key(self.child.name.to_string())
-            .unwrap();
+            .expect("Failed to get Foreign Key");
         stream.push_str(self.parent.name);
         stream.push('.');
 
@@ -135,64 +159,35 @@ impl ToSql for TableJoinOptions {
 
 #[cfg(test)]
 mod tests {
-
+    use super::*;
     use crate::{
         QueryBuilder,
         builder::{
             columns::{Column, ColumnOptions, Columns},
             columntypes::ColumnType,
+            tests::table_users,
         },
     };
 
-    use super::*;
+    #[test]
+    fn test_get_fk() {
+        let users = table_users();
 
-    fn table_parent() -> Table {
-        Table {
-            name: "Test",
-            columns: Columns::new(vec![
-                Column::from((
-                    "id".to_string(),
-                    ColumnType::Integer,
-                    ColumnOptions::primary_key(),
-                )),
-                Column::new_foreign_key("image_id", "Child.id"),
-            ])
-            .into(),
-        }
+        let fk = users.get_foreign_key("Roles.id".to_string());
+        assert!(fk.is_some());
+        let fk = users.get_foreign_key("Roles".to_string());
+        assert!(fk.is_some());
     }
 
-    fn table_child() -> Table {
-        Table {
-            name: "Child",
-            columns: Columns::new(vec![Column::from((
-                "id".to_string(),
-                ColumnType::Integer,
-                ColumnOptions::primary_key(),
-            ))]),
-        }
-    }
+    #[test]
+    fn sqlite_table_join_on_select() {
+        let join = TableJoin::Join {
+            left: "Users.roles".to_string(),
+            right: "Roles.id".to_string(),
+        };
 
-    // #[test]
-    // fn test_table_join_on_select() {
-    //     let parent = table_parent();
-    //     let child = table_child();
-    //
-    //     let join = TableJoin::InnerJoin(TableJoinOptions {
-    //         parent: parent.clone(),
-    //         child: child.clone(),
-    //     });
-    //
-    //     // TODO: Add test
-    // }
-    //
-    // #[test]
-    // fn test_join_options() {
-    //     let join = TableJoinOptions {
-    //         parent: table_parent(),
-    //         child: table_child(),
-    //     };
-    //
-    //     let select_query = join.on_select(&crate::QueryBuilder::select()).unwrap();
-    //     assert_eq!(select_query, "Child.id = Parent.image_id");
-    // }
+        let select_query = join.sql();
+
+        assert_eq!(select_query, "JOIN Roles ON Users.roles = Roles.id")
+    }
 }

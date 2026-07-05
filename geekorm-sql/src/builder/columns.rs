@@ -33,11 +33,26 @@ pub struct Column {
     pub(crate) column_options: ColumnOptions,
     pub(crate) alias: Option<String>,
     pub(crate) foreign_key: Option<String>,
+    pub(crate) table_name: Option<String>,
 }
 
 impl Column {
-    /// Get the column name, using the alias if it exists.
+    /// Get the column name
     pub fn name(&self) -> String {
+        self.name.clone()
+    }
+
+    /// Full column name
+    pub fn fullname(&self) -> String {
+        if let Some(table_name) = &self.table_name {
+            format!("{}.{}", table_name, self.name)
+        } else {
+            self.name.clone()
+        }
+    }
+
+    /// Get the column name
+    pub fn name_alias(&self) -> String {
         if let Some(alias) = &self.alias {
             alias.clone()
         } else {
@@ -50,9 +65,8 @@ impl Column {
         Column {
             name: name.into(),
             column_type: ColumnType::ForeignKey,
-            column_options: ColumnOptions::default(),
-            alias: None,
             foreign_key: Some(foreign_key.into()),
+            ..Default::default()
         }
     }
 
@@ -115,6 +129,21 @@ impl ColumnOptions {
 }
 
 impl ToSql for Column {
+    fn sql(&self) -> String {
+        // Simple name
+        let mut stream = String::new();
+        stream.push_str(&self.name());
+
+        // Append the alias
+        if let Some(alias) = &self.alias {
+            if !alias.is_empty() {
+                stream.push_str(" AS ");
+                stream.push_str(alias);
+            }
+        }
+        stream
+    }
+
     fn to_sql_stream(&self, stream: &mut String, query: &super::QueryBuilder) -> Result<(), Error> {
         match query.query_type {
             QueryType::Create => {
@@ -126,22 +155,10 @@ impl ToSql for Column {
                 stream.push_str(&col_type);
             }
             _ => {
-                let name = self.name.to_string();
-
                 if query.joins.is_empty() {
-                    stream.push_str(&name);
+                    stream.push_str(&self.sql());
                 } else {
-                    let table = query.find_table_default().unwrap();
-                    let fullname = table.get_fullname(name.as_str());
-                    stream.push_str(&fullname);
-                }
-
-                // Append the alias
-                if let Some(alias) = &self.alias {
-                    if !alias.is_empty() {
-                        stream.push_str(" AS ");
-                        stream.push_str(alias);
-                    }
+                    stream.push_str(&self.fullname());
                 }
             }
         }
@@ -150,6 +167,15 @@ impl ToSql for Column {
 }
 
 impl ToSql for Columns {
+    fn sql(&self) -> String {
+        // Simple column names (no tables)
+        let mut sql = Vec::new();
+        for col in &self.columns {
+            sql.push(col.name.clone());
+        }
+        sql.join(", ")
+    }
+
     fn to_sql_stream(&self, stream: &mut String, query: &super::QueryBuilder) -> Result<(), Error> {
         let mut sql = Vec::new();
 
@@ -157,17 +183,19 @@ impl ToSql for Columns {
             sql.push(col.to_sql(query)?);
         }
 
-        if query.query_type == QueryType::Create {
-            for foreign_key in self.get_foreign_keys() {
-                let (ctable, ccolumn) = foreign_key.get_foreign_key().unwrap();
+        // TODO(geekmasher): Why is a clone required here?
+        for join in query.joins.joins.iter() {
+            match join {
+                super::TableJoin::Join { right, .. }
+                | super::TableJoin::InnerJoin { right, .. } => {
+                    let (right_table_name, _) = right.split_once('.').unwrap();
 
-                sql.push("FOREIGN KEY (".to_string());
-                sql.push(foreign_key.name.clone());
-                sql.push(") REFERENCES ".to_string());
-                sql.push(ctable.to_string());
-                sql.push("(".to_string());
-                sql.push(ccolumn.to_string());
-                sql.push(")".to_string());
+                    if let Some(right_table) = query.find_table(right_table_name) {
+                        for col in &right_table.columns.columns {
+                            sql.push(col.to_sql(query)?);
+                        }
+                    }
+                }
             }
         }
 
@@ -231,29 +259,25 @@ impl From<(String, ColumnType, String)> for Column {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::builder::QueryBuilder;
+    use crate::builder::{
+        QueryBuilder,
+        tests::{table_images, table_roles, table_users},
+    };
     use crate::{Query, Table};
 
-    fn table() -> Table {
-        Table {
-            name: "Test",
-            columns: Columns::new(vec![
-                Column::from((
-                    "id".to_string(),
-                    ColumnType::Integer,
-                    ColumnOptions::primary_key(),
-                )),
-                Column::from(("name".to_string(), ColumnType::Text)),
-                Column::from(("email".to_string(), ColumnType::Text)),
-                Column::from(("image_id".to_string(), ColumnType::ForeignKey)),
-            ])
-            .into(),
-        }
+    #[test]
+    fn test_column_name() {
+        let mut column = Column::from(("id".to_string(), ColumnType::Text));
+        assert_eq!(&column.name(), "id");
+
+        column.table_name = Some("Test".to_string());
+        assert_eq!(&column.name(), "id");
+        assert_eq!(&column.fullname(), "Test.id");
     }
 
     #[test]
-    fn test_single_column_to_sql() {
-        let table = table();
+    fn sqlite_single_column_to_sql() {
+        let table = table_users();
         let mut query = QueryBuilder::select();
         query.table(&table);
 
@@ -265,8 +289,8 @@ mod tests {
     }
 
     #[test]
-    fn test_column_alias() {
-        let table = table();
+    fn sqlite_column_alias() {
+        let table = table_users();
         let mut query = QueryBuilder::select();
         query.table(&table);
 
@@ -285,12 +309,37 @@ mod tests {
 
     #[test]
     fn test_columns_to_sql() {
-        let table = table();
+        let table = table_images();
         let mut query = QueryBuilder::select();
         query.table(&table);
 
         let columns = Columns::to_sql(&table.columns, &query).unwrap();
 
-        assert_eq!(columns.as_str(), "id, name, email, image_id");
+        assert_eq!(columns.as_str(), "id, title, url");
+    }
+
+    #[test]
+    fn sqlite_column_joins() {
+        let table = table_users();
+        let roles_table = table_roles();
+        let image_table = table_images();
+
+        let mut query = QueryBuilder::select();
+        query.table(&table).join(&image_table).join(&roles_table);
+
+        println!("ERRORS :: {:?}", query.errors);
+        assert_eq!(query.joins.joins.len(), 2);
+
+        // No concept of joins
+        let columns = image_table.columns.sql();
+        assert_eq!(columns.as_str(), "id, title, url");
+
+        let mut full_sql = String::new();
+        table.columns.to_sql_stream(&mut full_sql, &query).unwrap();
+
+        assert_eq!(
+            full_sql.as_str(),
+            "Users.id, Users.username, Users.email, Users.roles, Users.profile, Images.id, Images.title, Images.url, Roles.id"
+        );
     }
 }
