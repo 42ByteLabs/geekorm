@@ -6,15 +6,16 @@ use crate::{Query, QueryBuilder, QueryType, ToSql, Value, Values};
 
 impl QueryType {
     pub(crate) fn sql_insert(&self, query: &QueryBuilder) -> String {
-        let mut full_query = String::new();
+        let mut full_query = String::from("INSERT ");
+
         if let Some(table) = query.find_table_default() {
             // Update or rollback
-            full_query = match query.backend {
+            full_query.push_str(&match query.backend {
                 crate::QueryBackend::Sqlite {
                     options: SqliteBackendOptions { transactions: true },
-                } => format!("INSERT OR ROLLBACK INTO {}", table.name),
-                _ => format!("INSERT INTO {}", table.name),
-            };
+                } => format!("OR ROLLBACK INTO {}", table.name),
+                _ => format!("INTO {}", table.name),
+            });
 
             let mut columns: Vec<String> = Vec::new();
             let mut values: Vec<String> = Vec::new();
