@@ -5,6 +5,29 @@
 //!
 //! It is a simple SQL builder that can be used to build SQL queries in a
 //! programmatic way using the builder pattern.
+//!
+//! ```rust
+//! use geekorm_sql::prelude::*;
+//!
+//! let table = Table::new(
+//!     "Users",
+//!     vec![
+//!         Column::from(("id", ColumnType::Integer)),
+//!         Column::from(("username", ColumnType::Text)),
+//!     ].into()
+//! );
+//!
+//! let query = Query::select()
+//!     .table(&table)
+//!     .where_eq("id", 1)
+//!     .order_by("id", QueryOrder::Asc)
+//!     .build()
+//!     .expect("Failed to build query");
+//!
+//! println!("Query :: {}", query.sql());
+//! assert_eq!(query.sql(), "SELECT id, username FROM Users WHERE id = ? ORDER BY id ASC;".to_string());
+//!
+//! ```
 #![allow(dead_code, unused_imports)]
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
@@ -66,4 +89,18 @@ pub trait TryFromValue {
     fn try_from_value(value: Value) -> Result<Self, Self::Error>
     where
         Self: Sized;
+}
+
+/// Prelude
+pub mod prelude {
+    pub use crate::backends::QueryBackend;
+    pub use crate::builder::{
+        QueryBuilder, QueryCondition, QueryOrder, QueryType, WhereCondition,
+        columns::{Column, ColumnOptions, Columns},
+        columntypes::ColumnType,
+        table::{Table, TableExpr},
+    };
+    pub use crate::error::Error;
+    pub use crate::query::Query;
+    pub use crate::values::{value::Value, values::Values};
 }

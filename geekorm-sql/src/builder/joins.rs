@@ -37,7 +37,7 @@ impl TableJoins {
 }
 
 impl ToSql for TableJoins {
-    fn to_sql(&self, query: &super::QueryBuilder) -> Result<String, crate::Error> {
+    fn to_sql(&self, _query: &super::QueryBuilder) -> Result<String, crate::Error> {
         let mut full_query = String::new();
         for join in self.joins.iter() {
             let sql = join.sql();

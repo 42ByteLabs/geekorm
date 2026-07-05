@@ -204,6 +204,12 @@ impl ToSql for Columns {
     }
 }
 
+impl From<Vec<Column>> for Columns {
+    fn from(value: Vec<Column>) -> Self {
+        Columns { columns: value }
+    }
+}
+
 impl From<String> for Column {
     fn from(name: String) -> Self {
         Column {
@@ -218,6 +224,16 @@ impl From<(String, String)> for Column {
         Column {
             name,
             alias: Some(alias),
+            ..Default::default()
+        }
+    }
+}
+
+impl From<(&str, ColumnType)> for Column {
+    fn from((name, ctype): (&str, ColumnType)) -> Self {
+        Column {
+            name: name.to_string(),
+            column_type: ctype,
             ..Default::default()
         }
     }
