@@ -44,7 +44,7 @@ mod tests {
         let url =
             Url::parse("https://42bytelabs.com:443/projects/geekorm").expect("Failed to parse URL");
 
-        let value = Value::from(url);
+        let value = Value::from(&url);
         assert!(matches!(value, Value::Text(_)));
 
         let og_url = <Url as TryFromValue>::try_from_value(value).expect("Failed to return URL");

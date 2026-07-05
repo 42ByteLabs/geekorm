@@ -94,7 +94,7 @@ mod tests {
 
     #[test]
     fn test_datetime_from_string() {
-        let dt_str = "2023-10-01T12:00:00Z";
+        let dt_str = "2023-10-01T12:00:00+00:00";
         let value = Value::Text(dt_str.to_string());
         let dt: DateTime<Utc> = value.try_into().unwrap();
         assert_eq!(dt.to_rfc3339(), dt_str);
