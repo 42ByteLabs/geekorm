@@ -91,6 +91,7 @@ rusqlite = ["backends", "geekorm-derive/rusqlite", "geekorm-core/rusqlite"]
 migrations = ["geekorm-core/migrations", "dep:lazy_static"]
 
 [dependencies]
+geekorm-sql = { version = "0.1.0", path = "geekorm-sql" }
 geekorm-core = { version = "^0.12.0", path = "geekorm-core" }
 geekorm-derive = { version = "^0.12.0", path = "geekorm-derive" }
 

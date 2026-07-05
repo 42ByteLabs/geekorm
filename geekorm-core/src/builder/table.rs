@@ -193,7 +193,7 @@ impl ToSqlite for Table {
         let mut values: Vec<String> = Vec::new();
         let mut parameters = Values::new();
 
-        for (cname, value) in query.values.values.iter() {
+        for (cname, value) in query.values.values().iter() {
             let column = query.table.columns.get(cname.as_str()).unwrap();
 
             // Get the column (might be an alias)
@@ -223,6 +223,7 @@ impl ToSqlite for Table {
                     parameters.push(column_name, value.clone());
                 }
                 crate::Value::Integer(value) => values.push(value.to_string()),
+                crate::Value::Datetime(value) => values.push(value.to_string()),
                 crate::Value::Boolean(value) => values.push(value.to_string()),
                 crate::Value::Null => values.push("NULL".to_string()),
             }
@@ -248,7 +249,7 @@ impl ToSqlite for Table {
         let mut columns: Vec<String> = Vec::new();
         let mut parameters = Values::new();
 
-        for (cname, value) in query.values.values.iter() {
+        for (cname, value) in query.values.values().iter() {
             let column = query.table.columns.get(cname.as_str()).unwrap();
 
             // Skip if primary key
@@ -273,6 +274,9 @@ impl ToSqlite for Table {
                     parameters.push(column_name, value.clone());
                 }
                 crate::Value::Integer(value) => {
+                    columns.push(format!("{} = {}", column_name, value))
+                }
+                crate::Value::Datetime(value) => {
                     columns.push(format!("{} = {}", column_name, value))
                 }
                 crate::Value::Boolean(value) => {

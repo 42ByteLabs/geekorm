@@ -995,6 +995,7 @@ dependencies = [
  "geekorm",
  "geekorm-core",
  "geekorm-derive",
+ "geekorm-sql",
  "lazy_static",
  "libsql",
  "log",
@@ -1043,6 +1044,7 @@ dependencies = [
  "chrono",
  "figment",
  "geekorm",
+ "geekorm-sql",
  "libsql",
  "log",
  "password-hash 0.6.1",
@@ -1088,9 +1090,12 @@ dependencies = [
 name = "geekorm-sql"
 version = "0.1.0"
 dependencies = [
+ "chrono",
+ "semver",
  "serde",
  "serde_json",
  "thiserror 2.0.18",
+ "url",
  "uuid",
 ]
 
@@ -3607,6 +3612,7 @@ dependencies = [
  "idna",
  "percent-encoding",
  "serde",
+ "serde_derive",
 ]
 
 [[package]]
