@@ -35,6 +35,16 @@ pub enum Error {
     #[error("UUID Error: {0}")]
     UuidError(#[from] uuid::Error),
 
+    /// URL Error
+    #[cfg(feature = "url")]
+    #[error("Url Error: {0}")]
+    UrlError(#[from] url::ParseError),
+
+    /// SemVer Error
+    #[cfg(feature = "semver")]
+    #[error("SemVer Error: {0}")]
+    SemVerError(#[from] semver::Error),
+
     /// General error
     #[error("Error: {0}")]
     GeneralError(String),
