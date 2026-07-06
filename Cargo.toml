@@ -120,22 +120,22 @@ opt-level = 1
 [[example]]
 name = "tfa"
 path = "./examples/tfa.rs"
-required-features = ["all", "tfa", "libsql"]
+required-features = ["all", "tfa", "rusqlite"]
 
 [[example]]
 name = "chrono"
 path = "./examples/chrono.rs"
-required-features = ["all", "libsql"]
+required-features = ["all", "rusqlite"]
 
 [[example]]
 name = "pagination"
 path = "./examples/pagination.rs"
-required-features = ["all", "libsql", "pagination"]
+required-features = ["all", "rusqlite", "pagination"]
 
 [[example]]
 name = "filter"
 path = "./examples/filter.rs"
-required-features = ["all", "libsql"]
+required-features = ["all", "rusqlite"]
 
 [[example]]
 name = "turso-libsql"
@@ -150,7 +150,7 @@ required-features = ["all", "rusqlite"]
 [[example]]
 name = "rocket"
 path = "./examples/server-rocket/src/main.rs"
-required-features = ["all", "libsql", "backends-tokio"]
+required-features = ["all", "rusqlite", "backends-tokio"]
 
 [[example]]
 name = "sqlite-wal"

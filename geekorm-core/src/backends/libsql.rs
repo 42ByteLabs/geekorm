@@ -47,6 +47,7 @@ use crate::{
     GeekConnection, QueryBuilderTrait, TableBuilder, Value, Values, builder::models::QueryType,
 };
 
+use super::DatabaseValue;
 use super::connect::ConnectionManager;
 
 #[cfg(feature = "backends-tokio")]
@@ -95,7 +96,7 @@ impl GeekConnection for libsql::Connection {
         {
             debug!("Row Count Query :: {:?}", query.to_str());
         }
-        let mut statement = connection.prepare(query.to_str()).await.map_err(|e| {
+        let statement = connection.prepare(query.to_str()).await.map_err(|e| {
             crate::Error::QuerySyntaxError {
                 error: e.to_string(),
                 query: query.to_string(),
@@ -148,7 +149,7 @@ impl GeekConnection for libsql::Connection {
             debug!("Query :: {:?}", query.to_str());
         }
 
-        let mut statement = connection.prepare(query.to_str()).await.map_err(|e| {
+        let statement = connection.prepare(query.to_str()).await.map_err(|e| {
             crate::Error::QuerySyntaxError {
                 error: e.to_string(),
                 query: query.to_string(),
@@ -211,7 +212,7 @@ impl GeekConnection for libsql::Connection {
             });
         }
 
-        let mut statement = connection.prepare(query.to_str()).await.map_err(|e| {
+        let statement = connection.prepare(query.to_str()).await.map_err(|e| {
             crate::Error::QuerySyntaxError {
                 error: e.to_string(),
                 query: query.to_string(),
@@ -293,7 +294,7 @@ impl GeekConnection for libsql::Connection {
     ) -> Result<Vec<HashMap<String, Value>>, crate::Error> {
         let params = convert_values(&query)?;
 
-        let mut statement = connection.prepare(query.to_str()).await.map_err(|e| {
+        let statement = connection.prepare(query.to_str()).await.map_err(|e| {
             crate::Error::QuerySyntaxError {
                 error: e.to_string(),
                 query: query.to_string(),
@@ -321,7 +322,7 @@ impl GeekConnection for libsql::Connection {
 
             for (index, column_name) in query.columns.iter().enumerate() {
                 let value = row.get_value(index as i32).unwrap();
-                values.insert(column_name.to_string(), value.into());
+                values.insert(column_name.to_string(), DatabaseValue::from(value).into());
             }
             results.push(values);
         }
@@ -339,7 +340,10 @@ fn convert_values(query: &crate::Query) -> Result<Vec<libsql::Value>, crate::Err
         _ => &query.values,
     };
 
-    for (column_name, value) in &values.values() {
+    for (column_name, value) in values.values() {
+        // Cast to DatabaseValue
+        let value = DatabaseValue::from(value);
+
         // Check if the column exists in the table
         // The column_name could be in another table not part of the query (joins)
         if let Some(column) = query.table.columns.get(column_name.as_str()) {
@@ -356,15 +360,10 @@ fn convert_values(query: &crate::Query) -> Result<Vec<libsql::Value>, crate::Err
             log::trace!("LIBSQL - Column('{}', '{}')", column_name, value);
         }
 
-        parameters.push(
-            value
-                .clone()
-                .into_value()
-                .map_err(|e| crate::Error::LibSQLError {
-                    error: format!("Error converting value - {}", e),
-                    query: query.to_string(),
-                })?,
-        );
+        parameters.push(value.into_value().map_err(|e| crate::Error::LibSQLError {
+            error: format!("Error converting value - {}", e),
+            query: query.to_string(),
+        })?);
     }
     Ok(parameters)
 }
@@ -399,38 +398,27 @@ impl From<(libsql::Error, String)> for crate::Error {
     }
 }
 
-impl IntoValue for Value {
+/// DatabaseValue -> libsql::Value
+impl IntoValue for DatabaseValue {
     fn into_value(self) -> libsql::Result<libsql::Value> {
         Ok(match self {
-            Value::Text(value) => libsql::Value::Text(value),
-            Value::Integer(value) => libsql::Value::Integer(value),
-            Value::Boolean(value) => libsql::Value::Text(value.to_string()),
-            // TODO: Identifier could be a Integer?
-            Value::Identifier(value) => libsql::Value::Integer(value as i64),
-            Value::Blob(value) | Value::Json(value) => libsql::Value::Blob(value),
-            Value::Null => libsql::Value::Null,
+            DatabaseValue::Text(value) => libsql::Value::Text(value),
+            DatabaseValue::Int(value) => libsql::Value::Integer(value as i64),
+            DatabaseValue::Real(value) => libsql::Value::Real(value),
+            DatabaseValue::Blob(value) => libsql::Value::Blob(value),
+            DatabaseValue::Null => libsql::Value::Null,
         })
     }
 }
 
-impl From<libsql::Value> for Value {
+impl From<libsql::Value> for DatabaseValue {
     fn from(value: libsql::Value) -> Self {
         match value {
-            libsql::Value::Text(value) => Value::Text(value),
-            libsql::Value::Integer(value) => Value::Integer(value),
-            libsql::Value::Null => Value::Null,
-            libsql::Value::Blob(value) => {
-                // TODO: Is this the best way of doing this?
-                if let Some(start) = value.first() {
-                    if *start == b'{' || *start == b'[' {
-                        return Value::Json(value);
-                    }
-                }
-                Value::Blob(value)
-            }
-            libsql::Value::Real(_) => {
-                todo!("Real values are not supported yet")
-            }
+            libsql::Value::Text(value) => DatabaseValue::Text(value),
+            libsql::Value::Integer(value) => DatabaseValue::Int(value as u64),
+            libsql::Value::Null => DatabaseValue::Null,
+            libsql::Value::Blob(value) => DatabaseValue::Blob(value),
+            libsql::Value::Real(value) => DatabaseValue::Real(value),
         }
     }
 }

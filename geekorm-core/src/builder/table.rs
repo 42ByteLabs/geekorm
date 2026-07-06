@@ -193,8 +193,8 @@ impl ToSqlite for Table {
         let mut values: Vec<String> = Vec::new();
         let mut parameters = Values::new();
 
-        for (cname, value) in query.values.values().iter() {
-            let column = query.table.columns.get(cname.as_str()).unwrap();
+        for nvalue in query.values.values().iter() {
+            let column = query.table.columns.get(nvalue.name()).unwrap();
 
             // Get the column (might be an alias)
             let mut column_name = column.name.clone();
@@ -210,12 +210,12 @@ impl ToSqlite for Table {
             columns.push(column_name.clone());
 
             // Add to Values
-            match value {
+            match nvalue.value() {
                 crate::Value::Identifier(_) | crate::Value::Text(_) | crate::Value::Json(_) => {
                     // Security: String values should never be directly inserted into the query
                     // This is to prevent SQL injection attacks
                     values.push(String::from("?"));
-                    parameters.push(column_name, value.clone());
+                    parameters.push(column_name, nvalue.value());
                 }
                 crate::Value::Blob(value) => {
                     // Security: Blods should never be directly inserted into the query
@@ -223,6 +223,7 @@ impl ToSqlite for Table {
                     parameters.push(column_name, value.clone());
                 }
                 crate::Value::Integer(value) => values.push(value.to_string()),
+                crate::Value::Real(value) => values.push(value.to_string()),
                 crate::Value::Datetime(value) => values.push(value.to_string()),
                 crate::Value::Boolean(value) => values.push(value.to_string()),
                 crate::Value::Null => values.push("NULL".to_string()),
@@ -249,11 +250,11 @@ impl ToSqlite for Table {
         let mut columns: Vec<String> = Vec::new();
         let mut parameters = Values::new();
 
-        for (cname, value) in query.values.values().iter() {
-            let column = query.table.columns.get(cname.as_str()).unwrap();
+        for nvalue in query.values.values().iter() {
+            let column = query.table.columns.get(nvalue.name()).unwrap();
 
             // Skip if primary key
-            if column.column_type.is_primary_key() || cname == "id" {
+            if column.column_type.is_primary_key() || nvalue.name() == "id" {
                 continue;
             }
             // Get the column (might be an alias)
@@ -263,7 +264,7 @@ impl ToSqlite for Table {
             }
 
             // Add to Values
-            match value {
+            match nvalue.value() {
                 crate::Value::Identifier(_)
                 | crate::Value::Text(_)
                 | crate::Value::Blob(_)
@@ -271,11 +272,12 @@ impl ToSqlite for Table {
                     // Security: String values should never be directly inserted into the query
                     // This is to prevent SQL injection attacks
                     columns.push(format!("{} = ?", column_name));
-                    parameters.push(column_name, value.clone());
+                    parameters.push(column_name, nvalue.value());
                 }
                 crate::Value::Integer(value) => {
                     columns.push(format!("{} = {}", column_name, value))
                 }
+                crate::Value::Real(value) => columns.push(format!("{} = {}", column_name, value)),
                 crate::Value::Datetime(value) => {
                     columns.push(format!("{} = {}", column_name, value))
                 }
