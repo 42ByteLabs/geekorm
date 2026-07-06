@@ -215,7 +215,7 @@ impl ToSqlite for Table {
                     // Security: String values should never be directly inserted into the query
                     // This is to prevent SQL injection attacks
                     values.push(String::from("?"));
-                    parameters.push(column_name, nvalue.value());
+                    parameters.push(column_name, nvalue.value().clone());
                 }
                 crate::Value::Blob(value) => {
                     // Security: Blods should never be directly inserted into the query
@@ -272,7 +272,7 @@ impl ToSqlite for Table {
                     // Security: String values should never be directly inserted into the query
                     // This is to prevent SQL injection attacks
                     columns.push(format!("{} = ?", column_name));
-                    parameters.push(column_name, nvalue.value());
+                    parameters.push(column_name, nvalue.value().clone());
                 }
                 crate::Value::Integer(value) => {
                     columns.push(format!("{} = {}", column_name, value))

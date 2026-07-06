@@ -42,7 +42,7 @@ impl QueryType {
                         // Security: String values should never be directly inserted into the query
                         // This is to prevent SQL injection attacks
                         columns.push(format!("{} = ?", column_name));
-                        parameters.push(column_name, nvalue.value());
+                        parameters.push(column_name, nvalue.value().clone());
                     }
                     Value::Integer(value) => {
                         columns.push(format!("{} = {}", column_name, value));

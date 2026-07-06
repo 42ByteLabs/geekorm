@@ -39,8 +39,7 @@ impl QueryType {
                         // Security: String values should never be directly inserted into the query
                         // This is to prevent SQL injection attacks
                         values.push(String::from("?"));
-                        // TODO: 2 clones of the data here
-                        parameters.push(column_name, nvalue.value());
+                        parameters.push(column_name, nvalue.value().clone());
                     }
                     Value::Blob(value) => {
                         // Security: Blods should never be directly inserted into the query

@@ -340,13 +340,13 @@ fn convert_values(query: &crate::Query) -> Result<Vec<libsql::Value>, crate::Err
         _ => &query.values,
     };
 
-    for (column_name, value) in values.values() {
+    for nvalue in values.values() {
         // Cast to DatabaseValue
-        let value = DatabaseValue::from(value);
+        let value = DatabaseValue::from(nvalue.value());
 
         // Check if the column exists in the table
         // The column_name could be in another table not part of the query (joins)
-        if let Some(column) = query.table.columns.get(column_name.as_str()) {
+        if let Some(column) = query.table.columns.get(nvalue.name()) {
             // Skip auto increment columns if the query is an insert
             if query.query_type == QueryType::Insert && column.column_type.is_auto_increment() {
                 continue;
@@ -357,7 +357,7 @@ fn convert_values(query: &crate::Query) -> Result<Vec<libsql::Value>, crate::Err
 
         #[cfg(feature = "log")]
         {
-            log::trace!("LIBSQL - Column('{}', '{}')", column_name, value);
+            log::trace!("LIBSQL - Column('{}', '{}')", nvalue.name(), nvalue.value());
         }
 
         parameters.push(value.into_value().map_err(|e| crate::Error::LibSQLError {

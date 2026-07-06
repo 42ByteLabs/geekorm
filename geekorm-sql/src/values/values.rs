@@ -24,8 +24,8 @@ impl NamedValue {
     }
 
     /// Get Value
-    pub fn value(&self) -> Value {
-        self.value.clone()
+    pub fn value(&self) -> &Value {
+        &self.value
     }
 }
 
@@ -81,7 +81,7 @@ impl IntoIterator for Values {
     fn into_iter(self) -> Self::IntoIter {
         self.values
             .into_iter()
-            .map(|v| v.value())
+            .map(|v| v.value().clone())
             .collect::<Vec<Value>>()
             .into_iter()
     }
