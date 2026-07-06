@@ -25,9 +25,9 @@ impl QueryType {
             let values = query.values.values();
             assert_ne!(values.len(), 0);
 
-            for (cname, value) in values {
+            for nvalue in values {
                 // Security: The column must be a column is knows
-                let column = table.find_column(cname).unwrap();
+                let column = table.find_column(nvalue.name()).unwrap();
                 // Get the column (might be an alias)
                 let column_name = column.name();
 
@@ -37,14 +37,17 @@ impl QueryType {
                 }
 
                 // Add to Values
-                match value {
+                match nvalue.value() {
                     Value::Identifier(_) | Value::Text(_) | Value::Blob(_) | Value::Json(_) => {
                         // Security: String values should never be directly inserted into the query
                         // This is to prevent SQL injection attacks
                         columns.push(format!("{} = ?", column_name));
-                        parameters.push(column_name, value.clone());
+                        parameters.push(column_name, nvalue.value());
                     }
                     Value::Integer(value) => {
+                        columns.push(format!("{} = {}", column_name, value));
+                    }
+                    Value::Real(value) => {
                         columns.push(format!("{} = {}", column_name, value));
                     }
                     Value::Datetime(value) => {

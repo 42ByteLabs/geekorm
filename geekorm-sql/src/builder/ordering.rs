@@ -120,8 +120,13 @@ impl ToSql for CaseExpression {
 
         stream.push_str(&format!("CASE {} ", self.column));
 
-        for (key, case) in &self.cases.values {
-            cases.push(format!("WHEN '{}' THEN {}", key, case))
+        for named_value in &self.cases.values {
+            // SECURITY: Does this cause SQLi attacks based on a enum name/rename??
+            cases.push(format!(
+                "WHEN '{}' THEN {}",
+                named_value.name(),
+                named_value.value()
+            ))
         }
 
         let sql = cases.join(" ");
