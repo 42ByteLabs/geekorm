@@ -995,6 +995,7 @@ dependencies = [
  "geekorm",
  "geekorm-core",
  "geekorm-derive",
+ "geekorm-sql",
  "lazy_static",
  "libsql",
  "log",
@@ -1043,6 +1044,7 @@ dependencies = [
  "chrono",
  "figment",
  "geekorm",
+ "geekorm-sql",
  "libsql",
  "log",
  "password-hash 0.6.1",
@@ -1088,9 +1090,14 @@ dependencies = [
 name = "geekorm-sql"
 version = "0.1.0"
 dependencies = [
+ "chrono",
+ "geekorm",
+ "semver",
  "serde",
  "serde_json",
+ "serde_test",
  "thiserror 2.0.18",
+ "url",
  "uuid",
 ]
 
@@ -2859,6 +2866,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_test"
+version = "1.0.177"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f901ee573cab6b3060453d2d5f0bae4e6d628c23c0a962ff9b5f1d7c8d4f1ed"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "serde_yaml"
 version = "0.9.34+deprecated"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3607,6 +3623,7 @@ dependencies = [
  "idna",
  "percent-encoding",
  "serde",
+ "serde_derive",
 ]
 
 [[package]]

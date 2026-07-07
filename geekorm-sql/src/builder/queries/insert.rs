@@ -21,8 +21,8 @@ impl QueryType {
             let mut values: Vec<String> = Vec::new();
             let mut parameters = Values::new();
 
-            for (cname, value) in query.values.values() {
-                let column = table.find_column(cname).unwrap();
+            for nvalue in query.values.values() {
+                let column = table.find_column(nvalue.name()).unwrap();
                 // Get the column (might be an alias)
                 let column_name = column.name();
 
@@ -34,12 +34,12 @@ impl QueryType {
                 columns.push(column_name.clone());
 
                 // Add to Values
-                match value {
+                match nvalue.value() {
                     Value::Identifier(_) | Value::Text(_) | Value::Json(_) => {
                         // Security: String values should never be directly inserted into the query
                         // This is to prevent SQL injection attacks
                         values.push(String::from("?"));
-                        parameters.push(column_name, value.clone());
+                        parameters.push(column_name, nvalue.value().clone());
                     }
                     Value::Blob(value) => {
                         // Security: Blods should never be directly inserted into the query
@@ -47,6 +47,7 @@ impl QueryType {
                         parameters.push(column_name, value.clone());
                     }
                     Value::Integer(value) => values.push(value.to_string()),
+                    Value::Real(value) => values.push(value.to_string()),
                     Value::Boolean(value) => values.push(value.to_string()),
                     Value::Datetime(value) => values.push(value.to_string()),
                     Value::Null => values.push("NULL".to_string()),

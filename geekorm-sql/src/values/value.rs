@@ -6,12 +6,14 @@ use serde::{Deserialize, Serialize, Serializer};
 use std::fmt::{Display, write};
 
 /// A value for a column
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Value {
     /// A text (String) value
     Text(String),
     /// An integer (i64) values so the values can be positive or negative
     Integer(i64),
+    /// Real / Flout
+    Real(f64),
     /// A boolean (i64) value (0 or 1)
     /// This is because SQLite does not have a boolean type
     Boolean(u8),
@@ -39,6 +41,7 @@ impl Display for Value {
         match self {
             Value::Text(value) => write!(f, "{}", value),
             Value::Integer(value) => write!(f, "{}", value),
+            Value::Real(value) => write!(f, "{}", value),
             Value::Boolean(value) => write!(f, "{}", value),
             Value::Identifier(value) => write!(f, "{}", value),
             Value::Datetime(value) => write!(f, "{}", value),
@@ -135,6 +138,12 @@ impl From<i64> for Value {
     }
 }
 
+impl From<f64> for Value {
+    fn from(value: f64) -> Self {
+        Value::Real(value)
+    }
+}
+
 impl From<usize> for Value {
     fn from(value: usize) -> Self {
         Value::Integer(value as i64)
@@ -174,6 +183,7 @@ impl Serialize for Value {
         match self {
             Value::Text(value) => serializer.serialize_str(value),
             Value::Integer(value) => serializer.serialize_i64(*value),
+            Value::Real(value) => serializer.serialize_f64(*value),
             Value::Boolean(value) => serializer.serialize_u8(*value),
             Value::Identifier(value) => serializer.serialize_u64(*value),
             Value::Datetime(value) => serializer.serialize_u64(*value),
@@ -244,6 +254,13 @@ impl<'de> Deserialize<'de> for Value {
                 Ok(Value::Integer(value as i64))
             }
 
+            fn visit_f64<E>(self, v: f64) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                Ok(Value::Real(v))
+            }
+
             fn visit_bool<E>(self, value: bool) -> Result<Self::Value, E>
             where
                 E: serde::de::Error,
@@ -291,6 +308,8 @@ impl<'de> Deserialize<'de> for Value {
 
 #[cfg(test)]
 mod tests {
+    use serde_test::assert_tokens;
+
     use super::*;
     use crate::Values;
 

@@ -91,6 +91,7 @@ rusqlite = ["backends", "geekorm-derive/rusqlite", "geekorm-core/rusqlite"]
 migrations = ["geekorm-core/migrations", "dep:lazy_static"]
 
 [dependencies]
+geekorm-sql = { version = "0.1.0", path = "geekorm-sql" }
 geekorm-core = { version = "^0.12.0", path = "geekorm-core" }
 geekorm-derive = { version = "^0.12.0", path = "geekorm-derive" }
 
@@ -119,22 +120,22 @@ opt-level = 1
 [[example]]
 name = "tfa"
 path = "./examples/tfa.rs"
-required-features = ["all", "tfa", "libsql"]
+required-features = ["all", "tfa", "rusqlite"]
 
 [[example]]
 name = "chrono"
 path = "./examples/chrono.rs"
-required-features = ["all", "libsql"]
+required-features = ["all", "rusqlite"]
 
 [[example]]
 name = "pagination"
 path = "./examples/pagination.rs"
-required-features = ["all", "libsql", "pagination"]
+required-features = ["all", "rusqlite", "pagination"]
 
 [[example]]
 name = "filter"
 path = "./examples/filter.rs"
-required-features = ["all", "libsql"]
+required-features = ["all", "rusqlite"]
 
 [[example]]
 name = "turso-libsql"

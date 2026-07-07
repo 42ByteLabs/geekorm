@@ -32,15 +32,16 @@
 //! # }
 //! ```
 
+use geekorm_sql::Values;
 #[cfg(feature = "log")]
 use log::debug;
-use rusqlite::ToSql;
+use rusqlite::ParamsFromIter;
 use serde_rusqlite::*;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use super::GeekConnection;
 use super::connect::ConnectionManager;
+use super::{DatabaseValue, GeekConnection};
 
 /// Create a connector with Rusqlite
 ///
@@ -97,10 +98,10 @@ impl GeekConnection for rusqlite::Connection {
             .prepare(query.to_str())
             .map_err(|e| crate::Error::RuSQLiteError(e.to_string()))?;
 
-        let params = if !query.parameters.values.is_empty() {
-            rusqlite::params_from_iter(query.parameters.into_iter())
+        let params = if !query.parameters.values().is_empty() {
+            values_to_rusqlite(query.parameters)
         } else {
-            rusqlite::params_from_iter(query.values.into_iter())
+            values_to_rusqlite(query.values)
         };
         #[cfg(feature = "log")]
         {
@@ -136,10 +137,10 @@ impl GeekConnection for rusqlite::Connection {
             .prepare(query.to_str())
             .map_err(|e| crate::Error::RuSQLiteError(e.to_string()))?;
 
-        let params = if !query.parameters.values.is_empty() {
-            rusqlite::params_from_iter(query.parameters.into_iter())
+        let params = if !query.parameters.values().is_empty() {
+            values_to_rusqlite(query.parameters)
         } else {
-            rusqlite::params_from_iter(query.values.into_iter())
+            values_to_rusqlite(query.values)
         };
         #[cfg(feature = "log")]
         {
@@ -170,10 +171,10 @@ impl GeekConnection for rusqlite::Connection {
             .prepare(query.to_str())
             .map_err(|e| crate::Error::RuSQLiteError(e.to_string()))?;
 
-        let params = if !query.parameters.values.is_empty() {
-            rusqlite::params_from_iter(query.parameters.into_iter())
+        let params = if !query.parameters.values().is_empty() {
+            values_to_rusqlite(query.parameters)
         } else {
-            rusqlite::params_from_iter(query.values.into_iter())
+            values_to_rusqlite(query.values)
         };
         #[cfg(feature = "log")]
         {
@@ -208,7 +209,10 @@ impl GeekConnection for rusqlite::Connection {
         let mut statement = connection
             .prepare(query.to_str())
             .map_err(|e| crate::Error::RuSQLiteError(e.to_string()))?;
-        let params = rusqlite::params_from_iter(query.parameters.into_iter());
+
+        let params = values_to_rusqlite(query.parameters);
+
+        //let params = rusqlite::params_from_iter(query.parameters);
         let mut res = statement
             .query(params)
             .map_err(|e| crate::Error::RuSQLiteError(e.to_string()))?;
@@ -222,25 +226,34 @@ impl GeekConnection for rusqlite::Connection {
     }
 }
 
-impl ToSql for crate::Value {
+/// Value -> DatabaseValue -> Rusqlite Value
+#[inline]
+fn values_to_rusqlite(values: Values) -> ParamsFromIter<Vec<DatabaseValue>> {
+    rusqlite::params_from_iter(
+        values
+            .values()
+            .iter()
+            .map(|nv| DatabaseValue::from(nv.value()))
+            .collect(),
+    )
+}
+
+impl rusqlite::ToSql for DatabaseValue {
     fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput<'_>> {
         match self {
-            crate::Value::Identifier(value) => Ok(rusqlite::types::ToSqlOutput::Owned(
-                rusqlite::types::Value::Integer(*value as i64),
-            )),
-            crate::Value::Text(value) => Ok(rusqlite::types::ToSqlOutput::Owned(
+            DatabaseValue::Text(value) => Ok(rusqlite::types::ToSqlOutput::Owned(
                 rusqlite::types::Value::Text(value.clone()),
             )),
-            crate::Value::Integer(value) => Ok(rusqlite::types::ToSqlOutput::Owned(
-                rusqlite::types::Value::Integer(*value),
-            )),
-            crate::Value::Blob(value) | crate::Value::Json(value) => Ok(
-                rusqlite::types::ToSqlOutput::Owned(rusqlite::types::Value::Blob(value.clone())),
-            ),
-            crate::Value::Boolean(value) => Ok(rusqlite::types::ToSqlOutput::Owned(
+            DatabaseValue::Int(value) => Ok(rusqlite::types::ToSqlOutput::Owned(
                 rusqlite::types::Value::Integer(*value as i64),
             )),
-            crate::Value::Null => Ok(rusqlite::types::ToSqlOutput::Owned(
+            DatabaseValue::Blob(value) => Ok(rusqlite::types::ToSqlOutput::Owned(
+                rusqlite::types::Value::Blob(value.clone()),
+            )),
+            DatabaseValue::Real(value) => Ok(rusqlite::types::ToSqlOutput::Owned(
+                rusqlite::types::Value::Real(*value),
+            )),
+            DatabaseValue::Null => Ok(rusqlite::types::ToSqlOutput::Owned(
                 rusqlite::types::Value::Null,
             )),
         }

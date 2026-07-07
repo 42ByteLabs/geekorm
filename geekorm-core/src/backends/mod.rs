@@ -72,6 +72,68 @@ pub mod libsql;
 #[cfg(feature = "rusqlite")]
 pub mod rusqlite;
 
+/// Database spesific value
+#[derive(Debug, Clone)]
+pub(crate) enum DatabaseValue {
+    Text(String),
+    Int(u64),
+    Blob(Vec<u8>),
+    Real(f64),
+    Null,
+}
+
+impl From<Value> for DatabaseValue {
+    fn from(value: Value) -> Self {
+        match value {
+            Value::Text(value) => Self::Text(value),
+            Value::Integer(value) => Self::Int(value as u64),
+            Value::Real(value) => Self::Real(value),
+            Value::Blob(value) | Value::Json(value) => Self::Blob(value),
+            Value::Datetime(value) | Value::Identifier(value) => Self::Int(value),
+            Value::Boolean(value) => Self::Int(value as u64),
+            Value::Null => Self::Null,
+        }
+    }
+}
+
+impl From<&Value> for DatabaseValue {
+    fn from(value: &Value) -> Self {
+        DatabaseValue::from(value.clone())
+    }
+}
+
+impl From<DatabaseValue> for Value {
+    fn from(value: DatabaseValue) -> Self {
+        match value {
+            DatabaseValue::Text(value) => {
+                //TODO: URL support
+                Value::Text(value)
+            }
+            DatabaseValue::Int(value) => {
+                // TODO: Datetime support
+                Value::Integer(value as i64)
+            }
+            DatabaseValue::Real(value) => Value::Real(value),
+            DatabaseValue::Blob(value) => {
+                // TODO: Is this the best way of doing this?
+                if let Some(start) = value.first() {
+                    if *start == b'{' || *start == b'[' {
+                        return Value::Json(value);
+                    }
+                }
+                Value::Blob(value)
+            }
+            DatabaseValue::Null => Value::Null,
+        }
+    }
+}
+
+impl From<&DatabaseValue> for Value {
+    fn from(value: &DatabaseValue) -> Self {
+        Value::from(value.clone())
+    }
+}
+
 /// GeekConnection is the trait used for models to interact with the database.
 ///
 /// This trait is used to define the methods that are used to interact with the database.

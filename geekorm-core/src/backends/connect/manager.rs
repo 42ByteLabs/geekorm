@@ -272,6 +272,7 @@ mod tests {
         assert_eq!(cm.get_database_type(), ConnectionType::Path { file: path });
     }
 
+    #[cfg(feature = "rusqlite")]
     #[tokio::test]
     async fn test_connect_url() {
         let url = Url::parse("sqlite:///tmp/test.db").unwrap();

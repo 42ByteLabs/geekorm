@@ -83,6 +83,7 @@
 use core::fmt;
 use std::fmt::{Debug, Display};
 
+use geekorm_sql::Value;
 use serde::{Deserialize, Serialize, Serializer, de::Visitor};
 #[cfg(feature = "uuid")]
 use uuid::Uuid;
@@ -431,6 +432,56 @@ impl From<&PrimaryKeyIntegerOld> for u64 {
     }
 }
 
+impl From<PrimaryKeyInteger> for Value {
+    fn from(value: PrimaryKeyInteger) -> Self {
+        Value::Identifier(value.value)
+    }
+}
+
+impl From<&PrimaryKeyInteger> for Value {
+    fn from(value: &PrimaryKeyInteger) -> Self {
+        Value::Identifier(value.value)
+    }
+}
+
+impl From<PrimaryKeyString> for Value {
+    fn from(value: PrimaryKeyString) -> Self {
+        Value::Text(value.value)
+    }
+}
+
+impl From<&PrimaryKeyString> for Value {
+    fn from(value: &PrimaryKeyString) -> Self {
+        Value::Text(value.value.clone())
+    }
+}
+
+impl From<PrimaryKeyIntegerOld> for Value {
+    fn from(value: PrimaryKeyIntegerOld) -> Self {
+        Value::from(value.value)
+    }
+}
+
+impl From<&PrimaryKeyIntegerOld> for Value {
+    fn from(value: &PrimaryKeyIntegerOld) -> Self {
+        Value::from(value.value)
+    }
+}
+
+#[cfg(feature = "uuid")]
+impl From<PrimaryKeyUuid> for Value {
+    fn from(value: PrimaryKeyUuid) -> Self {
+        Value::from(value.value)
+    }
+}
+
+#[cfg(feature = "uuid")]
+impl From<&PrimaryKeyUuid> for Value {
+    fn from(value: &PrimaryKeyUuid) -> Self {
+        Value::from(value.value)
+    }
+}
+
 impl Serialize for PrimaryKeyInteger {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -680,10 +731,13 @@ mod tests {
 
         let pk_deserialized: PrimaryKey<String> = serde_json::from_str(&pk_json).unwrap();
         assert_eq!(pk, pk_deserialized);
+
+        let value = Value::from(pk);
+        assert!(matches!(value, Value::Text(_)));
     }
 
     #[test]
-    fn test_primary_key_i32() {
+    fn test_primary_key_int() {
         let pk = PrimaryKeyInteger::new(1);
         let pk_json = serde_json::to_string(&pk).unwrap();
 
@@ -691,6 +745,23 @@ mod tests {
 
         let pk_deserialized: PrimaryKeyInteger = serde_json::from_str(&pk_json).unwrap();
         assert_eq!(pk, pk_deserialized);
+
+        let value = Value::from(pk);
+        assert!(matches!(value, Value::Identifier(1)));
+    }
+
+    #[test]
+    fn test_primary_key_int_old() {
+        let pk = PrimaryKeyIntegerOld::from(1);
+        let pk_json = serde_json::to_string(&pk).unwrap();
+
+        assert_eq!(pk_json, "1");
+
+        let pk_deserialized: PrimaryKeyIntegerOld = serde_json::from_str(&pk_json).unwrap();
+        assert_eq!(pk, pk_deserialized);
+
+        let value = Value::from(pk);
+        assert!(matches!(value, Value::Integer(1)));
     }
 
     #[test]
@@ -703,5 +774,8 @@ mod tests {
 
         let pk_deserialized: PrimaryKeyUuid = serde_json::from_str(&pk_json).unwrap();
         assert_eq!(pk, pk_deserialized);
+
+        let value = Value::from(pk);
+        assert!(matches!(value, Value::Text(_)));
     }
 }
