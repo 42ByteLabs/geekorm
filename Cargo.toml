@@ -150,7 +150,7 @@ required-features = ["all", "rusqlite"]
 [[example]]
 name = "rocket"
 path = "./examples/server-rocket/src/main.rs"
-required-features = ["all", "rusqlite", "backends-tokio"]
+required-features = ["all", "libsql", "backends-tokio"]
 
 [[example]]
 name = "sqlite-wal"
