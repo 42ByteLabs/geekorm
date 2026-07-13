@@ -71,3 +71,14 @@ impl Display for Query {
         write!(f, "{}", self.query)
     }
 }
+
+impl From<geekorm_sql::Query> for Query {
+    fn from(value: geekorm_sql::Query) -> Self {
+        // TODO: This is a temp solution
+        Query {
+            query: value.sql(),
+            query_type: value.query_type().clone().into(),
+            ..Default::default()
+        }
+    }
+}

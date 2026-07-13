@@ -1,29 +1,43 @@
 //! # Connection
 //!
-//! ## Example
+//! GeekORM has a connection type that is used for performing the execution of queries on a
+//! database.
+//!
+//! The `connect()` function is is a high-level construct to allow a user to connector to different
+//! types of databases like in-memory, via a path or URL.
+//!
+//! **In-Memory Database:**
+//!
+//! To create a in-memory SQLite database, you only need to do the following:
 //!
 //! ```rust
-//! # #[cfg(feature = "libsql")] {
-//!
+//! # #[cfg(feature = "rusqlite")] {
 //! use geekorm_core::backends::connect::{ConnectionManager, Connection};
 //!
 //! #[tokio::main]
 //! async fn main() {
-//!     let manager = ConnectionManager::connect(":memory:").await.unwrap();
+//!     // Connection Manager creates a pool of connections to use
+//!     let manager_connect = ConnectionManager::connect(":memory:").await.unwrap();
+//!     // Or call the helper function
+//!     let manager_in_memory = ConnectionManager::in_memory().await.unwrap();
 //!
-//!     let connection = manager.acquire().await;
+//!     // Acquired a connection from the pool used to perform query executions
+//!     let connection_connect = manager_connect.acquire().await;
 //!
 //!     // ... do stuff with the connection
 //! }
-//!
 //! # }
 //! ```
 //!
 
+use geekorm_sql::Query;
 use std::fmt::{Debug, Display};
 use std::path::PathBuf;
 use std::sync::atomic::AtomicUsize;
 use url::Url;
+
+use crate::backends::GeekConnection;
+use geekorm_sql::query::BatchQueries;
 
 pub mod backend;
 pub mod manager;
@@ -34,8 +48,11 @@ pub use manager::ConnectionManager;
 ///
 /// This is a wrapper around the actual connection to the database.
 pub struct Connection<'a> {
+    /// Connection Pool
     pool: &'a ConnectionManager,
+    /// Number of queries run
     query_count: AtomicUsize,
+    /// Backend to execute queries
     backend: Backend,
 }
 
@@ -55,6 +72,13 @@ pub enum Backend {
         /// The inner connection
         conn: std::sync::Arc<::rusqlite::Connection>,
     },
+
+    /// Transactions
+    Transactions {
+        /// Queries for the batch
+        queries: BatchQueries,
+    },
+
     /// Unknown backend
     #[default]
     Unknown,
@@ -87,6 +111,27 @@ impl Connection<'_> {
     pub fn count(&self) -> usize {
         self.query_count.load(std::sync::atomic::Ordering::Relaxed)
     }
+
+    /// Checks the connection if it is in transaction mode
+    pub fn is_transation_mode(&self) -> bool {
+        matches!(self.backend, Backend::Transactions { .. })
+    }
+
+    /// Execute transaction
+    pub async fn execute_transaction(&self) -> Result<(), crate::Error> {
+        match &self.backend {
+            Backend::Transactions { queries } => {
+                let conn = self.pool.acquire().await;
+
+                let query = Query::transaction().queries(queries).build()?;
+
+                Connection::batch(&conn, query.into()).await
+            }
+            _ => Err(crate::Error::TransactionError(
+                "Backend is not in transaction mode".to_string(),
+            )),
+        }
+    }
 }
 
 impl Display for Connection<'_> {
@@ -100,6 +145,7 @@ impl Display for Connection<'_> {
             Backend::Rusqlite { .. } => {
                 write!(f, "Backend::Rusqlite({})", self.pool.get_database_type())
             }
+            Backend::Transactions { .. } => write!(f, "Backend::Transactions"),
             Backend::Unknown => write!(f, "Backend::Unknown"),
         }
     }
@@ -120,6 +166,7 @@ impl Debug for Connection<'_> {
             Backend::Libsql { .. } => write!(f, "Backend::Libsql"),
             #[cfg(feature = "rusqlite")]
             Backend::Rusqlite { .. } => write!(f, "Backend::Rusqlite"),
+            Backend::Transactions { .. } => write!(f, "Backend::Transactions"),
             Backend::Unknown => write!(f, "Backend::Unknown"),
         }
     }
