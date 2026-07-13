@@ -26,7 +26,10 @@ pub use geekorm_core::builder::values::{Value, Values};
 
 // Connection
 #[cfg(feature = "connect")]
-pub use geekorm_core::backends::connect::{Backend, Connection, manager::ConnectionManager};
+pub use geekorm_core::backends::{
+    connect::{Backend, Connection, manager::ConnectionManager},
+    transactions::TransactionConnector,
+};
 
 /// Utils
 pub mod utils {
