@@ -82,3 +82,9 @@ impl From<geekorm_sql::Query> for Query {
         }
     }
 }
+
+impl From<Query> for geekorm_sql::Query {
+    fn from(value: Query) -> Self {
+        geekorm_sql::Query::from(value.query)
+    }
+}

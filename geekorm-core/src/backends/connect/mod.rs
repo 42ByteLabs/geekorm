@@ -44,6 +44,8 @@ pub mod manager;
 
 pub use manager::ConnectionManager;
 
+use super::transactions::TransactionConnector;
+
 /// A connection to a database backend.
 ///
 /// This is a wrapper around the actual connection to the database.
@@ -76,7 +78,7 @@ pub enum Backend {
     /// Transactions
     Transactions {
         /// Queries for the batch
-        queries: BatchQueries,
+        conn: TransactionConnector,
     },
 
     /// Unknown backend
@@ -120,7 +122,11 @@ impl Connection<'_> {
     /// Execute transaction
     pub async fn execute_transaction(&self) -> Result<(), crate::Error> {
         match &self.backend {
-            Backend::Transactions { queries } => {
+            Backend::Transactions { conn } => {
+                let guard = conn.queries.lock().unwrap();
+                let queries = guard.queries();
+                #[cfg(feature = "log")]
+                log::debug!("Transaction Query Count: {}", queries.len());
                 let conn = self.pool.acquire().await;
 
                 let query = Query::transaction().queries(queries).build()?;

@@ -71,6 +71,7 @@ pub mod connect;
 pub mod libsql;
 #[cfg(feature = "rusqlite")]
 pub mod rusqlite;
+pub mod transactions;
 
 /// Database spesific value
 #[derive(Debug, Clone)]
@@ -457,6 +458,12 @@ pub trait GeekConnection {
             },
         )
         .await
+    }
+
+    /// Is the current connection for transactions
+    #[allow(unused_variables)]
+    fn is_transaction(connection: &Self::Connection) -> bool {
+        false
     }
 }
 

@@ -387,14 +387,16 @@ pub fn generate_backend(
             async fn save(&mut self, connection: &'a T) -> Result<(), geekorm::Error>
             {
                 T::execute(connection, Self::query_insert(self)).await?;
-                let select_query = #ident::query_select()
-                    .order_by(#ident::primary_key().as_str(), geekorm::QueryOrder::Desc)
-                    .limit(1)
-                    .build()?;
+                if !T::is_transaction(connection) {
+                    let select_query = #ident::query_select()
+                        .order_by(#ident::primary_key().as_str(), geekorm::QueryOrder::Desc)
+                        .limit(1)
+                        .build()?;
 
-                let item: #ident = T::query_first::<Self>(connection, select_query).await?;
+                    let item: #ident = T::query_first::<Self>(connection, select_query).await?;
 
-                #insert_values
+                    #insert_values
+                }
                 Ok(())
             }
 

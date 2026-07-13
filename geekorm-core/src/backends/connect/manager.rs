@@ -96,6 +96,7 @@ use url::Url;
 
 use super::{Backend, Connection};
 use crate::backends::connect::ConnectionType;
+use crate::backends::transactions::TransactionConnector;
 
 /// Connection Manager
 ///
@@ -303,13 +304,13 @@ impl ConnectionManager {
     }
 
     /// Aquire a connector from the pool in Transation mode
-    pub async fn transation(&self) -> Connection<'_> {
+    pub async fn transations(&self) -> Connection<'_> {
         // Do NOT acquire a backend connection and lock
         Connection {
             pool: self,
             query_count: AtomicUsize::new(0),
             backend: Backend::Transactions {
-                queries: BatchQueries::new(),
+                conn: TransactionConnector::new(),
             },
         }
     }
