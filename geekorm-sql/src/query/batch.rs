@@ -70,3 +70,15 @@ impl BatchQueries {
         &self.queries
     }
 }
+
+impl From<Vec<Query>> for BatchQueries {
+    fn from(value: Vec<Query>) -> Self {
+        BatchQueries { queries: value }
+    }
+}
+
+impl From<&Vec<Query>> for BatchQueries {
+    fn from(value: &Vec<Query>) -> Self {
+        BatchQueries::from(value.clone())
+    }
+}

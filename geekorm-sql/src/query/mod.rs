@@ -76,3 +76,12 @@ impl Query {
         self.query.push_str(&value);
     }
 }
+
+impl From<String> for Query {
+    fn from(value: String) -> Self {
+        Query {
+            query: value,
+            ..Default::default()
+        }
+    }
+}
