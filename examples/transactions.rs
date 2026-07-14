@@ -31,40 +31,26 @@ async fn main() -> Result<()> {
     println!("{}     v{}\n", GEEKORM_BANNER, GEEKORM_VERSION);
     // Initialize an in-memory database
     let db = ConnectionManager::in_memory().await?;
+    // Create Projects table
+    Projects::create_table(&db.acquire().await).await?;
 
+    // Create a transaction connection
     let transactions = db.transations().await;
 
-    create_projects(&transactions).await?;
-
-    transactions.execute_transaction().await?;
-
-    let connection = db.acquire().await;
-
-    let mut page = Projects::paginate(&connection).await?;
-
-    // Get the first page of projects
-    let mut projects = page.next(&connection).await?;
-    assert_eq!(page.page(), 0);
-    println!("Projects :: {:?}", projects);
-
-    projects = page.next(&connection).await?;
-    assert_eq!(projects.len(), 100);
-    assert_eq!(page.page(), 1);
-
-    Ok(())
-}
-
-// Helper function to create 1000 projects
-async fn create_projects(connection: &Connection<'_>) -> Result<()> {
-    Projects::create_table(connection).await?;
-
+    // Create 10 projects
     for pname in 1..=10 {
         let mut prj = Projects::new(
             format!("geekorm-{}", pname),
             String::from("https://42bytelabs.com"),
         );
-        prj.save(connection).await?;
+        prj.save(&transactions).await?;
     }
+
+    // Execute the transation
+    transactions.execute_transaction().await?;
+
+    let total = Projects::total(&db.acquire().await).await?;
+    println!("Total Projects :: {}", total);
 
     Ok(())
 }
