@@ -3,14 +3,14 @@
 use std::fmt::Display;
 use std::path::PathBuf;
 
-use crate::{Error, QueryBuilder, QueryType, ToSql, Values};
+pub mod batch;
 
-/// A collection of queries to be executed in a batch
-pub struct BatchQueries {
-    pub(crate) queries: Vec<Query>,
-}
+use crate::builder::queries::transaction::TransactionQuery;
+use crate::{Error, QueryBuilder, QueryType, ToSql, Values};
+pub use batch::BatchQueries;
 
 /// Query Builder
+#[derive(Debug, Clone, Default)]
 pub struct Query {
     /// The SQL query string
     pub(crate) query: String,
@@ -51,9 +51,19 @@ impl Query {
         QueryBuilder::delete()
     }
 
+    /// Transaction Query
+    pub fn transaction() -> TransactionQuery {
+        TransactionQuery::new()
+    }
+
     /// Get the SQL query string
     pub fn sql(&self) -> String {
         self.query.clone()
+    }
+
+    /// Get Query Type
+    pub fn query_type(&self) -> &QueryType {
+        &self.query_type
     }
 
     /// Get the parameters for the query
@@ -67,46 +77,11 @@ impl Query {
     }
 }
 
-impl BatchQueries {
-    /// Load a SQL file
-    pub fn load(path: impl Into<PathBuf>) -> Result<Self, Error> {
-        let path = path.into();
-        if !path.exists() && !path.is_file() {
-            return Err(Error::SqlFileNotFound {
-                path: path.display().to_string(),
-            });
+impl From<String> for Query {
+    fn from(value: String) -> Self {
+        Query {
+            query: value,
+            ..Default::default()
         }
-        let query = std::fs::read_to_string(path)?;
-
-        // Split by semicolon to get individual queries
-        let queries: Vec<String> = query
-            .lines()
-            .filter_map(|line| {
-                let trimmed = line.trim();
-                if !trimmed.is_empty() && !trimmed.starts_with("--") {
-                    Some(trimmed.to_string())
-                } else {
-                    None
-                }
-            })
-            .collect();
-
-        let mut batch_queries = BatchQueries {
-            queries: Vec::new(),
-        };
-        for query in queries {
-            // TODO: Determine query type based on the content of the query
-            let query_type = QueryType::Unknown;
-            let values = Values::new(); // Placeholder for actual values
-            let params = Values::new(); // Placeholder for actual parameters
-
-            batch_queries.queries.push(Query {
-                query,
-                query_type,
-                values,
-                params,
-            });
-        }
-        Ok(batch_queries)
     }
 }

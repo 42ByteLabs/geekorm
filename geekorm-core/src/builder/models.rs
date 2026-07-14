@@ -98,3 +98,12 @@ impl ToSqlite for WhereCondition {
         }
     }
 }
+
+impl From<geekorm_sql::QueryType> for QueryType {
+    fn from(value: geekorm_sql::QueryType) -> Self {
+        // HACK: This doesn't actually work :(
+        match value {
+            _ => QueryType::Select,
+        }
+    }
+}

@@ -1,6 +1,6 @@
 //! # GeekConnection trait implementation for Connection
 #![allow(unused_imports, unused_variables)]
-use crate::GeekConnection;
+use crate::{GeekConnection, TransactionConnector};
 
 use super::{Backend, Connection};
 
@@ -26,6 +26,10 @@ impl GeekConnection for Connection<'_> {
             #[cfg(feature = "rusqlite")]
             Backend::Rusqlite { conn } => {
                 <rusqlite::Connection as GeekConnection>::create_table::<T>(conn).await
+            }
+            Backend::Transactions { conn } => {
+                conn.push(T::query_create().build()?.into());
+                Ok(())
             }
             _ => unimplemented!(),
         }
@@ -86,6 +90,10 @@ impl GeekConnection for Connection<'_> {
             #[cfg(feature = "rusqlite")]
             Backend::Rusqlite { conn } => {
                 <rusqlite::Connection as GeekConnection>::execute(conn, query).await
+            }
+            Backend::Transactions { conn } => {
+                conn.push(query.into());
+                Ok(())
             }
             _ => unimplemented!(),
         }
@@ -150,7 +158,11 @@ impl GeekConnection for Connection<'_> {
             Backend::Rusqlite { conn } => {
                 <rusqlite::Connection as GeekConnection>::query_first(conn, query).await
             }
-            _ => unimplemented!(),
+            _ => unimplemented!("`query_first`"),
         }
+    }
+
+    fn is_transaction(connection: &Self::Connection) -> bool {
+        matches!(&connection.backend, Backend::Transactions { .. })
     }
 }
