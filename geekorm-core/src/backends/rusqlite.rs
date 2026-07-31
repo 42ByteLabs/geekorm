@@ -215,7 +215,7 @@ impl GeekConnection for rusqlite::Connection {
         for query in queries {
             let params = values_to_rusqlite(query.values().clone());
 
-            tx.execute(&query.sql(), params)?;
+            tx.execute(query.as_sql(), params)?;
         }
 
         tx.commit()?;
