@@ -61,6 +61,11 @@ impl Query {
         self.query.clone()
     }
 
+    /// Get the SQL query as a string slice
+    pub fn as_sql(&self) -> &str {
+        &self.query
+    }
+
     /// Get Query Type
     pub fn query_type(&self) -> &QueryType {
         &self.query_type
