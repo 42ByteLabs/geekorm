@@ -25,7 +25,8 @@ impl TransactionQuery {
     }
 
     /// Add Query
-    pub fn query(&mut self, query: Query) -> &mut Self {
+    pub fn query(&mut self, query: impl Into<Query>) -> &mut Self {
+        let query = query.into();
         self.queries.push(query);
         self
     }
@@ -38,9 +39,18 @@ impl TransactionQuery {
 
     /// Build transaction
     pub fn build(&self) -> Result<Query, crate::Error> {
+        let mut values = Values::new();
+        // TODO(geekmasher): This clone is not great :/
+        for query in self.queries.queries() {
+            values.values.extend(query.values.values.clone());
+        }
+
+        println!("BEANS :: {}", values.len());
+
         Ok(Query {
             query: self.sql(),
             query_type: QueryType::Transaction,
+            values,
             ..Default::default()
         })
     }
@@ -99,6 +109,7 @@ mod tests {
             Query::update()
                 .table(table)
                 .where_eq("id", 1)
+                .add_value("username", "geekmasher")
                 .build()
                 .unwrap(),
         );
@@ -116,9 +127,10 @@ mod tests {
             .expect("Failed to create transaction query");
         let sql = query.sql();
 
+        assert_eq!(query.values.len(), 2);
         assert_eq!(
             sql,
-            "BEGIN TRANSACTION;\n\nUPDATE Users SET  WHERE id = 1;\n\nON CONFLICT ROLLBACK;\nCOMMIT;"
+            "BEGIN TRANSACTION;\n\nUPDATE Users SET username = ? WHERE id = 1;\n\nON CONFLICT ROLLBACK;\nCOMMIT;"
         );
     }
 }

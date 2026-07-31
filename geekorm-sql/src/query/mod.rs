@@ -66,6 +66,11 @@ impl Query {
         &self.query_type
     }
 
+    /// Get the values for the query
+    pub fn values(&self) -> &Values {
+        &self.values
+    }
+
     /// Get the parameters for the query
     pub fn parameters(&self) -> &Values {
         &self.params

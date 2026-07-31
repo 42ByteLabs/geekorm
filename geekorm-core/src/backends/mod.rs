@@ -63,6 +63,8 @@
 
 use std::collections::HashMap;
 
+use geekorm_sql::query::BatchQueries;
+
 use crate::{Query, QueryBuilder, QueryBuilderTrait, TableBuilder, TablePrimaryKey, Value};
 
 #[cfg(feature = "connect")]
@@ -384,6 +386,15 @@ pub trait GeekConnection {
         Err(crate::Error::NotImplemented)
     }
 
+    /// Execute a batch of queries as a transaction on the database
+    #[allow(async_fn_in_trait, unused_variables)]
+    async fn transactions(
+        connection: &mut Self::Connection,
+        queries: &Vec<geekorm_sql::Query>,
+    ) -> Result<(), crate::Error> {
+        Err(crate::Error::NotImplemented)
+    }
+
     /// Query the database with an active Connection and Query
     #[allow(async_fn_in_trait, unused_variables)]
     async fn query<T>(connection: &Self::Connection, query: Query) -> Result<Vec<T>, crate::Error>
@@ -463,6 +474,7 @@ pub trait GeekConnection {
     /// Is the current connection for transactions
     #[allow(unused_variables)]
     fn is_transaction(connection: &Self::Connection) -> bool {
+        panic!("Connection");
         false
     }
 }

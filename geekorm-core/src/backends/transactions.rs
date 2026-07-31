@@ -1,6 +1,8 @@
 //! # Transaction Connector
+#![allow(unused_variables)]
 
-use geekorm_sql::{Query, query::BatchQueries};
+use geekorm_sql::Query;
+use geekorm_sql::query::BatchQueries;
 use std::sync::{Arc, Mutex};
 
 use crate::GeekConnection;
@@ -8,6 +10,7 @@ use crate::GeekConnection;
 /// SQLite Transaction Connector
 #[derive(Debug, Clone, Default)]
 pub struct TransactionConnector {
+    /// Queries to be run in the transaction
     pub(crate) queries: Arc<Mutex<BatchQueries>>,
 }
 
@@ -33,7 +36,6 @@ impl GeekConnection for TransactionConnector {
             + serde::Serialize
             + serde::de::DeserializeOwned,
     {
-        println!("Beans create");
         Ok(())
     }
 
@@ -41,7 +43,6 @@ impl GeekConnection for TransactionConnector {
         connection: &Self::Connection,
         query: crate::Query,
     ) -> Result<(), crate::Error> {
-        println!("Beans exec");
         Ok(())
     }
 
@@ -52,7 +53,6 @@ impl GeekConnection for TransactionConnector {
     where
         T: serde::de::DeserializeOwned,
     {
-        println!("Beans query");
         Ok(Vec::new())
     }
 
@@ -63,7 +63,6 @@ impl GeekConnection for TransactionConnector {
     where
         T: serde::de::DeserializeOwned,
     {
-        println!("Beans first");
         Err(crate::Error::Unknown)
     }
 
@@ -79,7 +78,6 @@ impl GeekConnection for TransactionConnector {
     }
 
     fn is_transaction(connection: &Self::Connection) -> bool {
-        println!("TRANSACTION CONNECTOR");
         true
     }
 }

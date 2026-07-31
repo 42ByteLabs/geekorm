@@ -47,7 +47,7 @@ async fn main() -> Result<()> {
     }
 
     // Execute the transation
-    transactions.execute_transaction().await?;
+    transactions.execute().await?;
 
     let total = Projects::total(&db.acquire().await).await?;
     println!("Total Projects :: {}", total);

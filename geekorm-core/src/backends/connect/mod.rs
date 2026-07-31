@@ -120,18 +120,18 @@ impl Connection<'_> {
     }
 
     /// Execute transaction
-    pub async fn execute_transaction(&self) -> Result<(), crate::Error> {
+    pub async fn execute(&self) -> Result<(), crate::Error> {
         match &self.backend {
             Backend::Transactions { conn } => {
                 let guard = conn.queries.lock().unwrap();
                 let queries = guard.queries();
+
                 #[cfg(feature = "log")]
-                log::debug!("Transaction Query Count: {}", queries.len());
-                let conn = self.pool.acquire().await;
+                log::debug!("Transaction Query Count :: {}", queries.len());
 
-                let query = Query::transaction().queries(queries).build()?;
+                let mut conn = self.pool.acquire().await;
 
-                Connection::batch(&conn, query.into()).await
+                Connection::transactions(&mut conn, queries).await
             }
             _ => Err(crate::Error::TransactionError(
                 "Backend is not in transaction mode".to_string(),

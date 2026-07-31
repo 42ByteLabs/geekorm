@@ -42,12 +42,12 @@
 //!     // Connection Manager creates a pool of connections to use
 //!     let manager = ConnectionManager::connect(":memory:").await.unwrap();
 //!
-//!     let connection = manager.transation().await;
+//!     let connection = manager.transations().await;
 //!     for id in 0..10 {
 //!         // Add queries to the transation
 //!     }
 //!     // Perform the 10 queries as a transaction
-//!     connection.execute_transaction().await.expect("Failed to perform transaction");
+//!     connection.execute().await.expect("Failed to perform transaction");
 //! }
 //! # }
 //! ```
@@ -294,24 +294,29 @@ impl ConnectionManager {
     pub async fn acquire(&self) -> Connection<'_> {
         self.notifier.notified().await;
         let mut conns = self.backend.lock().unwrap();
-        let conn = conns.pop_front().unwrap();
+        let backend = conns.pop_front().unwrap();
 
         Connection {
             pool: self,
             query_count: AtomicUsize::new(0),
-            backend: conn,
+            backend,
         }
     }
 
     /// Aquire a connector from the pool in Transation mode
     pub async fn transations(&self) -> Connection<'_> {
-        // Do NOT acquire a backend connection and lock
-        Connection {
-            pool: self,
-            query_count: AtomicUsize::new(0),
-            backend: Backend::Transactions {
-                conn: TransactionConnector::new(),
-            },
+        match self.backend.lock().unwrap().pop_front().unwrap() {
+            Backend::Transactions { .. } => {
+                // Do NOT acquire a backend connection and lock
+                Connection {
+                    pool: self,
+                    query_count: AtomicUsize::new(0),
+                    backend: Backend::Transactions {
+                        conn: TransactionConnector::new(),
+                    },
+                }
+            }
+            _ => todo!(),
         }
     }
 
