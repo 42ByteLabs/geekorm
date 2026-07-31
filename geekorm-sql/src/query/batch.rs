@@ -25,10 +25,15 @@ impl BatchQueries {
         self.queries.push(query)
     }
 
+    /// Count of the queries
+    pub fn len(&self) -> usize {
+        self.queries.len()
+    }
+
     /// Load a SQL file
     pub fn load(path: impl Into<PathBuf>) -> Result<Self, Error> {
         let path = path.into();
-        if !path.exists() && !path.is_file() {
+        if !path.exists() || !path.is_file() {
             return Err(Error::SqlFileNotFound {
                 path: path.display().to_string(),
             });

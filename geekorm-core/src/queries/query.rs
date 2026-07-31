@@ -78,6 +78,8 @@ impl From<geekorm_sql::Query> for Query {
         Query {
             query: value.sql(),
             query_type: value.query_type().clone().into(),
+            parameters: value.parameters().clone(),
+            values: value.values().clone(),
             ..Default::default()
         }
     }
@@ -85,6 +87,24 @@ impl From<geekorm_sql::Query> for Query {
 
 impl From<Query> for geekorm_sql::Query {
     fn from(value: Query) -> Self {
-        geekorm_sql::Query::from(value.query)
+        geekorm_sql::Query::from((
+            value.query,
+            value.query_type.into(),
+            value.parameters,
+            value.values,
+        ))
+    }
+}
+
+impl From<QueryType> for geekorm_sql::QueryType {
+    fn from(value: QueryType) -> Self {
+        match value {
+            QueryType::Create => geekorm_sql::QueryType::Create,
+            QueryType::Select => geekorm_sql::QueryType::Select,
+            QueryType::Insert => geekorm_sql::QueryType::Insert,
+            QueryType::Update => geekorm_sql::QueryType::Update,
+            QueryType::Delete => geekorm_sql::QueryType::Delete,
+            _ => geekorm_sql::QueryType::Unknown,
+        }
     }
 }

@@ -206,6 +206,10 @@ impl GeekConnection for rusqlite::Connection {
         connection: &mut Self::Connection,
         queries: &Vec<geekorm_sql::Query>,
     ) -> std::prelude::v1::Result<(), crate::Error> {
+        #[cfg(feature = "log")]
+        {
+            debug!("Transaction Queries :: {}", queries.len());
+        }
         let tx = connection.transaction()?;
 
         for query in queries {

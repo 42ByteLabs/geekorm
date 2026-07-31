@@ -30,14 +30,12 @@
 //! ```
 //!
 
-use geekorm_sql::Query;
 use std::fmt::{Debug, Display};
 use std::path::PathBuf;
 use std::sync::atomic::AtomicUsize;
 use url::Url;
 
 use crate::backends::GeekConnection;
-use geekorm_sql::query::BatchQueries;
 
 pub mod backend;
 pub mod manager;

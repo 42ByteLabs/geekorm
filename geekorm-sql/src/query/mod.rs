@@ -90,3 +90,14 @@ impl From<String> for Query {
         }
     }
 }
+
+impl From<(String, QueryType, Values, Values)> for Query {
+    fn from(value: (String, QueryType, Values, Values)) -> Self {
+        Query {
+            query: value.0,
+            query_type: value.1,
+            values: value.2,
+            params: value.3,
+        }
+    }
+}

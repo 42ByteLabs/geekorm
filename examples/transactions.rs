@@ -52,5 +52,7 @@ async fn main() -> Result<()> {
     let total = Projects::total(&db.acquire().await).await?;
     println!("Total Projects :: {}", total);
 
+    println!("Completed!");
+
     Ok(())
 }

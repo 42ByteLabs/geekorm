@@ -45,8 +45,6 @@ impl TransactionQuery {
             values.values.extend(query.values.values.clone());
         }
 
-        println!("BEANS :: {}", values.len());
-
         Ok(Query {
             query: self.sql(),
             query_type: QueryType::Transaction,
@@ -80,10 +78,6 @@ impl ToSql for TransactionQuery {
 
         for query in self.queries.queries() {
             stream.push_str(&format!("{}\n", query.query));
-        }
-
-        if self.rollback {
-            stream.push_str("\nON CONFLICT ROLLBACK;");
         }
 
         stream.push_str("\nCOMMIT;");
@@ -130,7 +124,7 @@ mod tests {
         assert_eq!(query.values.len(), 2);
         assert_eq!(
             sql,
-            "BEGIN TRANSACTION;\n\nUPDATE Users SET username = ? WHERE id = 1;\n\nON CONFLICT ROLLBACK;\nCOMMIT;"
+            "BEGIN TRANSACTION;\n\nUPDATE Users SET username = ? WHERE id = 1;\n\nCOMMIT;"
         );
     }
 }

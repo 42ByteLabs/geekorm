@@ -22,6 +22,7 @@ impl TransactionConnector {
     /// Push a query to the transaction connector
     pub fn push(&self, query: Query) {
         self.queries.lock().unwrap().push(query);
+        println!("QUERIES :: {}", self.queries.lock().unwrap().len())
     }
 }
 

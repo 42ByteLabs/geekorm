@@ -166,7 +166,7 @@ impl AlterQuery {
                     Ok("BLOB".to_string())
                 }
             }
-            _ => Ok("BEANS".to_string()),
+            _ => todo!("Uncomplete ColumnType"),
         }
     }
 }

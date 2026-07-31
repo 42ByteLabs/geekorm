@@ -303,20 +303,15 @@ impl ConnectionManager {
         }
     }
 
-    /// Aquire a connector from the pool in Transation mode
+    /// Aquire a connector from the pool for performing transations
     pub async fn transations(&self) -> Connection<'_> {
-        match self.backend.lock().unwrap().pop_front().unwrap() {
-            Backend::Transactions { .. } => {
-                // Do NOT acquire a backend connection and lock
-                Connection {
-                    pool: self,
-                    query_count: AtomicUsize::new(0),
-                    backend: Backend::Transactions {
-                        conn: TransactionConnector::new(),
-                    },
-                }
-            }
-            _ => todo!(),
+        // Do NOT acquire a backend connection and lock
+        Connection {
+            pool: self,
+            query_count: AtomicUsize::new(0),
+            backend: Backend::Transactions {
+                conn: TransactionConnector::new(),
+            },
         }
     }
 

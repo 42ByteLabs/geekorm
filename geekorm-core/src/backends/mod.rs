@@ -63,8 +63,6 @@
 
 use std::collections::HashMap;
 
-use geekorm_sql::query::BatchQueries;
-
 use crate::{Query, QueryBuilder, QueryBuilderTrait, TableBuilder, TablePrimaryKey, Value};
 
 #[cfg(feature = "connect")]
@@ -474,7 +472,6 @@ pub trait GeekConnection {
     /// Is the current connection for transactions
     #[allow(unused_variables)]
     fn is_transaction(connection: &Self::Connection) -> bool {
-        panic!("Connection");
         false
     }
 }
