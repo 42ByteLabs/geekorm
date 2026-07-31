@@ -89,7 +89,7 @@ pub struct QueryBuilder {
     /// The values are used for data inserted into the database
     pub(crate) values: Values,
 
-    pub(crate) error: Option<Error>,
+    pub(crate) error: Option<String>,
 }
 
 impl QueryBuilder {
@@ -188,10 +188,7 @@ impl QueryBuilder {
                     child
                 }
                 _ => {
-                    self.error = Some(Error::QueryBuilderError(
-                        format!("Table `{}` does not exist", ftable),
-                        String::from("where_eq"),
-                    ));
+                    self.error = Some(format!("Table `{}` does not exist", ftable));
                     &self.table
                 }
             }
@@ -212,12 +209,9 @@ impl QueryBuilder {
             self.values.push(column.to_string(), value);
             self.where_condition_last = false;
         } else {
-            self.error = Some(Error::QueryBuilderError(
-                format!(
-                    "Column `{}` does not exist in table `{}`",
-                    column_name, table.name
-                ),
-                String::from("where_eq"),
+            self.error = Some(format!(
+                "Column `{}` does not exist in table `{}`",
+                column_name, table.name
             ));
         }
     }
@@ -289,12 +283,9 @@ impl QueryBuilder {
         if self.table.is_valid_column(column) {
             self.order_by.push((column.to_string(), order));
         } else {
-            self.error = Some(Error::QueryBuilderError(
-                format!(
-                    "Column `{}` does not exist in table `{}`",
-                    column, self.table.name
-                ),
-                String::from("order_by"),
+            self.error = Some(format!(
+                "Column `{}` does not exist in table `{}`",
+                column, self.table.name
             ));
         }
         self
@@ -310,9 +301,9 @@ impl QueryBuilder {
             self.joins
                 .push(TableJoin::new(self.table.clone(), table.clone()));
         } else {
-            self.error = Some(Error::QueryBuilderError(
-                format!("Column `{}` does not exist in table `{}`", key, table.name),
-                String::from("join"),
+            self.error = Some(format!(
+                "Column `{}` does not exist in table `{}`",
+                key, table.name
             ));
         }
         self
@@ -329,10 +320,7 @@ impl QueryBuilder {
         if limit != 0 {
             self.limit = Some(limit);
         } else {
-            self.error = Some(Error::QueryBuilderError(
-                String::from("Limit cannot be 0"),
-                String::from("limit"),
-            ));
+            self.error = Some(String::from("Limit cannot be 0"));
         }
         self
     }
@@ -354,7 +342,10 @@ impl QueryBuilder {
     /// Build a Query from the QueryBuilder and perform some checks
     pub fn build(&mut self) -> Result<Query, crate::Error> {
         if let Some(ref error) = self.error {
-            return Err(error.clone());
+            return Err(crate::Error::QueryBuilderError(
+                error.clone(),
+                "".to_string(),
+            ));
         }
 
         // Check the last where condition

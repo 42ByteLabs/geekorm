@@ -14,7 +14,7 @@ pub mod migrations;
 pub mod queries;
 pub mod utils;
 
-pub use crate::backends::{GeekConnection, GeekConnector};
+pub use crate::backends::{GeekConnection, GeekConnector, transactions::TransactionConnector};
 #[cfg(feature = "migrations")]
 pub use crate::builder::alter::AlterQuery;
 pub use crate::builder::columns::{Column, Columns};

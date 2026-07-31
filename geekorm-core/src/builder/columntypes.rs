@@ -142,7 +142,7 @@ impl ToSqlite for ColumnType {
                     Ok("BLOB".to_string())
                 }
             }
-            _ => Ok("BEANS".to_string()),
+            _ => todo!("Unfinished migration alter ColumnType"),
         }
     }
 }

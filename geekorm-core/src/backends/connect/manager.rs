@@ -1,5 +1,93 @@
 //! # Connection Manager
+//!
+//! The Connection Manager (as the name suggests) manages the connection pool for all of the
+//! connections that are used during an applications life cycle. There should only be one manager
+//! but it can be passed around as a reference until its needed.
+//!
+//! ## Acquiring a connection
+//!
+//! The primary feature of the manager is to acquire a connection from the pool. This is done using
+//! async to prevent thread lockups while waiting for a connection.
+//!
+//! ```rust
+//! # #[cfg(feature = "rusqlite")] {
+//! use geekorm_core::backends::connect::{ConnectionManager, Connection};
+//!
+//! #[tokio::main]
+//! async fn main() {
+//!     // Connection Manager creates a pool of connections to use
+//!     let manager = ConnectionManager::connect(":memory:").await.unwrap();
+//!
+//!     // Acquired a connection from the pool used to perform query executions
+//!     let connection = manager.acquire().await;
+//!     // ... use the connection
+//! }
+//! # }
+//! ```
+//!
+//! Async/Await is used to prevent thread locking waiting for a connection. Some tasks might take
+//! seconds to perform and we don't want hang a thread waiting for a connection to become avalible.
+//!
+//! ## Transactions
+//!
+//! For very heavy actions you might want to use a transactions with many queries. You can do this
+//! by using the `transactions()` function to obtain a new `Connection` in "transaction mode".
+//!
+//! ```rust
+//! # #[cfg(feature = "rusqlite")] {
+//! use geekorm_core::backends::connect::{ConnectionManager, Connection};
+//!
+//! #[tokio::main]
+//! async fn main() {
+//!     // Connection Manager creates a pool of connections to use
+//!     let manager = ConnectionManager::connect(":memory:").await.unwrap();
+//!
+//!     let connection = manager.transations().await;
+//!     for id in 0..10 {
+//!         // Add queries to the transation
+//!     }
+//!     // Perform the 10 queries as a transaction
+//!     connection.execute().await.expect("Failed to perform transaction");
+//! }
+//! # }
+//! ```
+//!
+//! ## Dropping a connection
+//!
+//! Dropping a connection is as easy as letting it drop out of scope of the borrow-checker.
+//!
+//! ```rust
+//! # #[cfg(feature = "rusqlite")] {
+//! use geekorm_core::backends::connect::{ConnectionManager, Connection};
+//!
+//! #[tokio::main]
+//! async fn main() {
+//!     // Connection Manager creates a pool of connections to use
+//!     let manager = ConnectionManager::connect(":memory:").await.unwrap();
+//!
+//!     {
+//!         // Acquired a connection from the pool used to perform query executions
+//!         let connection = manager.acquire().await;
+//!         // ... use the connection
+//!
+//!     } // First connection is dropped
+//!     
+//!     // Get a new connection from the pool
+//!     {
+//!         let connection_2 = manager.acquire().await;
+//!         // ... use the connection for different tasks
+//!
+//!     } // Second connection dropped
+//! }
+//! # }
+//! ```
+//!
+//! Example of this would be a route in a web application acquires a connection from the pool,
+//! performs actions and then drops it at the end to free up that connection.
+//!
+
 #![allow(unused_imports, unused_variables)]
+use geekorm_sql::query::BatchQueries;
 use std::collections::VecDeque;
 use std::path::PathBuf;
 use std::sync::atomic::AtomicUsize;
@@ -8,6 +96,7 @@ use url::Url;
 
 use super::{Backend, Connection};
 use crate::backends::connect::ConnectionType;
+use crate::backends::transactions::TransactionConnector;
 
 /// Connection Manager
 ///
@@ -205,12 +294,24 @@ impl ConnectionManager {
     pub async fn acquire(&self) -> Connection<'_> {
         self.notifier.notified().await;
         let mut conns = self.backend.lock().unwrap();
-        let conn = conns.pop_front().unwrap();
+        let backend = conns.pop_front().unwrap();
 
         Connection {
             pool: self,
             query_count: AtomicUsize::new(0),
-            backend: conn,
+            backend,
+        }
+    }
+
+    /// Aquire a connector from the pool for performing transations
+    pub async fn transations(&self) -> Connection<'_> {
+        // Do NOT acquire a backend connection and lock
+        Connection {
+            pool: self,
+            query_count: AtomicUsize::new(0),
+            backend: Backend::Transactions {
+                conn: TransactionConnector::new(),
+            },
         }
     }
 

@@ -1,7 +1,7 @@
 //! Error Module for GeekORM
 
 /// Error type for the crate
-#[derive(Debug, thiserror::Error, Clone)]
+#[derive(Debug, thiserror::Error)]
 pub enum Error {
     /// Database Connection Error
     #[error("Connection Error: {0}")]
@@ -17,6 +17,10 @@ pub enum Error {
     /// Query Builder Error
     #[error("QueryBuilderError: {0} ({1})")]
     QueryBuilderError(String, String),
+
+    /// GeekORM SQL Error
+    #[error("GeekOrmSql Error: {0}")]
+    GeekSqlError(#[from] geekorm_sql::Error),
 
     /// Column Not Found
     #[error("ColumnNotFound: Table({0}) {1}")]
@@ -41,6 +45,10 @@ pub enum Error {
     /// Not Implemented
     #[error("Not Implemented")]
     NotImplemented,
+
+    /// Transaction Error
+    #[error("Transaction Error: {0}")]
+    TransactionError(String),
 
     /// Error Hashing Password
     #[error("Error Hashing Password: {0}")]

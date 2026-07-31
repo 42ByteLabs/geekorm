@@ -202,6 +202,26 @@ impl GeekConnection for rusqlite::Connection {
         Ok(())
     }
 
+    async fn transactions(
+        connection: &mut Self::Connection,
+        queries: &Vec<geekorm_sql::Query>,
+    ) -> std::prelude::v1::Result<(), crate::Error> {
+        #[cfg(feature = "log")]
+        {
+            debug!("Transaction Queries :: {}", queries.len());
+        }
+        let tx = connection.transaction()?;
+
+        for query in queries {
+            let params = values_to_rusqlite(query.values().clone());
+
+            tx.execute(&query.sql(), params)?;
+        }
+
+        tx.commit()?;
+        Ok(())
+    }
+
     async fn row_count(
         connection: &Self::Connection,
         query: crate::Query,

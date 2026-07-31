@@ -148,6 +148,11 @@ path = "./examples/rusqlite/src/main.rs"
 required-features = ["all", "rusqlite"]
 
 [[example]]
+name = "transactions"
+path = "./examples/transactions.rs"
+required-features = ["all", "rusqlite"]
+
+[[example]]
 name = "rocket"
 path = "./examples/server-rocket/src/main.rs"
 required-features = ["all", "libsql", "backends-tokio"]

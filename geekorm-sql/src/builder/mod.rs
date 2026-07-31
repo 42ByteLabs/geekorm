@@ -9,7 +9,7 @@ pub mod pagination;
 pub mod queries;
 pub mod table;
 #[cfg(test)]
-mod tests;
+pub(crate) mod tests;
 
 use std::collections::HashMap;
 use std::fmt::format;
@@ -19,14 +19,17 @@ pub use joins::{TableJoin, TableJoinOptions, TableJoins};
 pub use ordering::{OrderClause, QueryOrder};
 use table::Table;
 
-use crate::Column;
-use crate::{Error, Query, QueryBackend, ToSql, Value, Values, builder::pagination::Page};
+use crate::{
+    Column, Error, Query, QueryBackend, ToSql, Value, Values,
+    builder::{pagination::Page, queries::transaction::TransactionQuery},
+    query::BatchQueries,
+};
 use columns::Columns;
 
 use self::queries::alter::{AlterMode, AlterQuery};
 
 /// Query Type enum
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default)]
 pub enum QueryType {
     /// Create Query
     Create,
@@ -42,7 +45,8 @@ pub enum QueryType {
     Delete,
     /// Alter Query
     Alter,
-
+    /// Transaction
+    Transaction,
     /// Unknown Query
     #[default]
     Unknown,
@@ -78,6 +82,8 @@ pub struct QueryBuilder<'a> {
 
     /// For Alter queries
     pub(crate) alter: Option<AlterQuery>,
+    /// For Transaction queries
+    pub(crate) transaction: Option<TransactionQuery>,
 
     /// Errors during the process (report all at once)
     pub(crate) errors: Vec<String>,
@@ -93,6 +99,7 @@ impl ToSql for QueryType {
             QueryType::Update => Ok(self.sql_update(query)),
             QueryType::Delete => Ok(self.sql_delete(query)),
             QueryType::Alter => Ok(self.sql_alter(query)),
+            QueryType::Transaction => Ok(self.sql_transaction(query)),
             QueryType::Unknown => Err(Error::QueryBuilderError {
                 error: String::from("Unknown query type"),
                 location: String::from("to_sql"),
@@ -160,6 +167,11 @@ impl<'a> QueryBuilder<'a> {
     /// Alter query
     pub fn alter() -> AlterQuery {
         AlterQuery::new()
+    }
+
+    /// Transactions
+    pub fn transaction() -> TransactionQuery {
+        TransactionQuery::new()
     }
 
     /// Sets the Backend for the query

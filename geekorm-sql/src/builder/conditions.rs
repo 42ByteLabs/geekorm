@@ -120,8 +120,6 @@ impl ToSql for WhereClause {
                     stream.push_str(&format!(" {} ", next_condition.sql()));
                 }
             }
-        } else {
-            println!("BEANS");
         }
 
         stream

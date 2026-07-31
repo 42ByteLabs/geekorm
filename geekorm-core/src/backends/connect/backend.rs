@@ -1,6 +1,6 @@
 //! # GeekConnection trait implementation for Connection
 #![allow(unused_imports, unused_variables)]
-use crate::GeekConnection;
+use crate::{GeekConnection, TransactionConnector};
 
 use super::{Backend, Connection};
 
@@ -24,8 +24,12 @@ impl GeekConnection for Connection<'_> {
                 <libsql::Connection as GeekConnection>::create_table::<T>(conn).await
             }
             #[cfg(feature = "rusqlite")]
-            Backend::Rusqlite { conn } => {
+            Backend::Rusqlite { conn, .. } => {
                 <rusqlite::Connection as GeekConnection>::create_table::<T>(conn).await
+            }
+            Backend::Transactions { conn } => {
+                conn.push(T::query_create().build()?.into());
+                Ok(())
             }
             _ => unimplemented!(),
         }
@@ -41,8 +45,30 @@ impl GeekConnection for Connection<'_> {
                 <libsql::Connection as GeekConnection>::batch(conn, query).await
             }
             #[cfg(feature = "rusqlite")]
-            Backend::Rusqlite { conn } => {
+            Backend::Rusqlite { conn, .. } => {
                 <rusqlite::Connection as GeekConnection>::batch(conn, query).await
+            }
+            _ => unimplemented!(),
+        }
+    }
+
+    async fn transactions(
+        connection: &mut Self::Connection,
+        queries: &Vec<geekorm_sql::Query>,
+    ) -> Result<(), crate::Error> {
+        connection
+            .query_count
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        match &mut connection.backend {
+            #[cfg(feature = "libsql")]
+            Backend::Libsql { conn, .. } => {
+                <libsql::Connection as GeekConnection>::transactions(conn, queries).await
+            }
+            #[cfg(feature = "rusqlite")]
+            Backend::Rusqlite { conn } => {
+                let conn = std::sync::Arc::get_mut(conn).unwrap();
+
+                <rusqlite::Connection as GeekConnection>::transactions(conn, queries).await
             }
             _ => unimplemented!(),
         }
@@ -64,7 +90,7 @@ impl GeekConnection for Connection<'_> {
                 <libsql::Connection as GeekConnection>::query(conn, query).await
             }
             #[cfg(feature = "rusqlite")]
-            Backend::Rusqlite { conn } => {
+            Backend::Rusqlite { conn, .. } => {
                 <rusqlite::Connection as GeekConnection>::query(conn, query).await
             }
             _ => unimplemented!(),
@@ -84,8 +110,12 @@ impl GeekConnection for Connection<'_> {
                 <libsql::Connection as GeekConnection>::execute(conn, query).await
             }
             #[cfg(feature = "rusqlite")]
-            Backend::Rusqlite { conn } => {
+            Backend::Rusqlite { conn, .. } => {
                 <rusqlite::Connection as GeekConnection>::execute(conn, query).await
+            }
+            Backend::Transactions { conn, .. } => {
+                conn.push(query.into());
+                Ok(())
             }
             _ => unimplemented!(),
         }
@@ -104,7 +134,7 @@ impl GeekConnection for Connection<'_> {
                 <libsql::Connection as GeekConnection>::row_count(conn, query).await
             }
             #[cfg(feature = "rusqlite")]
-            Backend::Rusqlite { conn } => {
+            Backend::Rusqlite { conn, .. } => {
                 <rusqlite::Connection as GeekConnection>::row_count(conn, query).await
             }
             _ => unimplemented!(),
@@ -124,7 +154,7 @@ impl GeekConnection for Connection<'_> {
                 <libsql::Connection as GeekConnection>::query_raw(conn, query).await
             }
             #[cfg(feature = "rusqlite")]
-            Backend::Rusqlite { conn } => {
+            Backend::Rusqlite { conn, .. } => {
                 <rusqlite::Connection as GeekConnection>::query_raw(conn, query).await
             }
             _ => unimplemented!(),
@@ -147,10 +177,14 @@ impl GeekConnection for Connection<'_> {
                 <libsql::Connection as GeekConnection>::query_first(conn, query).await
             }
             #[cfg(feature = "rusqlite")]
-            Backend::Rusqlite { conn } => {
+            Backend::Rusqlite { conn, .. } => {
                 <rusqlite::Connection as GeekConnection>::query_first(conn, query).await
             }
-            _ => unimplemented!(),
+            _ => unimplemented!("`query_first`"),
         }
+    }
+
+    fn is_transaction(connection: &Self::Connection) -> bool {
+        matches!(&connection.backend, Backend::Transactions { .. })
     }
 }
