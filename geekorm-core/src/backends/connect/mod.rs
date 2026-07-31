@@ -157,9 +157,12 @@ impl Display for Connection<'_> {
 
 impl Drop for Connection<'_> {
     fn drop(&mut self) {
-        // On drop, we put the connection back into the pool
-        // TODO: Can we remove this clone?
-        self.pool.insert_backend(self.backend.clone());
+        // Transactions are not added back to the pool
+        if !matches!(self.backend, Backend::Transactions { .. }) {
+            // On drop, we put the connection back into the pool
+            // TODO: Can we remove this clone?
+            self.pool.insert_backend(self.backend.clone());
+        }
     }
 }
 

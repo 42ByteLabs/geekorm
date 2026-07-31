@@ -30,6 +30,11 @@ impl BatchQueries {
         self.queries.len()
     }
 
+    /// Are there any queries
+    pub fn is_empty(&self) -> bool {
+        self.queries.is_empty()
+    }
+
     /// Load a SQL file
     pub fn load(path: impl Into<PathBuf>) -> Result<Self, Error> {
         let path = path.into();
