@@ -388,7 +388,7 @@ pub trait GeekConnection {
     #[allow(async_fn_in_trait, unused_variables)]
     async fn transactions(
         connection: &mut Self::Connection,
-        queries: &Vec<geekorm_sql::Query>,
+        queries: &[geekorm_sql::Query],
     ) -> Result<(), crate::Error> {
         Err(crate::Error::NotImplemented)
     }
