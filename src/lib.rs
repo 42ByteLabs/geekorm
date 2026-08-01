@@ -16,13 +16,14 @@ pub use geekorm_core::builder::keys::foreign::{ForeignKey, ForeignKeyInteger};
 pub use geekorm_core::builder::keys::primary::PrimaryKeyUuid;
 pub use geekorm_core::builder::keys::primary::{PrimaryKey, PrimaryKeyInteger, PrimaryKeyString};
 
-pub use geekorm_core::queries::{Query, QueryBuilder};
+pub use geekorm_sql::{Query, QueryBuilder};
 
 // Query Builder Modules
 #[cfg(feature = "migrations")]
 pub use geekorm_core::builder::alter::{AlterMode, AlterQuery};
 pub use geekorm_core::builder::models::{QueryCondition, QueryOrder, QueryType};
-pub use geekorm_core::builder::values::{Value, Values};
+// Values
+pub use geekorm_sql::values::{Value, Values};
 
 // Connection
 #[cfg(feature = "connect")]
@@ -103,7 +104,7 @@ pub mod prelude {
     pub use geekorm_core::{GeekConnection, GeekConnector};
 
     // Queries Module
-    pub use geekorm_core::queries::{Query, QueryBuilder};
+    pub use geekorm_sql::{Query, QueryBuilder};
 
     // Builder Modules
     #[cfg(feature = "migrations")]
