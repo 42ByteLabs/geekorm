@@ -1,23 +1,26 @@
 //! # Table Expression
 
+use serde::{Deserialize, Serialize};
+
 use super::columns::{Column, Columns};
 use crate::ToSql;
 
 /// Table structure representing a database table.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Table {
     /// Name of the table
-    pub name: &'static str,
+    pub name: String,
     /// Columns in the table
     pub columns: Columns,
 }
 
 impl Table {
     /// Create a new table with the given name and columns.
-    pub fn new(name: &'static str, columns: Columns) -> Self {
+    pub fn new(name: impl Into<String>, columns: Columns) -> Self {
+        let name = name.into();
         let mut new_columns = columns.clone();
         for column in new_columns.columns.iter_mut() {
-            column.table_name = Some(name.to_string());
+            column.table_name = Some(name.clone());
         }
 
         Table {
@@ -109,16 +112,16 @@ impl ToSql for TableExpr {
 
 impl TableExpr {
     /// Create a new table expression
-    pub fn new(name: &str) -> Self {
+    pub fn new(name: impl Into<String>) -> Self {
         TableExpr {
-            name: name.to_string(),
+            name: name.into(),
             alias: None,
         }
     }
 
     /// Set the alias for the table expression
-    pub fn alias(&mut self, alias: String) {
-        self.alias = Some(alias);
+    pub fn alias(&mut self, alias: impl Into<String>) {
+        self.alias = Some(alias.into());
     }
 }
 

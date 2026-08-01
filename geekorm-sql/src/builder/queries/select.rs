@@ -14,7 +14,7 @@ impl QueryType {
             table.columns.to_sql_stream(&mut full_query, query).unwrap();
 
             // FROM {table}
-            let mut table = TableExpr::new(table.name);
+            let mut table = TableExpr::new(table.name.clone());
             if let Some(ref alias) = table.alias {
                 table.alias(alias.clone());
             }

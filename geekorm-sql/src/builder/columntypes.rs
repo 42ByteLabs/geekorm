@@ -1,12 +1,14 @@
 //! # Column types
 
+use serde::{Deserialize, Serialize};
+
 use super::QueryType;
 use super::columns::ColumnOptions;
 use super::queries::alter::AlterQuery;
 use crate::{Error, ToSql};
 
 /// Column types
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ColumnType {
     /// Text column type
     #[default]

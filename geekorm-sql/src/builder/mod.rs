@@ -3,6 +3,7 @@
 pub mod columns;
 pub mod columntypes;
 pub mod conditions;
+pub mod database;
 pub mod joins;
 pub mod ordering;
 pub mod pagination;
@@ -203,6 +204,14 @@ impl<'a> QueryBuilder<'a> {
             self.database.push(table);
         }
         self
+    }
+
+    /// Get the current table name, blank if no table is set
+    pub fn get_table_name(&self) -> &str {
+        match self.table {
+            Some(t) => &t.name,
+            None => "",
+        }
     }
 
     /// Add a value to the list of values for parameterized queries

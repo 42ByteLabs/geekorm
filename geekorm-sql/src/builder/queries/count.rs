@@ -8,7 +8,7 @@ impl QueryType {
         let mut full_query = "SELECT COUNT(1)".to_string();
 
         if let Some(table) = query.find_table_default() {
-            let mut table = TableExpr::new(table.name);
+            let mut table = TableExpr::new(table.name.clone());
             if let Some(ref alias) = table.alias {
                 table.alias(alias.clone());
             }
@@ -43,7 +43,7 @@ mod tests {
 
     fn table() -> Table {
         Table {
-            name: "Test",
+            name: String::from("Test"),
             columns: Columns::new(vec![
                 Column::from((
                     "id".to_string(),

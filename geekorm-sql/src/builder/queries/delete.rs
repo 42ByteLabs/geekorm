@@ -12,7 +12,7 @@ impl QueryType {
         if let Some(table) = query.find_table_default() {
             full_query.push_str("DELETE ");
 
-            let table_expr = TableExpr::new(table.name);
+            let table_expr = TableExpr::new(table.name.clone());
             table_expr.to_sql_stream(&mut full_query, query).unwrap();
 
             // WHERE {where_clause}
@@ -38,7 +38,7 @@ mod tests {
 
     fn table() -> Table {
         Table {
-            name: "Test",
+            name: String::from("Test"),
             columns: Columns::new(vec![
                 Column::from((
                     "id".to_string(),
