@@ -119,15 +119,22 @@ impl ToSql for WhereClause {
                 stream.push_str(column);
                 stream.push(' ');
                 stream.push_str(&qcondition.sql());
+                stream.push(' ');
 
                 match query.values.binding_mode {
                     ValueBindingMode::Placeholder => {
-                        stream.push_str(" ?");
+                        stream.push('?');
                     }
                     ValueBindingMode::Named => {
-                        stream.push_str(&format!(" :{}", column));
+                        stream.push_str(&format!(":{}", column));
                     }
-                    ValueBindingMode::Numeric => todo!("WhereClause -> ValueBindingMode::Numeric"),
+                    ValueBindingMode::Numeric => {
+                        let index = query
+                            .values
+                            .get_index(column.as_str())
+                            .expect("Failed to fetch value index");
+                        stream.push_str(&format!("?{}", index));
+                    }
                 }
 
                 if let Some(next_condition) = wcondition {
@@ -153,6 +160,7 @@ mod tests {
     use super::*;
     use crate::ToSql;
     use crate::builder::QueryBuilder;
+    use crate::builder::tests::*;
 
     #[test]
     fn test_where_clause_eq() {
@@ -189,14 +197,39 @@ mod tests {
     }
 
     #[test]
-    fn test_where_named_values() {
-        let mut where_clause = WhereClause::default();
-        where_clause.push("id".to_string(), QueryCondition::Eq);
-        where_clause.push_condition(WhereCondition::Or).unwrap();
-        where_clause.push("name".to_string(), QueryCondition::Like);
+    fn test_where_named_query() {
+        let table = table_users();
+        let query = QueryBuilder::select()
+            .table(&table)
+            .set_value_mode(ValueBindingMode::Named)
+            .where_eq("id", 1)
+            .or()
+            .where_like("username", "geek")
+            .build()
+            .unwrap();
 
-        let query = where_clause.sql();
+        assert_eq!(query.values.len(), 2);
+        assert_eq!(
+            query.as_sql(),
+            "SELECT id, username, email, roles, profile FROM Users WHERE id = :id OR username LIKE :username;"
+        );
+    }
 
-        assert_eq!(query, "WHERE id = ? OR name LIKE ?");
+    #[test]
+    fn test_where_numeric_query() {
+        let table = table_users();
+        let query = QueryBuilder::select()
+            .table(&table)
+            .set_value_mode(ValueBindingMode::Numeric)
+            .where_like("username", "geek")
+            .where_eq("id", 1)
+            .build()
+            .unwrap();
+
+        assert_eq!(query.values.len(), 2);
+        assert_eq!(
+            query.as_sql(),
+            "SELECT id, username, email, roles, profile FROM Users WHERE username LIKE ?1 AND id = ?2;"
+        );
     }
 }

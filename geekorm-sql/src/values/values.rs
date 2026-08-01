@@ -59,8 +59,9 @@ impl Values {
     }
 
     /// Push a value to the list of values
-    pub fn push(&mut self, column: String, value: impl Into<Value>) {
-        self.values.push(NamedValue::new(column, value.into()))
+    pub fn push(&mut self, column: impl Into<String>, value: impl Into<Value>) {
+        self.values
+            .push(NamedValue::new(column.into(), value.into()))
     }
 
     /// Get a value by index from the list of values
@@ -88,6 +89,16 @@ impl Values {
     pub fn values(&self) -> &Vec<NamedValue> {
         &self.values
     }
+
+    /// Gets the index of the column (starts from 1)
+    pub fn get_index(&self, column: &str) -> Option<usize> {
+        for (index, value) in self.values.iter().enumerate() {
+            if value.name == column {
+                return Some(index + 1);
+            }
+        }
+        None
+    }
 }
 
 impl IntoIterator for Values {
@@ -106,5 +117,25 @@ impl IntoIterator for Values {
 impl From<NamedValue> for Value {
     fn from(value: NamedValue) -> Self {
         value.value
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_values_get_index() {
+        let mut values = Values::new();
+        values.push("id", Value::Integer(1));
+        values.push("username", Value::Text("GeekMasher".to_string()));
+        values.push("first_name", Value::Text("mathew".to_string()));
+        values.push("age", Value::Integer(42)); // I'm not :( 
+
+        assert_eq!(values.len(), 4);
+        assert_eq!(values.get_index("id"), Some(1));
+        assert_eq!(values.get_index("username"), Some(2));
+        assert_eq!(values.get_index("first_name"), Some(3));
+        assert_eq!(values.get_index("age"), Some(4));
     }
 }

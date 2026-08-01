@@ -23,6 +23,7 @@ use crate::{
     Column, Error, Query, QueryBackend, ToSql, Value, Values,
     builder::{pagination::Page, queries::transaction::TransactionQuery},
     query::BatchQueries,
+    values::values::ValueBindingMode,
 };
 use columns::Columns;
 
@@ -204,6 +205,12 @@ impl<'a> QueryBuilder<'a> {
     /// Add a value to the list of values for parameterized queries
     pub fn add_value(&mut self, column: &str, value: impl Into<Value>) -> &mut Self {
         self.values.push(column.to_string(), value.into());
+        self
+    }
+
+    /// Set the value binding mode
+    pub(crate) fn set_value_mode(&mut self, mode: ValueBindingMode) -> &mut Self {
+        self.values.binding_mode = mode;
         self
     }
 
