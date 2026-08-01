@@ -3,7 +3,9 @@
 //!
 
 use crate::backends::SqliteBackendOptions;
+use crate::builder::WhereClause;
 use crate::builder::table::TableExpr;
+use crate::values::values::ValueBindingMode;
 use crate::{QueryBuilder, QueryType, ToSql, Value, Values};
 
 impl QueryType {
@@ -37,24 +39,31 @@ impl QueryType {
                 }
 
                 // Add to Values
-                match nvalue.value() {
-                    Value::Identifier(_) | Value::Text(_) | Value::Blob(_) | Value::Json(_) => {
-                        // Security: String values should never be directly inserted into the query
-                        // This is to prevent SQL injection attacks
-                        columns.push(format!("{} = ?", column_name));
-                        parameters.push(column_name, nvalue.value().clone());
+                if matches!(nvalue.value(), Value::Null) {
+                    columns.push(format!("{} = NULL", column_name));
+                } else {
+                    // SECURITY: String values should never be directly inserted into the query
+                    let mut value_param = format!("{} = ", column_name);
+                    // This is to prevent SQL injection attacks
+                    // SECURITY: Parameterise all the values being passed in
+                    match query.values.binding_mode {
+                        ValueBindingMode::Placeholder => {
+                            value_param.push('?');
+                        }
+                        ValueBindingMode::Named => {
+                            value_param.push_str(&format!(":{}", column_name));
+                        }
+                        ValueBindingMode::Numeric => {
+                            let index = query
+                                .values
+                                .get_index(column_name.as_str())
+                                .expect("Failed to fetch value index");
+                            value_param.push_str(&format!("?{}", index));
+                        }
                     }
-                    Value::Integer(value) => {
-                        columns.push(format!("{} = {}", column_name, value));
-                    }
-                    Value::Real(value) => {
-                        columns.push(format!("{} = {}", column_name, value));
-                    }
-                    Value::Datetime(value) => {
-                        columns.push(format!("{} = {}", column_name, value));
-                    }
-                    Value::Boolean(value) => columns.push(format!("{} = {}", column_name, value)),
-                    Value::Null => columns.push(format!("{} = NULL", column_name)),
+
+                    columns.push(value_param);
+                    parameters.push(column_name, nvalue.value().clone());
                 }
             }
 
@@ -65,8 +74,17 @@ impl QueryType {
             // TODO(geekmasher): We only support updating by primary key
             if let Some(primary_key) = table.get_primary_key() {
                 let primary_key_name = primary_key.name.clone();
-                let primary_key = query.values.get(&primary_key_name).unwrap();
-                let where_clause = format!(" WHERE {} = {}", primary_key_name, primary_key);
+
+                // SECURITY: primary keys need to parameters
+                let mut pk_where = WhereClause::new();
+                pk_where.push(primary_key_name, crate::QueryCondition::Eq);
+
+                let where_clause = pk_where
+                    .to_sql(query)
+                    .expect("Update Query - PK building error");
+                debug_assert_ne!(where_clause.len(), 0);
+
+                full_query.push(' ');
                 full_query.push_str(&where_clause);
             }
         }
@@ -117,9 +135,10 @@ mod tests {
             .build()
             .unwrap();
 
+        // Named parameters by default
         assert_eq!(
             query.query,
-            "UPDATE Test SET name = ?, email = ? WHERE id = 1;"
+            "UPDATE Test SET name = :name, email = :email WHERE id = :id;"
         );
     }
 
@@ -139,7 +158,7 @@ mod tests {
 
         assert_eq!(
             query.query,
-            "UPDATE OR ROLLBACK Test SET name = ?, email = ? WHERE id = 1;"
+            "UPDATE OR ROLLBACK Test SET name = :name, email = :email WHERE id = :id;"
         );
     }
 }

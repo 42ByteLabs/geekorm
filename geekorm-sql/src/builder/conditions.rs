@@ -1,6 +1,7 @@
 //! # Query Conditions
 
 use super::QueryBuilder;
+use crate::values::values::ValueBindingMode;
 use crate::{Error, ToSql};
 
 /// Query Condition (EQ, NE, etc.)
@@ -70,6 +71,11 @@ pub struct WhereClause {
 }
 
 impl WhereClause {
+    /// New WHERE clause
+    pub fn new() -> Self {
+        Self::default()
+    }
+
     /// If the where clause is empty
     pub fn is_empty(&self) -> bool {
         self.conditions.is_empty()
@@ -105,6 +111,10 @@ impl WhereClause {
 
 impl ToSql for WhereClause {
     fn sql(&self) -> String {
+        self.to_sql(&QueryBuilder::default()).unwrap()
+    }
+
+    fn to_sql(&self, query: &QueryBuilder) -> Result<String, Error> {
         let mut stream = String::new();
         if !self.is_empty() {
             // Add the where clause to the SQL string
@@ -114,7 +124,24 @@ impl ToSql for WhereClause {
                 stream.push_str(column);
                 stream.push(' ');
                 stream.push_str(&qcondition.sql());
-                stream.push_str(" ?");
+                stream.push(' ');
+
+                // SECURITY: Parameterise all the values being passed in
+                match query.values.binding_mode {
+                    ValueBindingMode::Placeholder => {
+                        stream.push('?');
+                    }
+                    ValueBindingMode::Named => {
+                        stream.push_str(&format!(":{}", column));
+                    }
+                    ValueBindingMode::Numeric => {
+                        let index = query
+                            .values
+                            .get_index(column.as_str())
+                            .expect("Failed to fetch value index");
+                        stream.push_str(&format!("?{}", index));
+                    }
+                }
 
                 if let Some(next_condition) = wcondition {
                     stream.push_str(&format!(" {} ", next_condition.sql()));
@@ -122,13 +149,13 @@ impl ToSql for WhereClause {
             }
         }
 
-        stream
+        Ok(stream)
     }
 
     fn to_sql_stream(&self, stream: &mut String, query: &QueryBuilder) -> Result<(), Error> {
         if !query.where_clause.is_empty() {
             stream.push(' ');
-            stream.push_str(&self.sql());
+            stream.push_str(&self.to_sql(query)?);
         }
         Ok(())
     }
@@ -139,6 +166,7 @@ mod tests {
     use super::*;
     use crate::ToSql;
     use crate::builder::QueryBuilder;
+    use crate::builder::tests::*;
 
     #[test]
     fn test_where_clause_eq() {
@@ -172,5 +200,42 @@ mod tests {
         let query = where_clause.sql();
 
         assert_eq!(query, "WHERE id = ? OR name LIKE ?");
+    }
+
+    #[test]
+    fn test_where_named_query() {
+        let table = table_users();
+        let query = QueryBuilder::select()
+            .table(&table)
+            .set_value_mode(ValueBindingMode::Named)
+            .where_eq("id", 1)
+            .or()
+            .where_like("username", "geek")
+            .build()
+            .unwrap();
+
+        assert_eq!(query.values.len(), 2);
+        assert_eq!(
+            query.as_sql(),
+            "SELECT id, username, email, roles, profile FROM Users WHERE id = :id OR username LIKE :username;"
+        );
+    }
+
+    #[test]
+    fn test_where_numeric_query() {
+        let table = table_users();
+        let query = QueryBuilder::select()
+            .table(&table)
+            .set_value_mode(ValueBindingMode::Numeric)
+            .where_like("username", "geek")
+            .where_eq("id", 1)
+            .build()
+            .unwrap();
+
+        assert_eq!(query.values.len(), 2);
+        assert_eq!(
+            query.as_sql(),
+            "SELECT id, username, email, roles, profile FROM Users WHERE username LIKE ?1 AND id = ?2;"
+        );
     }
 }

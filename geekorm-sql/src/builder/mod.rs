@@ -23,6 +23,7 @@ use crate::{
     Column, Error, Query, QueryBackend, ToSql, Value, Values,
     builder::{pagination::Page, queries::transaction::TransactionQuery},
     query::BatchQueries,
+    values::values::ValueBindingMode,
 };
 use columns::Columns;
 
@@ -78,7 +79,10 @@ pub struct QueryBuilder<'a> {
     /// Page
     pub(crate) page: Option<Page>,
 
+    /// Data Values for the query
     pub(crate) values: Values,
+    /// If the values should be ordered or named
+    pub(crate) named_values: bool,
 
     /// For Alter queries
     pub(crate) alter: Option<AlterQuery>,
@@ -148,10 +152,13 @@ impl<'a> QueryBuilder<'a> {
         }
     }
 
-    /// Build an update query
+    /// Build an UPDATE query.
+    ///
+    /// Update queries use named parametered for the query.
     pub fn update() -> Self {
         Self {
             query_type: QueryType::Update,
+            values: Values::new_with_binding_mode(ValueBindingMode::Named),
             ..Default::default()
         }
     }
@@ -201,6 +208,12 @@ impl<'a> QueryBuilder<'a> {
     /// Add a value to the list of values for parameterized queries
     pub fn add_value(&mut self, column: &str, value: impl Into<Value>) -> &mut Self {
         self.values.push(column.to_string(), value.into());
+        self
+    }
+
+    /// Set the value binding mode
+    pub(crate) fn set_value_mode(&mut self, mode: ValueBindingMode) -> &mut Self {
+        self.values.binding_mode = mode;
         self
     }
 

@@ -2,6 +2,21 @@
 //!
 //! A collection of values to be used in SQL queries.
 use super::value::Value;
+use crate::ToSql;
+
+/// The different options on how to bind values
+///
+/// https://sqlite.org/c3ref/bind_blob.html
+#[derive(Debug, Default, Clone, PartialEq)]
+pub enum ValueBindingMode {
+    /// This is using the standard `?`
+    #[default]
+    Placeholder,
+    /// Named value `:VVV`
+    Named,
+    /// Numeric like `:NNN`
+    Numeric,
+}
 
 /// Named Value
 #[derive(Debug, Default, Clone, PartialEq)]
@@ -29,22 +44,59 @@ impl NamedValue {
     }
 }
 
+impl ToSql for NamedValue {
+    fn to_sql(&self, query: &crate::QueryBuilder) -> Result<String, crate::prelude::Error> {
+        let mut stream = String::new();
+
+        // This is to prevent SQL injection attacks
+        // SECURITY: Parameterise all the values being passed in
+        match query.values.binding_mode {
+            ValueBindingMode::Placeholder => {
+                stream.push('?');
+            }
+            ValueBindingMode::Named => {
+                stream.push_str(&format!(":{}", self.name()));
+            }
+            ValueBindingMode::Numeric => {
+                let index = query
+                    .values
+                    .get_index(self.name())
+                    .expect("Failed to fetch value index");
+                stream.push_str(&format!("?{}", index));
+            }
+        }
+
+        Ok(stream)
+    }
+}
+
 /// A collection of values to be used in SQL queries.
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Values {
     /// List of values
     pub(crate) values: Vec<NamedValue>,
+    /// Binding mode that should be used for these particular values
+    pub(crate) binding_mode: ValueBindingMode,
 }
 
 impl Values {
     /// Create a new instance of Values
     pub fn new() -> Self {
-        Values { values: Vec::new() }
+        Values::default()
+    }
+
+    /// Create a new instance of Values but with a binding mode
+    pub fn new_with_binding_mode(mode: ValueBindingMode) -> Self {
+        Values {
+            values: Vec::new(),
+            binding_mode: mode,
+        }
     }
 
     /// Push a value to the list of values
-    pub fn push(&mut self, column: String, value: impl Into<Value>) {
-        self.values.push(NamedValue::new(column, value.into()))
+    pub fn push(&mut self, column: impl Into<String>, value: impl Into<Value>) {
+        self.values
+            .push(NamedValue::new(column.into(), value.into()))
     }
 
     /// Get a value by index from the list of values
@@ -72,6 +124,16 @@ impl Values {
     pub fn values(&self) -> &Vec<NamedValue> {
         &self.values
     }
+
+    /// Gets the index of the column (starts from 1)
+    pub fn get_index(&self, column: &str) -> Option<usize> {
+        for (index, value) in self.values.iter().enumerate() {
+            if value.name == column {
+                return Some(index + 1);
+            }
+        }
+        None
+    }
 }
 
 impl IntoIterator for Values {
@@ -90,5 +152,45 @@ impl IntoIterator for Values {
 impl From<NamedValue> for Value {
     fn from(value: NamedValue) -> Self {
         value.value
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::QueryBuilder;
+
+    use super::*;
+
+    #[test]
+    fn test_values_get_index() {
+        let mut values = Values::new();
+        values.push("id", Value::Integer(1));
+        values.push("username", Value::Text("GeekMasher".to_string()));
+        values.push("first_name", Value::Text("mathew".to_string()));
+        values.push("age", Value::Integer(42)); // I'm not :( 
+
+        assert_eq!(values.len(), 4);
+        assert_eq!(values.get_index("id"), Some(1));
+        assert_eq!(values.get_index("username"), Some(2));
+        assert_eq!(values.get_index("first_name"), Some(3));
+        assert_eq!(values.get_index("age"), Some(4));
+    }
+
+    #[test]
+    fn sqlite_named_value() {
+        let mut builder = QueryBuilder::update();
+        builder.set_value_mode(ValueBindingMode::Named);
+
+        let named = NamedValue::new("id", Value::Integer(1));
+        let query = named.to_sql(&builder).unwrap();
+        assert_eq!(query.as_str(), ":id");
+
+        let named = NamedValue::new("username", Value::Text("geekmasher".to_string()));
+        let query = named.to_sql(&builder).unwrap();
+        assert_eq!(query.as_str(), ":username");
+
+        let named = NamedValue::new("id", Value::Identifier(1));
+        let query = named.to_sql(&builder).unwrap();
+        assert_eq!(query.as_str(), ":id");
     }
 }
