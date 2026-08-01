@@ -1,34 +1,78 @@
-name: Feature Request 
-description: Feature Request
+name: Feature Request
+description: Suggest an improvement or new capability for GeekORM
 title: "[Feat]: "
-labels: ["feature", "enhancement"]
+labels: ["feature", "enhancement", "triage"]
 assignees:
   - GeekMasher
-
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to fill out this feature request!
-  - type: textarea
-    id: feature
+        Thanks for suggesting an improvement. Please describe the use case and the outcome you want, not just a proposed implementation.
+
+  - type: checkboxes
+    id: checks
     attributes:
-      label: What new feature are you looking for / expect?
-      description: Also tell us, what did you expect to happen?
-      placeholder: Tell us what you see!
-      value: "Here is my feature!"
-    validations:
-      required: true
-  - type: dropdown
-    id: expectations
-    attributes:
-      label: Expectations
-      description: What is your expectation of this feature request?
+      label: Pre-flight checks
+      description: Please confirm these before submitting.
       options:
-        - Nice to have
-        - Opt-in Feature
-        - Required / Manditory Feature
-      default: 0
+        - label: I have searched existing issues and discussions for similar requests.
+          required: true
+        - label: I have checked the documentation to confirm this is not already supported.
+          required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Target component
+      description: Which part of GeekORM would this change affect?
+      multiple: true
+      options:
+        - Core library
+        - Derive macros
+        - CLI
+        - Migrations
+        - SQL Query Builder
+        - Documentation
+        - Developer experience
+        - Other / unsure
     validations:
       required: true
 
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: What are you trying to do, and what currently makes it hard or impossible?
+      placeholder: "I want to ..., but currently ..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the behavior, API, command, or documentation change you would like to see.
+      placeholder: "GeekORM could support this by ..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What workarounds or other designs have you considered?
+      placeholder: "I tried ..., but ..."
+
+  - type: textarea
+    id: example
+    attributes:
+      label: Example API or usage
+      description: If relevant, show what the ideal code, CLI command, schema, or generated SQL might look like.
+      render: rust
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional context
+      description: Add links to related projects, prior art, screenshots, or anything else that may help.
