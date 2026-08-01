@@ -124,7 +124,7 @@ mod tests {
         assert_eq!(query.values.len(), 2);
         assert_eq!(
             sql,
-            "BEGIN TRANSACTION;\n\nUPDATE Users SET username = ? WHERE id = 1;\n\nCOMMIT;"
+            "BEGIN TRANSACTION;\n\nUPDATE Users SET username = ? WHERE id = ?;\n\nCOMMIT;"
         );
     }
 }

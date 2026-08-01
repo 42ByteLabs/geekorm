@@ -94,6 +94,23 @@ mod tests {
     }
 
     #[test]
+    fn sqlite_select_where_pk() {
+        let table = table_images();
+        let query = QueryBuilder::select()
+            .table(&table)
+            .set_value_mode(crate::values::values::ValueBindingMode::Named)
+            .where_eq("id", 42)
+            .build()
+            .unwrap();
+
+        assert_eq!(query.values.len(), 1);
+        assert_eq!(
+            query.query,
+            "SELECT id, title, url FROM Images WHERE id = :id;"
+        );
+    }
+
+    #[test]
     fn sqlite_order_clause() {
         let table = table_images();
         let query = QueryBuilder::select()

@@ -71,6 +71,11 @@ pub struct WhereClause {
 }
 
 impl WhereClause {
+    /// New WHERE clause
+    pub fn new() -> Self {
+        Self::default()
+    }
+
     /// If the where clause is empty
     pub fn is_empty(&self) -> bool {
         self.conditions.is_empty()
@@ -121,6 +126,7 @@ impl ToSql for WhereClause {
                 stream.push_str(&qcondition.sql());
                 stream.push(' ');
 
+                // SECURITY: Parameterise all the values being passed in
                 match query.values.binding_mode {
                     ValueBindingMode::Placeholder => {
                         stream.push('?');
