@@ -2,6 +2,7 @@
 //!
 //! A collection of values to be used in SQL queries.
 use super::value::Value;
+use crate::ToSql;
 
 /// The different options on how to bind values
 ///
@@ -40,6 +41,32 @@ impl NamedValue {
     /// Get Value
     pub fn value(&self) -> &Value {
         &self.value
+    }
+}
+
+impl ToSql for NamedValue {
+    fn to_sql(&self, query: &crate::QueryBuilder) -> Result<String, crate::prelude::Error> {
+        let mut stream = String::new();
+
+        // This is to prevent SQL injection attacks
+        // SECURITY: Parameterise all the values being passed in
+        match query.values.binding_mode {
+            ValueBindingMode::Placeholder => {
+                stream.push('?');
+            }
+            ValueBindingMode::Named => {
+                stream.push_str(&format!(":{}", self.name()));
+            }
+            ValueBindingMode::Numeric => {
+                let index = query
+                    .values
+                    .get_index(self.name())
+                    .expect("Failed to fetch value index");
+                stream.push_str(&format!("?{}", index));
+            }
+        }
+
+        Ok(stream)
     }
 }
 
@@ -122,6 +149,8 @@ impl From<NamedValue> for Value {
 
 #[cfg(test)]
 mod tests {
+    use crate::QueryBuilder;
+
     use super::*;
 
     #[test]
@@ -137,5 +166,23 @@ mod tests {
         assert_eq!(values.get_index("username"), Some(2));
         assert_eq!(values.get_index("first_name"), Some(3));
         assert_eq!(values.get_index("age"), Some(4));
+    }
+
+    #[test]
+    fn sqlite_named_value() {
+        let mut builder = QueryBuilder::update();
+        builder.set_value_mode(ValueBindingMode::Named);
+
+        let named = NamedValue::new("id", Value::Integer(1));
+        let query = named.to_sql(&builder).unwrap();
+        assert_eq!(query.as_str(), ":id");
+
+        let named = NamedValue::new("username", Value::Text("geekmasher".to_string()));
+        let query = named.to_sql(&builder).unwrap();
+        assert_eq!(query.as_str(), ":username");
+
+        let named = NamedValue::new("id", Value::Identifier(1));
+        let query = named.to_sql(&builder).unwrap();
+        assert_eq!(query.as_str(), ":id");
     }
 }
