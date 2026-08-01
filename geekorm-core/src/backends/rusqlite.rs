@@ -99,9 +99,9 @@ impl GeekConnection for rusqlite::Connection {
             .map_err(|e| crate::Error::RuSQLiteError(e.to_string()))?;
 
         let params = if !query.parameters.values().is_empty() {
-            values_to_rusqlite(query.parameters)
+            values_to_rusqlite(&query.parameters)
         } else {
-            values_to_rusqlite(query.values)
+            values_to_rusqlite(&query.values)
         };
         #[cfg(feature = "log")]
         {
@@ -138,9 +138,9 @@ impl GeekConnection for rusqlite::Connection {
             .map_err(|e| crate::Error::RuSQLiteError(e.to_string()))?;
 
         let params = if !query.parameters.values().is_empty() {
-            values_to_rusqlite(query.parameters)
+            values_to_rusqlite(&query.parameters)
         } else {
-            values_to_rusqlite(query.values)
+            values_to_rusqlite(&query.values)
         };
         #[cfg(feature = "log")]
         {
@@ -172,9 +172,9 @@ impl GeekConnection for rusqlite::Connection {
             .map_err(|e| crate::Error::RuSQLiteError(e.to_string()))?;
 
         let params = if !query.parameters.values().is_empty() {
-            values_to_rusqlite(query.parameters)
+            values_to_rusqlite(&query.parameters)
         } else {
-            values_to_rusqlite(query.values)
+            values_to_rusqlite(&query.values)
         };
         #[cfg(feature = "log")]
         {
@@ -204,7 +204,7 @@ impl GeekConnection for rusqlite::Connection {
 
     async fn transactions(
         connection: &mut Self::Connection,
-        queries: &Vec<geekorm_sql::Query>,
+        queries: &[geekorm_sql::Query],
     ) -> std::prelude::v1::Result<(), crate::Error> {
         #[cfg(feature = "log")]
         {
@@ -213,7 +213,7 @@ impl GeekConnection for rusqlite::Connection {
         let tx = connection.transaction()?;
 
         for query in queries {
-            let params = values_to_rusqlite(query.values().clone());
+            let params = values_to_rusqlite(query.values());
 
             tx.execute(query.as_sql(), params)?;
         }
@@ -230,7 +230,7 @@ impl GeekConnection for rusqlite::Connection {
             .prepare(query.to_str())
             .map_err(|e| crate::Error::RuSQLiteError(e.to_string()))?;
 
-        let params = values_to_rusqlite(query.parameters);
+        let params = values_to_rusqlite(&query.parameters);
 
         //let params = rusqlite::params_from_iter(query.parameters);
         let mut res = statement
@@ -248,7 +248,7 @@ impl GeekConnection for rusqlite::Connection {
 
 /// Value -> DatabaseValue -> Rusqlite Value
 #[inline]
-fn values_to_rusqlite(values: Values) -> ParamsFromIter<Vec<DatabaseValue>> {
+fn values_to_rusqlite(values: &Values) -> ParamsFromIter<Vec<DatabaseValue>> {
     rusqlite::params_from_iter(
         values
             .values()

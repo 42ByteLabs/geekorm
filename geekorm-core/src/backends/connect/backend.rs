@@ -54,7 +54,7 @@ impl GeekConnection for Connection<'_> {
 
     async fn transactions(
         connection: &mut Self::Connection,
-        queries: &Vec<geekorm_sql::Query>,
+        queries: &[geekorm_sql::Query],
     ) -> Result<(), crate::Error> {
         connection
             .query_count
