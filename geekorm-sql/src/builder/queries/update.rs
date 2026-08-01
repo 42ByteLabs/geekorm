@@ -135,24 +135,7 @@ mod tests {
             .build()
             .unwrap();
 
-        assert_eq!(
-            query.query,
-            "UPDATE Test SET name = ?, email = ? WHERE id = ?;"
-        );
-    }
-
-    #[test]
-    fn sqlite_update_named_query() {
-        let table = table();
-        let query = QueryBuilder::update()
-            .table(&table)
-            .set_value_mode(crate::values::values::ValueBindingMode::Named)
-            .add_value("id", "1")
-            .add_value("name", "bob")
-            .add_value("email", "bob@example.com")
-            .build()
-            .unwrap();
-
+        // Named parameters by default
         assert_eq!(
             query.query,
             "UPDATE Test SET name = :name, email = :email WHERE id = :id;"
@@ -175,7 +158,7 @@ mod tests {
 
         assert_eq!(
             query.query,
-            "UPDATE OR ROLLBACK Test SET name = ?, email = ? WHERE id = ?;"
+            "UPDATE OR ROLLBACK Test SET name = :name, email = :email WHERE id = :id;"
         );
     }
 }

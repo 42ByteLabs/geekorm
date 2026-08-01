@@ -85,6 +85,14 @@ impl Values {
         Values::default()
     }
 
+    /// Create a new instance of Values but with a binding mode
+    pub fn new_with_binding_mode(mode: ValueBindingMode) -> Self {
+        Values {
+            values: Vec::new(),
+            binding_mode: mode,
+        }
+    }
+
     /// Push a value to the list of values
     pub fn push(&mut self, column: impl Into<String>, value: impl Into<Value>) {
         self.values

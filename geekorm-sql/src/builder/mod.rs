@@ -152,10 +152,13 @@ impl<'a> QueryBuilder<'a> {
         }
     }
 
-    /// Build an update query
+    /// Build an UPDATE query.
+    ///
+    /// Update queries use named parametered for the query.
     pub fn update() -> Self {
         Self {
             query_type: QueryType::Update,
+            values: Values::new_with_binding_mode(ValueBindingMode::Named),
             ..Default::default()
         }
     }
