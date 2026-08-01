@@ -76,7 +76,7 @@ impl BatchQueries {
     }
 
     /// Gets all the internal queries
-    pub fn queries(&self) -> &Vec<Query> {
+    pub fn queries(&self) -> &[Query] {
         &self.queries
     }
 }
