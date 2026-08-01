@@ -1,6 +1,7 @@
 //! # Query Conditions
 
 use super::QueryBuilder;
+use crate::values::values::ValueBindingMode;
 use crate::{Error, ToSql};
 
 /// Query Condition (EQ, NE, etc.)
@@ -105,6 +106,10 @@ impl WhereClause {
 
 impl ToSql for WhereClause {
     fn sql(&self) -> String {
+        self.to_sql(&QueryBuilder::default()).unwrap()
+    }
+
+    fn to_sql(&self, query: &QueryBuilder) -> Result<String, Error> {
         let mut stream = String::new();
         if !self.is_empty() {
             // Add the where clause to the SQL string
@@ -114,7 +119,16 @@ impl ToSql for WhereClause {
                 stream.push_str(column);
                 stream.push(' ');
                 stream.push_str(&qcondition.sql());
-                stream.push_str(" ?");
+
+                match query.values.binding_mode {
+                    ValueBindingMode::Placeholder => {
+                        stream.push_str(" ?");
+                    }
+                    ValueBindingMode::Named => {
+                        stream.push_str(&format!(" :{}", column));
+                    }
+                    ValueBindingMode::Numeric => todo!("WhereClause -> ValueBindingMode::Numeric"),
+                }
 
                 if let Some(next_condition) = wcondition {
                     stream.push_str(&format!(" {} ", next_condition.sql()));
@@ -122,13 +136,13 @@ impl ToSql for WhereClause {
             }
         }
 
-        stream
+        Ok(stream)
     }
 
     fn to_sql_stream(&self, stream: &mut String, query: &QueryBuilder) -> Result<(), Error> {
         if !query.where_clause.is_empty() {
             stream.push(' ');
-            stream.push_str(&self.sql());
+            stream.push_str(&self.to_sql(query)?);
         }
         Ok(())
     }
@@ -164,6 +178,18 @@ mod tests {
 
     #[test]
     fn test_where_clause_or() {
+        let mut where_clause = WhereClause::default();
+        where_clause.push("id".to_string(), QueryCondition::Eq);
+        where_clause.push_condition(WhereCondition::Or).unwrap();
+        where_clause.push("name".to_string(), QueryCondition::Like);
+
+        let query = where_clause.sql();
+
+        assert_eq!(query, "WHERE id = ? OR name LIKE ?");
+    }
+
+    #[test]
+    fn test_where_named_values() {
         let mut where_clause = WhereClause::default();
         where_clause.push("id".to_string(), QueryCondition::Eq);
         where_clause.push_condition(WhereCondition::Or).unwrap();

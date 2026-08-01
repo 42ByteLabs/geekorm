@@ -78,7 +78,10 @@ pub struct QueryBuilder<'a> {
     /// Page
     pub(crate) page: Option<Page>,
 
+    /// Data Values for the query
     pub(crate) values: Values,
+    /// If the values should be ordered or named
+    pub(crate) named_values: bool,
 
     /// For Alter queries
     pub(crate) alter: Option<AlterQuery>,

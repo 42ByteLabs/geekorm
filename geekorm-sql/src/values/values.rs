@@ -3,6 +3,20 @@
 //! A collection of values to be used in SQL queries.
 use super::value::Value;
 
+/// The different options on how to bind values
+///
+/// https://sqlite.org/c3ref/bind_blob.html
+#[derive(Debug, Default, Clone, PartialEq)]
+pub enum ValueBindingMode {
+    /// This is using the standard `?`
+    #[default]
+    Placeholder,
+    /// Named value `:VVV`
+    Named,
+    /// Numeric like `:NNN`
+    Numeric,
+}
+
 /// Named Value
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct NamedValue {
@@ -34,12 +48,14 @@ impl NamedValue {
 pub struct Values {
     /// List of values
     pub(crate) values: Vec<NamedValue>,
+    /// Binding mode that should be used for these particular values
+    pub(crate) binding_mode: ValueBindingMode,
 }
 
 impl Values {
     /// Create a new instance of Values
     pub fn new() -> Self {
-        Values { values: Vec::new() }
+        Values::default()
     }
 
     /// Push a value to the list of values
