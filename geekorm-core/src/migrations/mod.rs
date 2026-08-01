@@ -4,10 +4,11 @@
 
 pub mod validate;
 
+use geekorm_sql::{Query, QueryType, Table, Values};
+
 use crate::backends::TableInfo;
-use crate::builder::models::QueryType;
 use crate::error::MigrationError;
-use crate::{Database, GeekConnection, Query, Table, Values};
+use crate::{Database, GeekConnection};
 
 use self::validate::Validator;
 
@@ -162,18 +163,7 @@ where
     {
         let query = Self::create_query().to_string();
 
-        C::batch(
-            connection,
-            Query::new(
-                QueryType::Create,
-                query,
-                Values::new(),
-                Values::new(),
-                Vec::new(),
-                Table::default(),
-            ),
-        )
-        .await
+        C::batch(connection, Query::from((query, QueryType::Create))).await
     }
 
     /// Migrate the previos database to the current version
@@ -197,18 +187,7 @@ where
         {
             log::debug!("Executing upgrade query: {}", query);
         }
-        C::batch(
-            connection,
-            Query::new(
-                QueryType::Update,
-                query,
-                Values::new(),
-                Values::new(),
-                Vec::new(),
-                Table::default(),
-            ),
-        )
-        .await
+        C::batch(connection, Query::from((query, QueryType::Update))).await
     }
 
     /// Downgrade the database to the previous version
@@ -230,18 +209,7 @@ where
         {
             log::debug!("Executing rollback query: {}", query);
         }
-        C::execute(
-            connection,
-            Query::new(
-                QueryType::Update,
-                query,
-                Values::new(),
-                Values::new(),
-                Vec::new(),
-                Table::default(),
-            ),
-        )
-        .await
+        C::execute(connection, Query::from((query, QueryType::Update))).await
     }
 
     /// Migrating data from one version to another

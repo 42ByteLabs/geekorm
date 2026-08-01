@@ -75,10 +75,10 @@ impl GeekConnection for rusqlite::Connection {
         let query = T::query_create().build()?;
         #[cfg(feature = "log")]
         {
-            debug!("Create Table Query :: {:?}", query.to_str());
+            debug!("Create Table Query :: {:?}", query.as_sql());
         }
         connection
-            .execute(query.to_str(), ())
+            .execute(query.as_sql(), ())
             .map_err(|e| crate::Error::RuSQLiteError(e.to_string()))?;
         Ok(())
     }
@@ -92,16 +92,16 @@ impl GeekConnection for rusqlite::Connection {
     {
         #[cfg(feature = "log")]
         {
-            debug!("Query :: {:?}", query.to_str());
+            debug!("Query :: {:?}", query.as_sql());
         }
         let mut statement = connection
-            .prepare(query.to_str())
+            .prepare(query.as_sql())
             .map_err(|e| crate::Error::RuSQLiteError(e.to_string()))?;
 
-        let params = if !query.parameters.values().is_empty() {
-            values_to_rusqlite(&query.parameters)
+        let params = if query.has_parameters() {
+            values_to_rusqlite(query.parameters())
         } else {
-            values_to_rusqlite(&query.values)
+            values_to_rusqlite(query.values())
         };
         #[cfg(feature = "log")]
         {
@@ -131,16 +131,16 @@ impl GeekConnection for rusqlite::Connection {
     {
         #[cfg(feature = "log")]
         {
-            debug!("Query First :: {:?}", query.to_str());
+            debug!("Query First :: {:?}", query.as_sql());
         }
         let mut statement = connection
-            .prepare(query.to_str())
+            .prepare(query.as_sql())
             .map_err(|e| crate::Error::RuSQLiteError(e.to_string()))?;
 
-        let params = if !query.parameters.values().is_empty() {
-            values_to_rusqlite(&query.parameters)
+        let params = if query.has_parameters() {
+            values_to_rusqlite(query.parameters())
         } else {
-            values_to_rusqlite(&query.values)
+            values_to_rusqlite(query.values())
         };
         #[cfg(feature = "log")]
         {
@@ -165,16 +165,16 @@ impl GeekConnection for rusqlite::Connection {
     ) -> std::result::Result<(), crate::Error> {
         #[cfg(feature = "log")]
         {
-            debug!("Execute :: {:?}", query.to_str());
+            debug!("Execute :: {:?}", query.as_sql());
         }
         let mut statement = connection
-            .prepare(query.to_str())
+            .prepare(query.as_sql())
             .map_err(|e| crate::Error::RuSQLiteError(e.to_string()))?;
 
-        let params = if !query.parameters.values().is_empty() {
-            values_to_rusqlite(&query.parameters)
+        let params = if query.has_parameters() {
+            values_to_rusqlite(query.parameters())
         } else {
-            values_to_rusqlite(&query.values)
+            values_to_rusqlite(query.values())
         };
         #[cfg(feature = "log")]
         {
@@ -193,10 +193,10 @@ impl GeekConnection for rusqlite::Connection {
     ) -> std::result::Result<(), crate::Error> {
         #[cfg(feature = "log")]
         {
-            debug!("Batch :: {:?}", query.to_str());
+            debug!("Batch :: {:?}", query.as_sql());
         }
         connection
-            .execute_batch(query.query.as_str())
+            .execute_batch(query.as_sql())
             .map_err(|e| crate::Error::RuSQLiteError(e.to_string()))?;
 
         Ok(())
@@ -227,10 +227,10 @@ impl GeekConnection for rusqlite::Connection {
         query: crate::Query,
     ) -> std::result::Result<i64, crate::Error> {
         let mut statement = connection
-            .prepare(query.to_str())
+            .prepare(query.as_sql())
             .map_err(|e| crate::Error::RuSQLiteError(e.to_string()))?;
 
-        let params = values_to_rusqlite(&query.parameters);
+        let params = values_to_rusqlite(query.parameters());
 
         //let params = rusqlite::params_from_iter(query.parameters);
         let mut res = statement

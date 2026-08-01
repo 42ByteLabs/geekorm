@@ -1,7 +1,7 @@
 //! # Pagination
 
-use super::pages::Page;
 use crate::{GeekConnection, QueryBuilderTrait, TableBuilder};
+use geekorm_sql::Page;
 
 /// A struct for paginating results
 ///
@@ -72,7 +72,7 @@ where
     }
     /// Get the total number of items
     pub fn total(&self) -> u32 {
-        self.page.total
+        self.page.total()
     }
     /// Set the total number of items
     pub fn set_total(&mut self, total: u32) {
@@ -85,7 +85,7 @@ where
         C: GeekConnection<Connection = C> + 'a,
     {
         // Gets the total number of rows if it hasn't been set
-        if self.page.total == 0 {
+        if self.page.total() == 0 {
             self.page
                 .set_total(C::row_count(connection, T::query_count().build()?).await? as u32);
         }
@@ -98,7 +98,7 @@ where
         C: GeekConnection<Connection = C> + 'a,
     {
         self.page.next();
-        if self.page.max() < self.page.page {
+        if self.page.max() < self.page.page() {
             return Err(crate::Error::PaginationError(
                 "Cannot go to next page".to_string(),
             ));
@@ -111,7 +111,7 @@ where
     where
         C: GeekConnection<Connection = C> + 'a,
     {
-        if self.page.page == u32::MAX || self.page.page == 0 {
+        if self.page.page() == u32::MAX || self.page.page() == 0 {
             return Err(crate::Error::PaginationError(
                 "Cannot go to previous page".to_string(),
             ));
@@ -132,10 +132,7 @@ where
     fn default() -> Self {
         Self {
             phantom: std::marker::PhantomData,
-            page: Page {
-                page: u32::MAX,
-                ..Default::default()
-            },
+            page: Page::from(u32::MAX),
         }
     }
 }

@@ -15,26 +15,32 @@ pub mod queries;
 pub mod utils;
 
 pub use crate::backends::{GeekConnection, GeekConnector, transactions::TransactionConnector};
-#[cfg(feature = "migrations")]
-pub use crate::builder::alter::AlterQuery;
-pub use crate::builder::columns::{Column, Columns};
-pub use crate::builder::columntypes::{ColumnType, ColumnTypeOptions};
-pub use crate::builder::database::Database;
 pub use crate::builder::keys::{ForeignKey, PrimaryKey};
-pub use crate::builder::table::Table;
-pub use crate::builder::values::{Value, Values};
 pub use crate::error::Error;
 #[cfg(feature = "pagination")]
-pub use crate::queries::pages::Page;
-#[cfg(feature = "pagination")]
 pub use crate::queries::pagination::Pagination;
-pub use crate::queries::{Query, QueryBuilder};
 #[cfg(feature = "two-factor-auth")]
 pub use crate::utils::tfa::TwoFactorAuth;
 #[cfg(feature = "libsql")]
 pub use backends::libsql;
 #[cfg(feature = "migrations")]
 pub use migrations::Migration;
+
+// Re-export GeekORM SQL crate
+#[cfg(feature = "pagination")]
+pub use geekorm_sql::Page;
+pub use geekorm_sql::{
+    Query, QueryBuilder, QueryOrder, Value, Values,
+    builder::{
+        columns::{Column, ColumnOptions, Columns},
+        columntypes::ColumnType,
+        database::Database,
+        queries::alter::AlterQuery,
+        table::Table,
+    },
+};
+// Alias
+pub use geekorm_sql::builder::columns::ColumnOptions as ColumnTypeOptions;
 
 /// Trait for basic creation of tables
 ///
@@ -60,17 +66,17 @@ where
     Self: TableBuilder + Sized,
 {
     /// Create a new table
-    fn query_create() -> QueryBuilder;
+    fn query_create() -> QueryBuilder<'static>;
 
     /// Select rows in the table
-    fn query_select() -> QueryBuilder {
+    fn query_select() -> QueryBuilder<'static> {
         QueryBuilder::select()
     }
 
     /// Select all rows in the table
     fn query_all() -> Query {
         Self::query_select()
-            .table(Self::table())
+            .table(&Self::table())
             .build()
             .expect("Failed to build SELECT ALL query")
     }
@@ -85,7 +91,7 @@ where
     fn query_delete(item: &Self) -> Query;
 
     /// Count the rows in the table
-    fn query_count() -> QueryBuilder;
+    fn query_count() -> QueryBuilder<'static>;
 }
 
 /// Trait for Tables with a primary key
@@ -103,7 +109,7 @@ where
     /// Select a row by the primary key
     fn query_select_by_primary_key(pk: impl Into<Value>) -> Query {
         Self::query_select()
-            .table(Self::table())
+            .table(&Self::table())
             .where_eq(&Self::primary_key(), pk)
             .build()
             .expect("Failed to build SELECT BY PRIMARY KEY query")
@@ -128,7 +134,10 @@ pub trait ToSqlite {
     /// Convert to SQLite for selecting a row
     fn on_select(&self, query: &QueryBuilder) -> Result<String, Error> {
         Err(Error::QueryBuilderError(
-            format!("on_select not implemented for table: {}", query.table),
+            format!(
+                "on_select not implemented for table: {}",
+                query.get_table_name()
+            ),
             String::from("on_select"),
         ))
     }
@@ -136,7 +145,10 @@ pub trait ToSqlite {
     /// Convert to SQLite for inserting a row
     fn on_insert(&self, query: &QueryBuilder) -> Result<(String, Values), Error> {
         Err(Error::QueryBuilderError(
-            format!("on_insert not implemented for table: {}", query.table),
+            format!(
+                "on_insert not implemented for table: {}",
+                query.get_table_name()
+            ),
             String::from("on_insert"),
         ))
     }
@@ -144,7 +156,10 @@ pub trait ToSqlite {
     /// Convert to SQLite for updating a row
     fn on_update(&self, query: &QueryBuilder) -> Result<(String, Values), Error> {
         Err(Error::QueryBuilderError(
-            format!("on_update not implemented for table: {}", query.table),
+            format!(
+                "on_update not implemented for table: {}",
+                query.get_table_name()
+            ),
             String::from("on_update"),
         ))
     }
@@ -152,7 +167,10 @@ pub trait ToSqlite {
     /// Convert to SQLite for deleting a row
     fn on_delete(&self, query: &QueryBuilder) -> Result<(String, Values), Error> {
         Err(Error::QueryBuilderError(
-            format!("on_delete not implemented for table: {}", query.table),
+            format!(
+                "on_delete not implemented for table: {}",
+                query.get_table_name()
+            ),
             String::from("on_delete"),
         ))
     }
