@@ -54,6 +54,15 @@ impl Table {
             .find(|col| col.column_options.primary_key)
     }
 
+    /// Get all of the foreign keys in the table
+    pub fn get_foreign_keys(&self) -> Vec<&Column> {
+        self.columns
+            .columns
+            .iter()
+            .filter(|col| col.foreign_key.is_some())
+            .collect()
+    }
+
     /// Get a foreign key column by its name
     pub fn get_foreign_key(&self, name: String) -> Option<&Column> {
         self.columns.columns.iter().find(|col| {

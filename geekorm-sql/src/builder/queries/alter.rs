@@ -61,10 +61,19 @@ impl AlterQuery {
         self
     }
 
+    /// Get table
+    pub fn get_table(&self) -> &Table {
+        &self.table
+    }
+
     /// Set column
     pub fn column(&mut self, column: &Column) -> &mut Self {
         self.column = column.clone();
         self
+    }
+    /// Get Column
+    pub fn get_column(&self) -> &Column {
+        &self.column
     }
 
     /// Rename the table

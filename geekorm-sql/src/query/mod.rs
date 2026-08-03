@@ -5,6 +5,7 @@ use std::path::PathBuf;
 
 pub mod batch;
 
+use crate::builder::queries::alter::AlterQuery;
 use crate::builder::queries::transaction::TransactionQuery;
 use crate::{Error, QueryBuilder, QueryType, ToSql, Values};
 pub use batch::BatchQueries;
@@ -51,9 +52,19 @@ impl Query {
         QueryBuilder::delete()
     }
 
+    /// ALTER query builder
+    pub fn alter() -> AlterQuery {
+        AlterQuery::new()
+    }
+
     /// Transaction Query
     pub fn transaction() -> TransactionQuery {
         TransactionQuery::new()
+    }
+
+    /// Batch Queries
+    pub fn batch(path: impl Into<PathBuf>) -> Result<BatchQueries, Error> {
+        BatchQueries::load(path)
     }
 
     /// Get the SQL query string
