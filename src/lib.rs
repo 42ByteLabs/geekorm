@@ -4,12 +4,10 @@
 )]
 #![deny(missing_docs)]
 
+extern crate lazy_static;
+
 // Builder Modules
 pub use geekorm_core::Error;
-pub use geekorm_core::builder::columns::{Column, Columns};
-pub use geekorm_core::builder::columntypes::{ColumnType, ColumnTypeOptions};
-pub use geekorm_core::builder::database::Database;
-pub use geekorm_core::builder::table::Table;
 // Keys Modules
 pub use geekorm_core::builder::keys::foreign::{ForeignKey, ForeignKeyInteger};
 #[cfg(feature = "uuid")]
@@ -20,8 +18,11 @@ pub use geekorm_sql::{Query, QueryBuilder};
 
 // Query Builder Modules
 #[cfg(feature = "migrations")]
-pub use geekorm_core::builder::alter::{AlterMode, AlterQuery};
-pub use geekorm_core::builder::models::{QueryCondition, QueryOrder, QueryType};
+pub use geekorm_sql::builder::queries::alter::{AlterMode, AlterQuery};
+pub use geekorm_sql::{
+    Column, ColumnOptions, ColumnType, Columns, Table, builder::database::Database,
+};
+pub use geekorm_sql::{QueryCondition, QueryOrder, QueryType};
 // Values
 pub use geekorm_sql::values::{Value, Values};
 
@@ -56,7 +57,6 @@ pub use geekorm_core::TableBuilder;
 pub use geekorm_core::{GeekConnection, GeekConnector};
 
 /// Re-export the `lazy_static` crate
-#[cfg(feature = "migrations")]
 #[doc(hidden)]
 pub use lazy_static::lazy_static;
 
@@ -107,15 +107,14 @@ pub mod prelude {
     pub use geekorm_sql::{Query, QueryBuilder};
 
     // Builder Modules
-    #[cfg(feature = "migrations")]
-    pub use geekorm_core::builder::alter::{AlterMode, AlterQuery};
-    pub use geekorm_core::builder::columns::{Column, Columns};
-    pub use geekorm_core::builder::columntypes::{ColumnType, ColumnTypeOptions};
-    pub use geekorm_core::builder::table::Table as BuilderTable;
-    #[cfg(feature = "pagination")]
-    pub use geekorm_core::queries::pages::Page;
     #[cfg(feature = "pagination")]
     pub use geekorm_core::queries::pagination::Pagination;
+    pub use geekorm_sql::Table as BuilderTable;
+    #[cfg(feature = "migrations")]
+    pub use geekorm_sql::builder::queries::alter::{AlterMode, AlterQuery};
+    pub use geekorm_sql::{
+        Column, ColumnOptions, ColumnType, Columns, Page, QueryCondition, QueryOrder, QueryType,
+    };
 
     // Keys Modules
     pub use geekorm_core::builder::keys::foreign::{ForeignKey, ForeignKeyInteger};
@@ -133,7 +132,5 @@ pub mod prelude {
     #[cfg(feature = "two-factor-auth")]
     pub use geekorm_core::TwoFactorAuth;
 
-    pub use geekorm_core::builder::values::{Value, Values};
-    // Query Builder Modules
-    pub use geekorm_core::builder::models::{QueryCondition, QueryOrder, QueryType};
+    pub use geekorm_sql::{Value, Values};
 }
