@@ -63,6 +63,8 @@
 
 use std::collections::HashMap;
 
+use geekorm_sql::values::values::{NamedValue, ValueBindingMode};
+
 use crate::{Query, QueryBuilder, QueryBuilderTrait, TableBuilder, TablePrimaryKey, Value};
 
 #[cfg(feature = "connect")]

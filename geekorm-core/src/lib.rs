@@ -51,10 +51,12 @@ where
     Self: Sized,
 {
     /// Get the table struct
-    fn table() -> Table;
+    fn table() -> &'static Table;
 
     /// Get the table struct for the current instance
-    fn get_table(&self) -> Table;
+    fn get_table(&self) -> &Table {
+        Self::table()
+    }
 
     /// Get the name of the table
     fn table_name() -> String;
@@ -76,7 +78,7 @@ where
     /// Select all rows in the table
     fn query_all() -> Query {
         Self::query_select()
-            .table(&Self::table())
+            .table(Self::table())
             .build()
             .expect("Failed to build SELECT ALL query")
     }
@@ -109,7 +111,7 @@ where
     /// Select a row by the primary key
     fn query_select_by_primary_key(pk: impl Into<Value>) -> Query {
         Self::query_select()
-            .table(&Self::table())
+            .table(Self::table())
             .where_eq(&Self::primary_key(), pk)
             .build()
             .expect("Failed to build SELECT BY PRIMARY KEY query")

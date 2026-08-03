@@ -226,11 +226,15 @@ impl GeekConnection for rusqlite::Connection {
         connection: &Self::Connection,
         query: crate::Query,
     ) -> std::result::Result<i64, crate::Error> {
+        #[cfg(feature = "log")]
+        {
+            debug!("Count Query :: {}", query.as_sql());
+        }
         let mut statement = connection
             .prepare(query.as_sql())
             .map_err(|e| crate::Error::RuSQLiteError(e.to_string()))?;
 
-        let params = values_to_rusqlite(query.parameters());
+        let params = values_to_rusqlite(&query.parameters());
 
         //let params = rusqlite::params_from_iter(query.parameters);
         let mut res = statement
