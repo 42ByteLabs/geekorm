@@ -254,7 +254,7 @@ where
         Self::query(
             connection,
             Self::query_select()
-                .table(&Self::table())
+                .table(Self::table())
                 .filter(fields)
                 .build()?,
         )
@@ -289,7 +289,7 @@ where
     async fn fetch_all(connection: &'a C) -> Result<Vec<Self>, crate::Error> {
         C::query::<Self>(
             connection,
-            QueryBuilder::select().table(&Self::table()).build()?,
+            QueryBuilder::select().table(Self::table()).build()?,
         )
         .await
     }
