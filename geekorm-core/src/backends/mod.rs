@@ -63,8 +63,6 @@
 
 use std::collections::HashMap;
 
-use geekorm_sql::values::values::{NamedValue, ValueBindingMode};
-
 use crate::{Query, QueryBuilder, QueryBuilderTrait, TableBuilder, TablePrimaryKey, Value};
 
 #[cfg(feature = "connect")]
@@ -180,7 +178,7 @@ where
     async fn total(connection: &'a C) -> Result<i64, crate::Error> {
         C::row_count(
             connection,
-            Self::query_count().table(&Self::table()).build()?,
+            Self::query_count().table(Self::table()).build()?,
         )
         .await
     }
@@ -190,7 +188,7 @@ where
     async fn all(connection: &'a C) -> Result<Vec<Self>, crate::Error> {
         C::query::<Self>(
             connection,
-            Self::query_select().table(&Self::table()).build()?,
+            Self::query_select().table(Self::table()).build()?,
         )
         .await
     }
@@ -202,7 +200,7 @@ where
         C::query::<Self>(
             connection,
             QueryBuilder::select()
-                .table(&Self::table())
+                .table(Self::table())
                 .page(page)
                 .build()?,
         )
@@ -274,7 +272,7 @@ where
         Self::query(
             connection,
             Self::query_select()
-                .table(&Self::table())
+                .table(Self::table())
                 .filter(fields)
                 .page(page)
                 .build()?,
@@ -317,7 +315,7 @@ where
         C::query_first::<Self>(
             connection,
             Self::query_select()
-                .table(&Self::table())
+                .table(Self::table())
                 .order_by(&Self::primary_key(), geekorm_sql::QueryOrder::Asc)
                 .limit(1)
                 .build()?,
@@ -334,7 +332,7 @@ where
         C::query_first::<Self>(
             connection,
             Self::query_select()
-                .table(&Self::table())
+                .table(Self::table())
                 .order_by(&Self::primary_key(), geekorm_sql::QueryOrder::Desc)
                 .limit(1)
                 .build()?,
