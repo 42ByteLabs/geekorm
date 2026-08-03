@@ -745,7 +745,7 @@ mod tests {
             identifier: Ident::new("id", Span::call_site()),
             itype: syn::parse_quote! { i32 },
             attributes: vec![],
-            coltype: ColumnTypeDerive::Identifier,
+            coltype: ColumnTypeDerive::Integer,
             alias: String::from(""),
             skip: false,
             mode: None,
