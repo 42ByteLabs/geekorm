@@ -14,14 +14,10 @@ pub fn display_database(config: &Config) -> Result<()> {
     for table in database.get_tables() {
         println!(" Table({}) {{", style(table.name.to_string()).green());
 
-        for column in table.columns.clone() {
-            if column.skip {
-                continue;
-            }
-
+        for column in table.columns.iter() {
             println!(
                 "    Column({}, {})",
-                style(column.name).blue(),
+                style(column.name()).blue(),
                 style(column.column_type).yellow()
             );
         }

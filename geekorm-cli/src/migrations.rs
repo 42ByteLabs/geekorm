@@ -2,7 +2,6 @@ use anyhow::Result;
 use geekorm::Connection;
 use geekorm::ConnectionManager;
 use geekorm::prelude::*;
-use geekorm_core::builder::alter::AlterMode;
 use geekorm_core::error::MigrationError;
 use geekorm_core::migrations::validate::Validator;
 use geekorm_core::{AlterQuery, ToSqlite};
@@ -138,8 +137,7 @@ pub async fn create_schema_migration(config: &Config, path: &PathBuf) -> Result<
 
             let query = prompt_table_alter(&database, verror)?;
 
-            let table = database.get_table(query.table()).expect("Table not found");
-            data.push_str(table.on_alter(&query)?.as_str());
+            data.push_str(query.as_sql());
             data.push_str("\n\n");
 
             migration_data.push(query);
@@ -169,28 +167,34 @@ pub async fn create_schema_migration(config: &Config, path: &PathBuf) -> Result<
     }
 }
 
-fn prompt_table_alter(database: &Database, migrations: &MigrationError) -> Result<AlterQuery> {
+fn prompt_table_alter(database: &Database, migrations: &MigrationError) -> Result<Query> {
     match migrations {
         MigrationError::MissingTable(table) => {
             log::info!("Prompting for missing table: `{:?}`", migrations);
             let (choice, _) =
                 prompt_select_with_default("Alter Column:", &vec!["Create", "Rename", "Skip"], 0)?;
 
+            let table = database.get_table(table).expect("Failed to get the table");
+
             if choice == "Rename" {
                 let tables = database.get_table_names();
 
                 let (new_table, _) = prompt_select("New Table Name:", &tables)?;
 
-                let mut alt = AlterQuery::new(AlterMode::RenameTable, table, "");
-                alt.rename(new_table);
-                Ok(alt)
+                Ok(Query::alter()
+                    .mode(AlterMode::RenameTable)
+                    .table(table)
+                    .rename(new_table)
+                    .build()?)
             } else if choice == "Create" {
-                let alt = AlterQuery::new(AlterMode::AddTable, table, "");
-                Ok(alt)
+                Ok(Query::alter()
+                    .mode(AlterMode::AddTable)
+                    .table(table)
+                    .build()?)
             } else {
                 Err(anyhow::anyhow!(
                     "Table not found (this should never happen): {}",
-                    table
+                    table.name
                 ))
             }
         }
@@ -200,22 +204,31 @@ fn prompt_table_alter(database: &Database, migrations: &MigrationError) -> Resul
             let (choice, _) =
                 prompt_select_with_default("Alter Column:", &vec!["Create", "Rename", "Skip"], 0)?;
 
+            let table = database.get_table(table).expect("Failed to get the table");
+            let column = table.find_column(column).expect("Failed to get the column");
+
             if choice == "Rename" {
-                let columns = database.get_table_columns(table);
+                let columns_names = table.columns.iter().map(|c| c.name.clone()).collect();
 
-                let (new_column, _) = prompt_select("New Column Name:", &columns)?;
+                let (new_column, _) = prompt_select("New Column Name:", &columns_names)?;
 
-                let mut alt = AlterQuery::new(AlterMode::RenameColumn, table, column);
-                alt.rename(new_column);
-                Ok(alt)
+                Ok(Query::alter()
+                    .mode(AlterMode::RenameColumn)
+                    .table(table)
+                    .column(column)
+                    .rename(new_column)
+                    .build()?)
             } else if choice == "Create" {
-                let alt = AlterQuery::new(AlterMode::AddColumn, table, column);
-                Ok(alt)
+                Ok(Query::alter()
+                    .mode(AlterMode::AddColumn)
+                    .table(table)
+                    .column(column)
+                    .build()?)
             } else {
                 Err(anyhow::anyhow!(
                     "Column not found (this should never happen): {}.{}",
-                    table,
-                    column
+                    table.name,
+                    column.name
                 ))
             }
         }

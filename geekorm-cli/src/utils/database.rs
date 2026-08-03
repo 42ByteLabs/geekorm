@@ -100,13 +100,7 @@ impl Database {
     /// Load the database from the file
     pub fn load_database(path: PathBuf) -> Result<Self> {
         let database = std::fs::read_to_string(path)?;
-        let mut database: Database = serde_json::from_str(&database)?;
-
-        // Remove skipped columns
-        database.tables.iter_mut().for_each(|table| {
-            table.columns.columns.retain(|col| !col.skip);
-        });
-
+        let database: Database = serde_json::from_str(&database)?;
         Ok(database)
     }
 
@@ -126,8 +120,11 @@ impl Database {
                 if dependencies.contains(&table.name) {
                     continue;
                 }
-                let table_deps = table.get_dependencies();
-                if table_deps.is_empty() || table_deps.iter().all(|dep| dependencies.contains(dep))
+                let table_deps = table.get_foreign_keys();
+                if table_deps.is_empty()
+                    || table_deps
+                        .iter()
+                        .all(|dep| dependencies.contains(&dep.name))
                 {
                     tables.push(table.clone());
                     dependencies.push(table.name.to_string());
@@ -162,12 +159,7 @@ impl Database {
     }
 
     pub fn get_table_column(&self, table: &str, column: &str) -> Option<&Column> {
-        self.get_table(table)
-            .unwrap()
-            .columns
-            .columns
-            .iter()
-            .find(|col| col.name == column)
+        self.get_table(table).unwrap().columns.get(column)
     }
 
     pub fn get_table_names(&self) -> Vec<&str> {
@@ -177,7 +169,6 @@ impl Database {
     pub fn get_table_columns(&self, table: &str) -> Vec<&str> {
         self.get_table(table)
             .unwrap()
-            .columns
             .columns
             .iter()
             .map(|col| col.name.as_str())
