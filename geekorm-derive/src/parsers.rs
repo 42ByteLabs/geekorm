@@ -16,7 +16,7 @@ mod values;
 
 use crate::{
     attr::{GeekAttribute, GeekAttributeKeys, GeekAttributeValue},
-    derive::{ColumnDerive, ColumnTypeDerive, ColumnTypeOptionsDerive, ColumnsDerive, TableDerive},
+    derive::{ColumnDerive, ColumnOptionsDerive, ColumnTypeDerive, ColumnsDerive, TableDerive},
     internal::TableState,
     parsers::tablebuilder::generate_query_builder,
 };

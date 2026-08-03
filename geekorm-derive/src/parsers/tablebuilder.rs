@@ -38,21 +38,27 @@ pub fn generate_table_builder(
 
     let table_name = quote::format_ident!("{}", table.name);
 
+    let table_name_ident = quote::format_ident!("{}Table", table.name);
+
     Ok(quote! {
-        impl #impl_generics geekorm::prelude::TableBuilder for #ident #ty_generics #where_clause {
-            /// Get the table instance.
-            fn table() -> geekorm::Table {
-                #table
+        const _: () = {
+            geekorm::lazy_static! {
+                pub static ref #table_name_ident: Box<geekorm::Table> = Box::new(
+                    #table
+                );
             }
-            /// Get the table name.
-            fn get_table(&self) -> geekorm::Table {
-                #ident::table()
+
+            impl #impl_generics geekorm::prelude::TableBuilder for #ident #ty_generics #where_clause {
+                /// Get the table instance.
+                fn table() -> &'static geekorm::Table {
+                    &#table_name_ident
+                }
+                /// Get the table name.
+                fn table_name() -> String {
+                    String::from(stringify!(#table_name))
+                }
             }
-            /// Get the table name.
-            fn table_name() -> String {
-                stringify!(#table_name).to_string()
-            }
-        }
+        };
     })
 }
 
@@ -110,16 +116,18 @@ pub fn generate_query_builder(
     }
 
     Ok(quote! {
-        impl #impl_generics geekorm::prelude::QueryBuilderTrait for #ident #ty_generics #where_clause {
+        impl #impl_generics geekorm::QueryBuilderTrait for #ident #ty_generics #where_clause {
             /// Create table query.
-            fn query_create() -> geekorm::QueryBuilder {
-                geekorm::QueryBuilder::create()
-                    .table(#ident::table())
+            fn query_create() -> geekorm::QueryBuilder<'static> {
+                let mut query = geekorm::QueryBuilder::create();
+                query.table(#ident::table());
+                query
             }
             /// Select query.
-            fn query_select() -> geekorm::QueryBuilder {
-                geekorm::QueryBuilder::select()
-                    .table(#ident::table())
+            fn query_select() -> geekorm::QueryBuilder<'static> {
+                let mut query = geekorm::QueryBuilder::select();
+                query.table(#ident::table());
+                query
             }
             /// Insert query.
             fn query_insert(item: &Self) -> geekorm::Query {
@@ -146,10 +154,10 @@ pub fn generate_query_builder(
                     .expect("Failed to build delete query")
             }
             /// Count query.
-            fn query_count() -> geekorm::QueryBuilder {
-                geekorm::QueryBuilder::select()
-                    .table(#ident::table())
-                    .count()
+            fn query_count() -> geekorm::QueryBuilder<'static> {
+                let mut query = geekorm::QueryBuilder::count();
+                query.table(#ident::table());
+                query
             }
         }
     })
