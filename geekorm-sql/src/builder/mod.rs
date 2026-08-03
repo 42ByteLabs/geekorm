@@ -3,6 +3,7 @@
 pub mod columns;
 pub mod columntypes;
 pub mod conditions;
+pub mod database;
 pub mod joins;
 pub mod ordering;
 pub mod pagination;
@@ -148,6 +149,7 @@ impl<'a> QueryBuilder<'a> {
     pub fn insert() -> Self {
         Self {
             query_type: QueryType::Insert,
+            values: Values::new_with_binding_mode(ValueBindingMode::Numeric),
             ..Default::default()
         }
     }
@@ -158,7 +160,7 @@ impl<'a> QueryBuilder<'a> {
     pub fn update() -> Self {
         Self {
             query_type: QueryType::Update,
-            values: Values::new_with_binding_mode(ValueBindingMode::Named),
+            values: Values::new_with_binding_mode(ValueBindingMode::Numeric),
             ..Default::default()
         }
     }
@@ -194,8 +196,7 @@ impl<'a> QueryBuilder<'a> {
     }
 
     /// Set the table to query
-    pub fn table(&mut self, table: impl Into<&'a Table>) -> &mut Self {
-        let table = table.into();
+    pub fn table(&mut self, table: &'a Table) -> &mut Self {
         if self.table.is_none() {
             self.table = Some(table);
         }
@@ -205,9 +206,37 @@ impl<'a> QueryBuilder<'a> {
         self
     }
 
+    /// Get the current table name, blank if no table is set
+    pub fn get_table_name(&self) -> &str {
+        match self.table {
+            Some(t) => &t.name,
+            None => "",
+        }
+    }
+
     /// Add a value to the list of values for parameterized queries
     pub fn add_value(&mut self, column: &str, value: impl Into<Value>) -> &mut Self {
-        self.values.push(column.to_string(), value.into());
+        if let Some(table) = self.table {
+            // TODO(geekmasher): What happens with values used for joins?
+
+            // SECURITY: Names of values has to be in a table
+            if table.find_column(column).is_none() {
+                self.set_error(Error::QueryBuilderError {
+                    error: format!("column '{}' does not exist", column),
+                    location: String::from("QueryBuilder::add_value"),
+                });
+                return self;
+            }
+            // TODO: Should this be done at a lower level?
+            if let Some(pkcolumn) = table.get_primary_key() {
+                if pkcolumn.name == column && matches!(self.query_type, QueryType::Insert) {
+                    // Skip column if its the PK and INSERT query
+                    return self;
+                }
+            }
+
+            self.values.push(column.to_string(), value.into());
+        }
         self
     }
 

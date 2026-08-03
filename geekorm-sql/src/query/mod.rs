@@ -81,6 +81,11 @@ impl Query {
         &self.params
     }
 
+    /// Has parameters
+    pub fn has_parameters(&self) -> bool {
+        !self.params.is_empty()
+    }
+
     /// Push a string onto the query
     pub(crate) fn push(&mut self, value: String) {
         self.query.push_str(&value);
@@ -91,6 +96,16 @@ impl From<String> for Query {
     fn from(value: String) -> Self {
         Query {
             query: value,
+            ..Default::default()
+        }
+    }
+}
+
+impl From<(String, QueryType)> for Query {
+    fn from(value: (String, QueryType)) -> Self {
+        Query {
+            query: value.0,
+            query_type: value.1,
             ..Default::default()
         }
     }

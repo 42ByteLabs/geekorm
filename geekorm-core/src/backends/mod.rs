@@ -254,7 +254,7 @@ where
         Self::query(
             connection,
             Self::query_select()
-                .table(Self::table())
+                .table(&Self::table())
                 .filter(fields)
                 .build()?,
         )
@@ -289,7 +289,7 @@ where
     async fn fetch_all(connection: &'a C) -> Result<Vec<Self>, crate::Error> {
         C::query::<Self>(
             connection,
-            QueryBuilder::select().table(Self::table()).build()?,
+            QueryBuilder::select().table(&Self::table()).build()?,
         )
         .await
     }
@@ -316,10 +316,7 @@ where
             connection,
             Self::query_select()
                 .table(Self::table())
-                .order_by(
-                    &Self::primary_key(),
-                    crate::builder::models::QueryOrder::Asc,
-                )
+                .order_by(&Self::primary_key(), geekorm_sql::QueryOrder::Asc)
                 .limit(1)
                 .build()?,
         )
@@ -336,10 +333,7 @@ where
             connection,
             Self::query_select()
                 .table(Self::table())
-                .order_by(
-                    &Self::primary_key(),
-                    crate::builder::models::QueryOrder::Desc,
-                )
+                .order_by(&Self::primary_key(), geekorm_sql::QueryOrder::Desc)
                 .limit(1)
                 .build()?,
         )
@@ -428,13 +422,14 @@ pub trait GeekConnection {
     #[allow(async_fn_in_trait, unused_variables)]
     async fn table_names(connection: &Self::Connection) -> Result<Vec<String>, crate::Error> {
         // TODO: This only works for SQLite
+
+        use geekorm_sql::QueryType;
         let results: Vec<TableNames> = Self::query(
             connection,
-            Query {
-                query: "SELECT name FROM sqlite_master WHERE type='table'".to_string(),
-                query_type: crate::builder::models::QueryType::Select,
-                ..Default::default()
-            },
+            Query::from((
+                "SELECT name FROM sqlite_master WHERE type='table'".to_string(),
+                QueryType::Select,
+            )),
         )
         .await?;
 
@@ -460,11 +455,10 @@ pub trait GeekConnection {
     ) -> Result<Vec<TableInfo>, crate::Error> {
         Self::query(
             connection,
-            Query {
-                query: format!("PRAGMA table_info({})", table),
-                query_type: crate::builder::models::QueryType::Select,
-                ..Default::default()
-            },
+            Query::from((
+                format!("PRAGMA table_info({})", table),
+                geekorm_sql::QueryType::Select,
+            )),
         )
         .await
     }

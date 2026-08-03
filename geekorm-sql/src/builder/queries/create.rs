@@ -10,6 +10,12 @@ impl QueryType {
         if let Some(table) = query.find_table_default() {
             full_query.push_str(&format!("CREATE TABLE IF NOT EXISTS {} (", table.name));
 
+            debug_assert!(
+                !table.columns.is_empty(),
+                "missing columns for '{}' table",
+                table.name
+            );
+
             // Columns with types
             table.columns.to_sql_stream(&mut full_query, query).unwrap();
 

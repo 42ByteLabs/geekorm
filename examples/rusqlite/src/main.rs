@@ -43,8 +43,12 @@ async fn main() -> Result<()> {
         println!("Project: {} - {}", project.name, project.url);
     }
 
+    let total = Projects::total(&conn).await?;
+    println!("Total Projects :: {}", total);
+    assert_eq!(total, 4);
+
     // Query all projects
-    let all_projects = Projects::fetch_all(&conn).await?;
+    let all_projects = Projects::all(&conn).await?;
     assert_eq!(all_projects.len(), 4);
 
     // Fetch the project by name (exact match)
