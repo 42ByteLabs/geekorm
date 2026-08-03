@@ -12,6 +12,9 @@ pub struct Table {
     pub name: String,
     /// Columns in the table
     pub columns: Columns,
+    /// Name of the database this table is used with
+    /// If None, its the current database
+    pub database: Option<String>,
 }
 
 impl Table {
@@ -26,6 +29,7 @@ impl Table {
         Table {
             name,
             columns: new_columns,
+            database: None,
         }
     }
 

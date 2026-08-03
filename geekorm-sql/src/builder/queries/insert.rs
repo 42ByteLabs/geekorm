@@ -62,9 +62,9 @@ mod tests {
     use crate::{QueryType, builder::QueryBuilder, builder::table::Table};
 
     fn table() -> Table {
-        Table {
-            name: "Test",
-            columns: Columns::new(vec![
+        Table::new(
+            "Test",
+            Columns::new(vec![
                 Column::from((
                     "id".to_string(),
                     ColumnType::Integer,
@@ -72,9 +72,8 @@ mod tests {
                 )),
                 Column::from(("name".to_string(), ColumnType::Text)),
                 Column::from(("email".to_string(), ColumnType::Text)),
-            ])
-            .into(),
-        }
+            ]),
+        )
     }
 
     #[test]
@@ -88,7 +87,11 @@ mod tests {
             .build()
             .unwrap();
 
-        assert_eq!(query.query, "INSERT INTO Test (name, email) VALUES (?, ?);");
+        assert_eq!(query.values.len(), 2);
+        assert_eq!(
+            query.query,
+            "INSERT INTO Test (name, email) VALUES (:name, :email);"
+        );
     }
 
     #[test]

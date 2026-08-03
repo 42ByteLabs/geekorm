@@ -30,12 +30,18 @@ pub struct ColumnOptions {
 /// Column structure representing a single column in a table.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Column {
-    pub(crate) name: String,
-    pub(crate) column_type: ColumnType,
-    pub(crate) column_options: ColumnOptions,
-    pub(crate) alias: Option<String>,
-    pub(crate) foreign_key: Option<String>,
-    pub(crate) table_name: Option<String>,
+    /// Name of the column
+    pub name: String,
+    /// Column Type information
+    pub column_type: ColumnType,
+    /// Options set for the column
+    pub column_options: ColumnOptions,
+    /// Alias used for this column (if any)
+    pub alias: Option<String>,
+    /// If the column is a FK, this must be set
+    pub foreign_key: Option<String>,
+    /// Name of the table this column is assosiated too
+    pub table_name: Option<String>,
 }
 
 impl Column {
