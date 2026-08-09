@@ -18,29 +18,40 @@ async fn main() -> Result<()> {
     let database = ConnectionManager::in_memory().await?;
     let connection = database.acquire().await;
 
-    // Create the tables
+    println!("Creating database tables...");
     Users::create_table(&connection).await?;
     UserSessions::create_table(&connection).await?;
 
+    println!("Inserting users...");
     for (username, role, user_password) in users {
-        // Use the auto-generated `::new()` function with the required fields
-        let mut user = Users::new(username, user_password);
-        println!("Creating user: {}", user.username);
+        // Create a new user
+        let user = Users::create(&connection, username, user_password, role).await?;
+        println!("Creating user :: {:#?}", user);
 
-        // You can set struct fields like any other struct
-        user.role = role;
-
-        // Save inserts and returns the new record
-        // This is why `user` needs to be mutable
-        user.save(&connection).await?;
+        println!("User Session  :: {}", user.session);
     }
 
-    let total = Users::total(&connection).await?;
-    println!("Total Number of Users: {}", total);
+    let args: Vec<String> = std::env::args().collect();
 
-    // Use a helper function to quickly fetch by a field value
-    let geekmasher = Users::fetch_by_username(&connection, "geekmasher").await?;
-    println!("User :: {:?}", geekmasher);
+    // Auth
+    if args.len() == 3 {
+        println!("\nRunning Authentication Mode...\n");
+
+        let username = args.get(1).expect("Getting username failed");
+        let user_password = args.get(2).expect("Getting passowrd failed");
+        match Users::login(&connection, username, user_password).await {
+            Ok(user) => {
+                println!("Successfully authenticated as `{}` user", user.username);
+            }
+            Err(err) => {
+                eprintln!("Failed to authenticate: {}", err);
+            }
+        }
+    } else {
+        println!("\nDisplaying data...\n");
+        let total = Users::total(&connection).await?;
+        println!("Total Users :: {}", total);
+    }
 
     Ok(())
 }
