@@ -117,6 +117,12 @@ rocket = { version = "0.5" }
 [profile.test]
 opt-level = 1
 
+
+[[example]]
+name = "users"
+path = "./examples/users/src/main.rs"
+required-features = ["all", "rusqlite"]
+
 [[example]]
 name = "tfa"
 path = "./examples/tfa.rs"
