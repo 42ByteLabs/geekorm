@@ -8,6 +8,8 @@
 
 pub mod backends;
 pub mod builder;
+#[cfg(feature = "codegen")]
+pub mod codegen;
 pub mod error;
 #[cfg(feature = "migrations")]
 pub mod migrations;
