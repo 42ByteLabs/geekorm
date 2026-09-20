@@ -165,7 +165,7 @@ impl ToTokens for CgColumnType {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let ident = self.to_string();
         tokens.extend(quote! {
-            geekorm::#ident
+            geekorm::ColumnType::#ident
         });
     }
 }
