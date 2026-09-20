@@ -7,22 +7,24 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 
 use super::Config;
+use crate::utils::database::{v1::DatabaseV1, v2::DatabaseV2};
+
+mod v1;
+mod v2;
 
 /// This struct represents a database and is based on the `internal`
 /// module of the `geekorm_derive` crate.
 #[derive(Debug, Clone, serde::Deserialize)]
-pub(crate) struct Database {
-    #[serde(default)]
-    pub created_at: chrono::DateTime<chrono::Utc>,
-    #[serde(default)]
-    pub updated_at: chrono::DateTime<chrono::Utc>,
-
-    /// The name of the database
-    #[serde(skip)]
-    pub(crate) name: String,
-    /// The tables in the database
-    pub(crate) tables: Vec<BuilderTable>,
+#[serde(untagged)]
+pub(crate) enum DatabaseLoader {
+    /// v1
+    V1(DatabaseV1),
+    /// v2 (current)
+    V2(DatabaseV2),
 }
+
+/// Database v2 is the current database struct
+pub type Database = DatabaseV2;
 
 impl Database {
     /// Finds the database file in the target directory
@@ -99,9 +101,16 @@ impl Database {
 
     /// Load the database from the file
     pub fn load_database(path: PathBuf) -> Result<Self> {
-        let database = std::fs::read_to_string(path)?;
-        let database: Database = serde_json::from_str(&database)?;
-        Ok(database)
+        let database_data = std::fs::read_to_string(path)?;
+        let database_loader: DatabaseLoader = serde_json::from_str(&database_data)?;
+
+        Ok(match database_loader {
+            DatabaseLoader::V1(old_db) => {
+                log::warn!("Migrating database to current spec");
+                old_db.migrate()?
+            }
+            DatabaseLoader::V2(db) => db,
+        })
     }
 
     /// Sorts the tables in the database from least to most dependent
