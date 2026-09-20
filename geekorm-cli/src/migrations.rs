@@ -242,7 +242,7 @@ pub async fn test_migrations(config: &Config) -> Result<Validator> {
 
     let database = ConnectionManager::in_memory().await?;
 
-    let connection = database.acquire().await;
+    let connection = database.transations().await;
     log::info!("Created an in-memory database to test the migrations against");
     log::info!("Connection: {:?}", connection);
 
@@ -257,10 +257,14 @@ pub async fn test_migrations(config: &Config) -> Result<Validator> {
         };
 
         if query_path.exists() {
-            let query = tokio::fs::read_to_string(&query_path).await?;
-
             log::info!("Running migration: {:?}", query_path);
-            Connection::batch(&connection, geekorm::Query::batch(query)).await?;
+            let batch_queries = geekorm::Query::batch(query_path)?;
+            log::debug!("Running {} queries", batch_queries.len());
+
+            for query in batch_queries.queries() {
+                // TODO[geekmasher]: Can we stop this clone?
+                Connection::batch(&connection, query.clone()).await?;
+            }
 
             log::info!("Migration complete");
         } else {
