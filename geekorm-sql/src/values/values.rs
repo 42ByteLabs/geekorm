@@ -192,15 +192,19 @@ mod tests {
         let mut builder = QueryBuilder::update();
         builder.set_value_mode(ValueBindingMode::Named);
 
-        let named = NamedValue::new("id", Value::Integer(1));
+        let named = NamedValue::new("id", Value::Integer(1), &ValueBindingMode::Named);
         let query = named.to_sql(&builder).unwrap();
         assert_eq!(query.as_str(), ":id");
 
-        let named = NamedValue::new("username", Value::Text("geekmasher".to_string()));
+        let named = NamedValue::new(
+            "username",
+            Value::Text("geekmasher".to_string()),
+            &ValueBindingMode::Named,
+        );
         let query = named.to_sql(&builder).unwrap();
         assert_eq!(query.as_str(), ":username");
 
-        let named = NamedValue::new("id", Value::Identifier(1));
+        let named = NamedValue::new("id", Value::Identifier(1), &ValueBindingMode::Named);
         let query = named.to_sql(&builder).unwrap();
         assert_eq!(query.as_str(), ":id");
     }

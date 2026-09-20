@@ -37,9 +37,9 @@ mod tests {
     use crate::{QueryType, Table, ToSql};
 
     fn table() -> Table {
-        Table {
-            name: String::from("Test"),
-            columns: Columns::new(vec![
+        Table::new(
+            "Test",
+            Columns::new(vec![
                 Column::from((
                     "id".to_string(),
                     ColumnType::Integer,
@@ -48,7 +48,7 @@ mod tests {
                 Column::from(("name".to_string(), ColumnType::Text)),
             ])
             .into(),
-        }
+        )
     }
 
     #[test]

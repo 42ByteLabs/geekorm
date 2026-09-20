@@ -109,9 +109,9 @@ mod tests {
     };
 
     fn table() -> Table {
-        Table {
-            name: "Test",
-            columns: Columns::new(vec![
+        Table::new(
+            "Test",
+            Columns::new(vec![
                 Column::from((
                     "id".to_string(),
                     ColumnType::Integer,
@@ -121,7 +121,7 @@ mod tests {
                 Column::from(("email".to_string(), ColumnType::Text)),
             ])
             .into(),
-        }
+        )
     }
 
     #[test]

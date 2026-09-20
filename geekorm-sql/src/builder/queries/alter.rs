@@ -247,9 +247,9 @@ mod tests {
     use super::*;
 
     fn table() -> Table {
-        Table {
-            name: "Test",
-            columns: crate::Columns::new(vec![
+        Table::new(
+            "Test",
+            crate::Columns::new(vec![
                 Column::from((
                     "id".to_string(),
                     ColumnType::Integer,
@@ -268,7 +268,7 @@ mod tests {
                 )),
             ])
             .into(),
-        }
+        )
     }
 
     #[test]
