@@ -129,17 +129,18 @@ pub async fn create_schema_migration(config: &Config, path: &PathBuf) -> Result<
 
         let mut data = "-- This migration will update the schema\n\n".to_string();
 
-        let mut migration_data = Vec::new();
+        let mut migration_data: Vec<AlterQuery> = Vec::new();
 
         for verror in validator.errors.iter() {
             log::info!("Error: {}", verror);
 
-            let query = prompt_table_alter(&database, verror)?;
+            let alterquery = prompt_table_alter(&database, verror)?;
+            let query = alterquery.build()?;
 
             data.push_str(query.as_sql());
             data.push_str("\n\n");
 
-            migration_data.push(query);
+            migration_data.push(alterquery);
         }
 
         log::info!("Writing the `{}` file...", migrations_path.display());
@@ -166,7 +167,7 @@ pub async fn create_schema_migration(config: &Config, path: &PathBuf) -> Result<
     }
 }
 
-fn prompt_table_alter(database: &Database, migrations: &MigrationError) -> Result<Query> {
+fn prompt_table_alter(database: &Database, migrations: &MigrationError) -> Result<AlterQuery> {
     match migrations {
         MigrationError::MissingTable(table) => {
             log::info!("Prompting for missing table: `{:?}`", migrations);
@@ -180,16 +181,16 @@ fn prompt_table_alter(database: &Database, migrations: &MigrationError) -> Resul
 
                 let (new_table, _) = prompt_select("New Table Name:", &tables)?;
 
-                Ok(Query::alter()
+                Ok(AlterQuery::new()
                     .mode(AlterMode::RenameTable)
                     .table(table)
                     .rename(new_table)
-                    .build()?)
+                    .finalise()?)
             } else if choice == "Create" {
-                Ok(Query::alter()
+                Ok(AlterQuery::new()
                     .mode(AlterMode::AddTable)
                     .table(table)
-                    .build()?)
+                    .finalise()?)
             } else {
                 Err(anyhow::anyhow!(
                     "Table not found (this should never happen): {}",
@@ -211,18 +212,18 @@ fn prompt_table_alter(database: &Database, migrations: &MigrationError) -> Resul
 
                 let (new_column, _) = prompt_select("New Column Name:", &columns_names)?;
 
-                Ok(Query::alter()
+                Ok(AlterQuery::new()
                     .mode(AlterMode::RenameColumn)
                     .table(table)
                     .column(column)
                     .rename(new_column)
-                    .build()?)
+                    .finalise()?)
             } else if choice == "Create" {
-                Ok(Query::alter()
+                Ok(AlterQuery::new()
                     .mode(AlterMode::AddColumn)
                     .table(table)
                     .column(column)
-                    .build()?)
+                    .finalise()?)
             } else {
                 Err(anyhow::anyhow!(
                     "Column not found (this should never happen): {}.{}",

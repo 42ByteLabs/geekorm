@@ -31,10 +31,9 @@ pub enum AlterMode {
 }
 
 /// Alter query builder
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct AlterQuery {
     pub(crate) mode: AlterMode,
-
     /// Table name
     pub(crate) table: Table,
     /// Column name
@@ -80,6 +79,12 @@ impl AlterQuery {
     pub fn rename(&mut self, name: impl Into<String>) -> &mut Self {
         self.rename = Some(name.into());
         self
+    }
+
+    /// Finalise the Alter query
+    pub fn finalise(&mut self) -> Result<Self, crate::Error> {
+        // TODO[geekmasher]: Is this the best way to do this? Feels like a hack
+        Ok(self.clone())
     }
 
     /// Build the Alter query to return a Query
