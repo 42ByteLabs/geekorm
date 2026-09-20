@@ -4,7 +4,7 @@
 
 pub mod validate;
 
-use geekorm_sql::{Query, QueryType, Table, Values};
+use geekorm_sql::{Query, QueryType};
 
 use crate::backends::TableInfo;
 use crate::error::MigrationError;
