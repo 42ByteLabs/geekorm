@@ -4,7 +4,6 @@ use geekorm::ConnectionManager;
 use geekorm::prelude::*;
 use geekorm_core::error::MigrationError;
 use geekorm_core::migrations::validate::Validator;
-use geekorm_core::{AlterQuery, ToSqlite};
 use std::path::PathBuf;
 
 use crate::codegen;
@@ -208,7 +207,7 @@ fn prompt_table_alter(database: &Database, migrations: &MigrationError) -> Resul
             let column = table.find_column(column).expect("Failed to get the column");
 
             if choice == "Rename" {
-                let columns_names = table.columns.iter().map(|c| c.name.clone()).collect();
+                let columns_names = table.columns.get_names();
 
                 let (new_column, _) = prompt_select("New Column Name:", &columns_names)?;
 

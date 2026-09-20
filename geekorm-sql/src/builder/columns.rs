@@ -106,6 +106,11 @@ impl Columns {
         Columns { columns }
     }
 
+    /// Get a list of names of all of the columns
+    pub fn get_names(&self) -> Vec<&str> {
+        self.columns.iter().map(|c| c.name.as_str()).collect()
+    }
+
     /// Add a new column to the collection.
     pub fn add_column(&mut self, column: Column) {
         self.columns.push(column);
