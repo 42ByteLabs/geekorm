@@ -23,6 +23,18 @@ pub enum ColumnType {
     ForeignKey,
 }
 
+impl ToString for ColumnType {
+    fn to_string(&self) -> String {
+        match self {
+            ColumnType::Text => String::from("Text"),
+            ColumnType::Integer => String::from("Integer"),
+            ColumnType::Boolean => String::from("Boolean"),
+            ColumnType::Blob => String::from("Blob"),
+            ColumnType::ForeignKey => String::from("ForeignKey"),
+        }
+    }
+}
+
 impl ColumnType {
     /// Convert the column type to SQL string with options
     pub fn to_sql_with_options(

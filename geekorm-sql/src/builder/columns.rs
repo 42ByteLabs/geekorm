@@ -50,6 +50,11 @@ impl Column {
         self.name.clone()
     }
 
+    /// Get the column type
+    pub fn column_type(&self) -> &ColumnType {
+        &self.column_type
+    }
+
     /// Full column name
     pub fn fullname(&self) -> String {
         if let Some(table_name) = &self.table_name {

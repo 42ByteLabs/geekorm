@@ -15,10 +15,12 @@ pub fn display_database(config: &Config) -> Result<()> {
         println!(" Table({}) {{", style(table.name.to_string()).green());
 
         for column in table.columns.iter() {
+            let coltype = column.column_type().to_string();
+
             println!(
                 "    Column({}, {})",
                 style(column.name()).blue(),
-                style(column.column_type).yellow()
+                style(coltype).yellow()
             );
         }
 
