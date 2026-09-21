@@ -34,7 +34,7 @@ impl QueryType {
             // Columns with types
             table.columns.to_sql_stream(&mut full_query, query).unwrap();
 
-            let fkeys = table.columns.get_foreign_keys();
+            let fkeys = table.get_foreign_keys();
             if !fkeys.is_empty() {
                 full_query.push_str(", ");
                 foreign_key(&mut full_query, fkeys);

@@ -246,6 +246,12 @@ impl ColumnDerive {
                     GeekAttributeKeys::ForeignKey => {
                         if let Some(value) = &attr.value {
                             if let GeekAttributeValue::String(name) = value {
+                                if name.is_empty() {
+                                    return Err(syn::Error::new(
+                                        attr.value_span.unwrap_or(attr.span.span()),
+                                        "ForeignKey cannot be empty",
+                                    ));
+                                }
                                 let (table, column) = match name.split_once('.') {
                                     Some((table, column)) => (table, column),
                                     None => {
@@ -279,7 +285,17 @@ impl ColumnDerive {
 
                                 self.coltype = ColumnTypeDerive::ForeignKey;
                                 self.foreign_key = Some(format!("{}.{}", table, column));
+                            } else {
+                                return Err(syn::Error::new(
+                                    attr.value_span.unwrap_or(attr.span.span()),
+                                    "'foreign_key' needs to be a string",
+                                ));
                             }
+                        } else {
+                            return Err(syn::Error::new(
+                                attr.value_span.unwrap_or(attr.span.span()),
+                                "'foreign_key' needs to be a string",
+                            ));
                         }
                     }
                     GeekAttributeKeys::Rand => {
@@ -669,6 +685,10 @@ impl ToTokens for ColumnDerive {
         let coltype = &self.coltype;
         let colopts = &self.colopts;
         let alias = &self.alias;
+        let fk = match &self.foreign_key {
+            Some(key) => quote! { Some(String::from(#key)) },
+            None => quote! { None },
+        };
 
         tokens.extend(quote! {
             geekorm::Column {
@@ -676,7 +696,7 @@ impl ToTokens for ColumnDerive {
                 column_type: #coltype,
                 column_options: #colopts,
                 alias: Some(String::from(#alias)),
-                foreign_key: None,
+                foreign_key: #fk,
                 table_name: None
             }
         });
