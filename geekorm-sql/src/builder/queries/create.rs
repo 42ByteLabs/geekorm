@@ -1,7 +1,22 @@
 //! # Create Query Builder
 
 use crate::builder::table::TableExpr;
-use crate::{Error, QueryBuilder, QueryType, ToSql};
+use crate::{Column, Error, QueryBuilder, QueryType, ToSql};
+
+fn foreign_key(full_query: &mut String, foreign_keys: Vec<&Column>) {
+    let mut keys = Vec::new();
+    for foreign_key in foreign_keys {
+        let (ctable, ccolumn) = foreign_key
+            .get_foreign_key()
+            .expect("Failed to get FK in create query");
+
+        keys.push(format!(
+            "FOREIGN KEY ({}) REFERENCES {} ({})",
+            foreign_key.name, ctable, ccolumn
+        ));
+    }
+    full_query.push_str(&keys.join(", "));
+}
 
 impl QueryType {
     pub(crate) fn sql_create(&self, query: &QueryBuilder) -> String {
@@ -21,22 +36,12 @@ impl QueryType {
 
             let fkeys = table.columns.get_foreign_keys();
             if !fkeys.is_empty() {
-                full_query.push_str(") ");
-
-                for foreign_key in fkeys {
-                    let (ctable, ccolumn) = foreign_key
-                        .get_foreign_key()
-                        .expect("Failed to get FK in create query");
-
-                    full_query.push_str(&format!(
-                        "FOREIGN KEY ({}) REFERENCES {} ({})",
-                        foreign_key.name, ctable, ccolumn
-                    ));
-                }
+                full_query.push_str(", ");
+                foreign_key(&mut full_query, fkeys);
             }
-            full_query.push(')');
         }
-        full_query.push(';');
+
+        full_query.push_str(");");
 
         full_query
     }
@@ -79,8 +84,42 @@ mod tests {
             .expect("Failed to create query");
 
         assert_eq!(
-            query.query.as_str(),
-            "CREATE TABLE IF NOT EXISTS Users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT, email TEXT NOT NULL UNIQUE, roles INTEGER, profile INTEGER) FOREIGN KEY (roles) REFERENCES Roles (id)FOREIGN KEY (profile) REFERENCES Images (id));"
+            query.as_sql(),
+            "CREATE TABLE IF NOT EXISTS Users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT, email TEXT NOT NULL UNIQUE, roles INTEGER, profile INTEGER, FOREIGN KEY (roles) REFERENCES Roles (id), FOREIGN KEY (profile) REFERENCES Images (id));"
         );
+    }
+
+    #[test]
+    fn sqlite_create_foreign_keys() {
+        let user_table = crate::builder::tests::table_users();
+        let roles_table = crate::builder::tests::table_roles();
+        let images_table = crate::builder::tests::table_images();
+
+        let query = QueryBuilder::create()
+            .table(&user_table)
+            .table(&roles_table)
+            .table(&images_table)
+            .build()
+            .expect("Failed to create query");
+
+        assert_eq!(
+            query.as_sql(),
+            "CREATE TABLE IF NOT EXISTS Users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT, email TEXT NOT NULL UNIQUE, roles INTEGER, profile INTEGER, FOREIGN KEY (roles) REFERENCES Roles (id), FOREIGN KEY (profile) REFERENCES Images (id));"
+        );
+    }
+
+    #[test]
+    fn sqlite_foreign_keys() {
+        let user_table = crate::builder::tests::table_users();
+        let fkeys = user_table.get_foreign_keys();
+
+        assert_eq!(fkeys.len(), 2);
+
+        let mut stream = String::new();
+        foreign_key(&mut stream, fkeys);
+        assert_eq!(
+            stream.as_str(),
+            "FOREIGN KEY (roles) REFERENCES Roles (id), FOREIGN KEY (profile) REFERENCES Images (id)"
+        )
     }
 }

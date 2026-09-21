@@ -138,7 +138,7 @@ mod tests {
         // Named parameters by default
         assert_eq!(
             query.query,
-            "UPDATE Test SET name = :name, email = :email WHERE id = :id;"
+            "UPDATE Test SET name = ?2, email = ?3 WHERE id = ?1;"
         );
     }
 
@@ -158,7 +158,7 @@ mod tests {
 
         assert_eq!(
             query.query,
-            "UPDATE OR ROLLBACK Test SET name = :name, email = :email WHERE id = :id;"
+            "UPDATE OR ROLLBACK Test SET name = ?2, email = ?3 WHERE id = ?1;"
         );
     }
 }

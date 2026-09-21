@@ -90,7 +90,7 @@ mod tests {
         assert_eq!(query.values.len(), 2);
         assert_eq!(
             query.query,
-            "INSERT INTO Test (name, email) VALUES (:name, :email);"
+            "INSERT INTO Test (name, email) VALUES (?1, ?2);"
         );
     }
 
@@ -110,7 +110,7 @@ mod tests {
 
         assert_eq!(
             query.query,
-            "INSERT OR ROLLBACK INTO Test (name, email) VALUES (?, ?);"
+            "INSERT OR ROLLBACK INTO Test (name, email) VALUES (?1, ?2);"
         );
     }
 }

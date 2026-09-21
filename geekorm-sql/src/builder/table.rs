@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::columns::{Column, Columns};
-use crate::ToSql;
+use crate::{ColumnType, ToSql};
 
 /// Table structure representing a database table.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -59,7 +59,7 @@ impl Table {
         self.columns
             .columns
             .iter()
-            .filter(|col| col.foreign_key.is_some())
+            .filter(|col| matches!(col.column_type(), ColumnType::ForeignKey))
             .collect()
     }
 
