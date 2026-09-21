@@ -13,12 +13,14 @@ use crate::{PrimaryKey, TableBuilder};
 ///
 /// #[derive(Table, Clone, Default, serde::Serialize, serde::Deserialize)]
 /// struct Users {
+///     #[geekorm(primary_key, auto_increment)]
 ///     id: PrimaryKeyInteger,
 ///     name: String,
 /// }
 ///
 /// #[derive(Table, Clone, Default, serde::Serialize, serde::Deserialize)]
 /// struct Posts {
+///     #[geekorm(primary_key, auto_increment)]
 ///     id: PrimaryKeyInteger,
 ///     title: String,
 ///     /// Foreign Key to the Users table
@@ -30,8 +32,9 @@ use crate::{PrimaryKey, TableBuilder};
 /// // Create the Posts table with the foreign key referencing the Users table (Users.id)
 /// let create_posts_query = Posts::query_create().build()
 ///     .expect("Failed to build query");
+/// # assert_eq!(Posts::table().get_foreign_keys().len(), 1);
 /// # assert_eq!(
-/// #     create_posts_query.to_str(),
+/// #     create_posts_query.as_sql(),
 /// #     "CREATE TABLE IF NOT EXISTS Posts (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, user INTEGER NOT NULL, FOREIGN KEY (user) REFERENCES Users(id));"
 /// # );
 ///
