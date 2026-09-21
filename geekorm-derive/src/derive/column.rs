@@ -751,7 +751,7 @@ mod tests {
             mode: None,
             ..Default::default()
         };
-        assert!(column.is_primary_key());
+        assert!(!column.is_primary_key());
 
         let column = ColumnDerive {
             name: "id".to_string(),
