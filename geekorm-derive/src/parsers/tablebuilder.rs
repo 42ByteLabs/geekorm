@@ -78,22 +78,22 @@ pub fn generate_table_builder(
 /// # fn main() {
 /// let create = Users::query_create().build()
 ///     .expect("Failed to build CREATE TABLE query");
-/// # assert_eq!(create.to_str(), "CREATE TABLE IF NOT EXISTS Users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL);");
+/// # assert_eq!(create.as_sql(), "CREATE TABLE IF NOT EXISTS Users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL);");
 ///
 /// let select = Users::query_select().build()
 ///     .expect("Failed to build SELECT query");
-/// # assert_eq!(select.to_str(), "SELECT id, name FROM Users;");
+/// # assert_eq!(select.as_sql(), "SELECT id, name FROM Users;");
 ///
 /// let user = Users::default();
 /// let insert = Users::query_insert(&user);
-/// # assert_eq!(insert.to_str(), "INSERT INTO Users (name) VALUES (?);");
+/// # assert_eq!(insert.as_sql(), "INSERT INTO Users (name) VALUES (?1);");
 ///
 /// let update = Users::query_update(&user);
-/// # assert_eq!(update.to_str(), "UPDATE Users SET name = ? WHERE id = 0;");
+/// # assert_eq!(update.as_sql(), "UPDATE Users SET name = ?2 WHERE id = ?1;");
 ///
 /// let count = Users::query_count().build()
 ///     .expect("Failed to build COUNT query");
-/// # assert_eq!(count.to_str(), "SELECT COUNT(1) FROM Users;");
+/// # assert_eq!(count.as_sql(), "SELECT COUNT(1) FROM Users;");
 /// }
 /// ```
 pub fn generate_query_builder(

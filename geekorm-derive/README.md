@@ -94,11 +94,11 @@ struct Users {
 
 // Select by column helper function
 let user = Users::query_select_by_name("geekmasher");
-# assert_eq!(user.query, String::from("SELECT id, name, age, occupation FROM Users WHERE name = ?;"));
+# assert_eq!(user.as_sql(), "SELECT id, name, age, occupation FROM Users WHERE name = ?;");
 let user = Users::query_select_by_age(42);
-# assert_eq!(user.query, String::from("SELECT id, name, age, occupation FROM Users WHERE age = ?;"));
+# assert_eq!(user.as_sql(), "SELECT id, name, age, occupation FROM Users WHERE age = ?;");
 let user = Users::query_select_by_occupation("Software Developer");
-# assert_eq!(user.query, String::from("SELECT id, name, age, occupation FROM Users WHERE occupation = ?;"));
+# assert_eq!(user.as_sql(), "SELECT id, name, age, occupation FROM Users WHERE occupation = ?;");
 ```
 
 ## Feature - Generate Random Data for Column
