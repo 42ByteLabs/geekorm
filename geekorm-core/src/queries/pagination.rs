@@ -132,7 +132,7 @@ where
     fn default() -> Self {
         Self {
             phantom: std::marker::PhantomData,
-            page: Page::from(u32::MAX),
+            page: Page::new(),
         }
     }
 }

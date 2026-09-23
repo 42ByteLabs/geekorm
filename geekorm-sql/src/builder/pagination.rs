@@ -19,7 +19,7 @@ impl Page {
     /// Create a new Page instance
     pub fn new() -> Self {
         Page {
-            page: 0,
+            page: u32::MAX,
             limit: DEFAULT_LIMIT,
             total: 0,
         }
@@ -93,7 +93,10 @@ impl Default for Page {
 }
 
 impl ToSql for Page {
-    fn sql(&self) -> String {
+    fn to_sql(
+        &self,
+        _query: &crate::prelude::QueryBuilder,
+    ) -> Result<String, crate::prelude::Error> {
         let mut sql = String::new();
 
         // LIMIT {limit} OFFSET {offset}
@@ -106,7 +109,7 @@ impl ToSql for Page {
             sql.push_str(" OFFSET ");
             sql.push_str(&offset.to_string());
         }
-        sql
+        Ok(sql)
     }
 
     fn to_sql_stream(
@@ -187,18 +190,45 @@ impl From<u32> for Page {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::QueryBuilder;
 
     #[test]
     fn test_limit() {
         let page = Page::from(0);
         let sql = page.sql();
-        assert_eq!(sql, "LIMIT 100");
+        assert_eq!(sql, " LIMIT 100");
     }
 
     #[test]
     fn test_offset() {
         let page = Page::from(1);
         let sql = page.sql();
-        assert_eq!(sql, "LIMIT 100 OFFSET 100");
+        assert_eq!(sql, " LIMIT 100 OFFSET 100");
+    }
+
+    #[test]
+    fn test_cursor() {
+        let mut page = Page::new();
+
+        page.next();
+        assert_eq!(page.page(), 0);
+        page.next();
+        assert_eq!(page.page(), 1);
+        page.next();
+        assert_eq!(page.page(), 2);
+    }
+
+    #[test]
+    fn test_sql() {
+        let table = crate::builder::tests::table_roles();
+
+        let page = Page::new();
+
+        let mut stream = String::new();
+        let mut query = QueryBuilder::select();
+        query.table(&table);
+        let _ = page.to_sql_stream(&mut stream, &query);
+
+        assert_eq!(stream.as_str(), " LIMIT 100");
     }
 }
