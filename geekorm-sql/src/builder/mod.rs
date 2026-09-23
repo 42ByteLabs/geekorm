@@ -437,6 +437,9 @@ impl<'a> QueryBuilder<'a> {
 
     /// Filter the query by multiple fields
     pub fn filter(&mut self, fields: Vec<(&str, impl Into<Value>)>) -> &mut Self {
+        let length = fields.len();
+        let mut current = 0;
+
         for (field, value) in fields {
             if field.starts_with("=") {
                 let field = &field[1..];
@@ -450,8 +453,14 @@ impl<'a> QueryBuilder<'a> {
             } else {
                 // Default to WHERE field = value with an OR operator
                 self.where_eq(field, value.into());
-                self.or();
+                // TODO:
+
+                if current != length - 1 {
+                    self.or();
+                }
             }
+
+            current += 1;
         }
         self
     }
