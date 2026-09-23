@@ -43,9 +43,7 @@ use serde::{Serialize, de::DeserializeOwned};
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-use crate::{
-    GeekConnection, QueryBuilderTrait, TableBuilder, Value, Values, builder::models::QueryType,
-};
+use crate::{GeekConnection, QueryBuilderTrait, QueryType, TableBuilder, Value, Values};
 
 use super::DatabaseValue;
 use super::connect::ConnectionManager;
@@ -77,12 +75,12 @@ impl GeekConnection for libsql::Connection {
         let query = T::query_create().build()?;
         #[cfg(feature = "log")]
         {
-            debug!("Create Table Query :: {:?}", query.to_str());
+            debug!("Create Table Query :: {:?}", query.as_sql());
         }
-        connection.execute(query.to_str(), ()).await.map_err(|e| {
+        connection.execute(query.as_sql(), ()).await.map_err(|e| {
             crate::Error::QuerySyntaxError {
                 error: e.to_string(),
-                query: query.to_string(),
+                query: query.as_sql().to_string(),
             }
         })?;
         Ok(())
@@ -94,12 +92,12 @@ impl GeekConnection for libsql::Connection {
     ) -> Result<i64, crate::Error> {
         #[cfg(feature = "log")]
         {
-            debug!("Row Count Query :: {:?}", query.to_str());
+            debug!("Row Count Query :: {:?}", query.as_sql());
         }
-        let statement = connection.prepare(query.to_str()).await.map_err(|e| {
+        let statement = connection.prepare(query.as_sql()).await.map_err(|e| {
             crate::Error::QuerySyntaxError {
                 error: e.to_string(),
-                query: query.to_string(),
+                query: query.as_sql().to_string(),
             }
         })?;
 
@@ -111,12 +109,12 @@ impl GeekConnection for libsql::Connection {
                 .await
                 .map_err(|e| crate::Error::LibSQLError {
                     error: e.to_string(),
-                    query: query.to_string(),
+                    query: query.as_sql().to_string(),
                 })?;
 
         let row = match rows.next().await.map_err(|e| crate::Error::LibSQLError {
             error: e.to_string(),
-            query: query.to_string(),
+            query: query.as_sql().to_string(),
         })? {
             Some(row) => row,
             None => {
@@ -126,14 +124,14 @@ impl GeekConnection for libsql::Connection {
                 }
                 return Err(crate::Error::LibSQLError {
                     error: "Error fetching row count".to_string(),
-                    query: query.to_string(),
+                    query: query.as_sql().to_string(),
                 });
             }
         };
         // Get the first row
         row.get(0).map_err(|e| crate::Error::LibSQLError {
             error: e.to_string(),
-            query: query.to_string(),
+            query: query.as_sql().to_string(),
         })
     }
 
@@ -146,13 +144,13 @@ impl GeekConnection for libsql::Connection {
     {
         #[cfg(feature = "log")]
         {
-            debug!("Query :: {:?}", query.to_str());
+            debug!("Query :: {:?}", query.as_sql());
         }
 
-        let statement = connection.prepare(query.to_str()).await.map_err(|e| {
+        let statement = connection.prepare(query.as_sql()).await.map_err(|e| {
             crate::Error::QuerySyntaxError {
                 error: e.to_string(),
-                query: query.to_string(),
+                query: query.as_sql().to_string(),
             }
         })?;
 
@@ -170,14 +168,14 @@ impl GeekConnection for libsql::Connection {
                 .await
                 .map_err(|e| crate::Error::LibSQLError {
                     error: e.to_string(),
-                    query: query.to_string(),
+                    query: query.as_sql().to_string(),
                 })?;
 
         let mut results = Vec::new();
 
         while let Some(row) = rows.next().await.map_err(|e| crate::Error::LibSQLError {
             error: e.to_string(),
-            query: query.to_string(),
+            query: query.as_sql().to_string(),
         })? {
             results.push(de::from_row::<T>(&row).map_err(|e| {
                 #[cfg(feature = "log")]
@@ -198,8 +196,7 @@ impl GeekConnection for libsql::Connection {
     where
         T: serde::de::DeserializeOwned,
     {
-        // TODO: Should we always make sure the query limit is set to 1?
-        if query.query_type == QueryType::Update {
+        if matches!(query.query_type(), QueryType::Update) {
             #[cfg(feature = "log")]
             {
                 error!(
@@ -208,14 +205,14 @@ impl GeekConnection for libsql::Connection {
             }
             return Err(crate::Error::LibSQLError {
                 error: "Query type is an `update`".to_string(),
-                query: query.to_string(),
+                query: query.as_sql().to_string(),
             });
         }
 
-        let statement = connection.prepare(query.to_str()).await.map_err(|e| {
+        let statement = connection.prepare(query.as_sql()).await.map_err(|e| {
             crate::Error::QuerySyntaxError {
                 error: e.to_string(),
-                query: query.to_string(),
+                query: query.as_sql().to_string(),
             }
         })?;
 
@@ -224,7 +221,7 @@ impl GeekConnection for libsql::Connection {
 
         #[cfg(feature = "log")]
         {
-            debug!("Query :: {:?}", query.to_str());
+            debug!("Query :: {:?}", query.as_sql());
             debug!("Parameters :: {:?}", parameters.clone());
         }
 
@@ -235,7 +232,7 @@ impl GeekConnection for libsql::Connection {
                 .await
                 .map_err(|e| crate::Error::LibSQLError {
                     error: e.to_string(),
-                    query: query.to_string(),
+                    query: query.as_sql().to_string(),
                 })?;
 
         let row: libsql::Row = match rows.next().await? {
@@ -243,10 +240,10 @@ impl GeekConnection for libsql::Connection {
             None => {
                 #[cfg(feature = "log")]
                 {
-                    error!("No rows found for query: `{}`", query.to_str());
+                    error!("No rows found for query: `{}`", query.as_sql());
                 }
                 return Err(crate::Error::NoRowsFound {
-                    query: query.to_string(),
+                    query: query.as_sql().to_string(),
                 });
             }
         };
@@ -268,22 +265,22 @@ impl GeekConnection for libsql::Connection {
         let parameters: Vec<libsql::Value> = convert_values(&query)?;
 
         connection
-            .execute(query.to_str(), parameters)
+            .execute(query.as_sql(), parameters)
             .await
             .map_err(|e| crate::Error::QuerySyntaxError {
                 error: e.to_string(),
-                query: query.to_string(),
+                query: query.as_sql().to_string(),
             })?;
         Ok(())
     }
 
     async fn batch(connection: &Self::Connection, query: crate::Query) -> Result<(), crate::Error> {
         connection
-            .execute_batch(query.to_str())
+            .execute_batch(query.as_sql())
             .await
             .map_err(|e| crate::Error::QuerySyntaxError {
                 error: e.to_string(),
-                query: query.to_string(),
+                query: query.as_sql().to_string(),
             })?;
         Ok(())
     }
@@ -294,16 +291,16 @@ impl GeekConnection for libsql::Connection {
     ) -> Result<Vec<HashMap<String, Value>>, crate::Error> {
         let params = convert_values(&query)?;
 
-        let statement = connection.prepare(query.to_str()).await.map_err(|e| {
+        let statement = connection.prepare(query.as_sql()).await.map_err(|e| {
             crate::Error::QuerySyntaxError {
                 error: e.to_string(),
-                query: query.to_string(),
+                query: query.as_sql().to_string(),
             }
         })?;
 
         #[cfg(feature = "log")]
         {
-            debug!("Query :: {:?}", query.to_str());
+            debug!("Query :: {:?}", query.as_sql());
             debug!("Parameters :: {:?}", params);
         }
 
@@ -312,7 +309,7 @@ impl GeekConnection for libsql::Connection {
             .await
             .map_err(|e| crate::Error::LibSQLError {
                 error: e.to_string(),
-                query: query.to_string(),
+                query: query.as_sql().to_string(),
             })?;
 
         let mut results: Vec<HashMap<String, Value>> = Vec::new();
@@ -320,9 +317,12 @@ impl GeekConnection for libsql::Connection {
         while let Some(row) = rows.next().await? {
             let mut values: HashMap<String, Value> = HashMap::new();
 
-            for (index, column_name) in query.columns.iter().enumerate() {
-                let value = row.get_value(index as i32).unwrap();
-                values.insert(column_name.to_string(), DatabaseValue::from(value).into());
+            for index in 0..row.column_count() {
+                if let Some(column_name) = row.column_name(index) {
+                    if let Ok(value) = row.get_value(index) {
+                        values.insert(column_name.to_string(), DatabaseValue::from(value).into());
+                    }
+                }
             }
             results.push(values);
         }
@@ -335,25 +335,28 @@ fn convert_values(query: &crate::Query) -> Result<Vec<libsql::Value>, crate::Err
     let mut parameters: Vec<libsql::Value> = Vec::new();
 
     // TODO(geekmasher): This is awful, need to refactor this
-    let values: &Values = match query.query_type {
-        QueryType::Insert | QueryType::Update => &query.parameters,
-        _ => &query.values,
+    let values: &Values = match query.query_type() {
+        QueryType::Insert | QueryType::Update => &query.parameters(),
+        _ => &query.values(),
     };
 
     for nvalue in values.values() {
         // Cast to DatabaseValue
         let value = DatabaseValue::from(nvalue.value());
 
+        //let query_type = query.query_type();
+
+        // TODO[geekmasher]:
         // Check if the column exists in the table
         // The column_name could be in another table not part of the query (joins)
-        if let Some(column) = query.table.columns.get(nvalue.name()) {
-            // Skip auto increment columns if the query is an insert
-            if query.query_type == QueryType::Insert && column.column_type.is_auto_increment() {
-                continue;
-            } else if query.query_type == QueryType::Update && column.column_type.is_primary_key() {
-                continue;
-            }
-        }
+        //if let Some(column) = query.table.columns.get(nvalue.name()) {
+        //    // Skip auto increment columns if the query is an insert
+        //    if query_type == QueryType::Insert && column.column_type.is_auto_increment() {
+        //        continue;
+        //    } else if query_type == QueryType::Update && column.column_type.is_primary_key() {
+        //        continue;
+        //    }
+        //}
 
         #[cfg(feature = "log")]
         {
@@ -362,7 +365,7 @@ fn convert_values(query: &crate::Query) -> Result<Vec<libsql::Value>, crate::Err
 
         parameters.push(value.into_value().map_err(|e| crate::Error::LibSQLError {
             error: format!("Error converting value - {}", e),
-            query: query.to_string(),
+            query: query.as_sql().to_string(),
         })?);
     }
     Ok(parameters)

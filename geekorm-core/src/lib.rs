@@ -32,7 +32,7 @@ pub use migrations::Migration;
 #[cfg(feature = "pagination")]
 pub use geekorm_sql::Page;
 pub use geekorm_sql::{
-    Query, QueryBuilder, QueryOrder, Value, Values,
+    Query, QueryBuilder, QueryOrder, QueryType, Value, Values,
     builder::{
         columns::{Column, ColumnOptions, Columns},
         columntypes::ColumnType,
