@@ -87,13 +87,13 @@ pub fn validate_database(
             }
 
             // HACK: This is a little hacky, but we need to validate all columns
-            for mcolumn in mtable.columns.columns.iter() {
+            for mcolumn in mtable.columns.iter() {
                 #[cfg(feature = "log")]
                 {
                     log::debug!("Migration Columns :: {:?}", mcolumn);
                 }
-                if let Some(dbcolumn) = table.iter().find(|c| c.name == mcolumn.name) {
-                    match validate_column(name, dbcolumn, mcolumn, &mut validator.errors) {
+                if let Some(dbcolumn) = table.iter().find(|c| c.name == mcolumn.name()) {
+                    match validate_column(name, dbcolumn, &mcolumn, &mut validator.errors) {
                         MigrationState::UpToDate | MigrationState::Initialized => {}
                         MigrationState::OutOfDate(reason) => {
                             state = MigrationState::OutOfDate(reason);
@@ -105,11 +105,12 @@ pub fn validate_database(
                 } else {
                     validator.errors.push(MigrationError::MissingColumn {
                         table: name.to_string(),
-                        column: mcolumn.name.to_string(),
+                        column: mcolumn.name(),
                     });
                     state = MigrationState::OutOfDate(format!(
                         "Column not found: {}.{}",
-                        name, mcolumn.name
+                        name,
+                        mcolumn.name()
                     ));
                     if validator.quick {
                         return Ok(state);
@@ -145,7 +146,7 @@ fn validate_column(
     if column.is_primary_key() && dbcolumn.pk != 1 {
         errors.push(MigrationError::ColumnTypeMismatch {
             table: table.to_string(),
-            column: column.name.clone(),
+            column: column.name(),
             feature: "primary-key".to_string(),
         });
 
@@ -155,7 +156,7 @@ fn validate_column(
     if column.is_not_null() && dbcolumn.notnull == 0 {
         errors.push(MigrationError::ColumnTypeMismatch {
             table: table.to_string(),
-            column: column.name.clone(),
+            column: column.name(),
             feature: "not-null".to_string(),
         });
     }

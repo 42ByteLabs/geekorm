@@ -27,9 +27,10 @@ async fn main() -> Result<()> {
 
     let connection = db.acquire().await;
 
+    println!("Create pagination cursor");
     let mut page = Projects::paginate(&connection).await?;
 
-    // Get the first page of projects
+    println!("Get the first page of projects");
     let mut projects = page.next(&connection).await?;
     assert_eq!(page.page(), 0);
     println!("Projects :: {:?}", projects);
@@ -43,6 +44,7 @@ async fn main() -> Result<()> {
 
 // Helper function to create 1000 projects
 async fn create_projects(connection: Connection<'_>) -> Result<()> {
+    println!("Creating Projects");
     Projects::create_table(&connection).await?;
 
     for pname in 1..=1000 {
@@ -51,6 +53,7 @@ async fn create_projects(connection: Connection<'_>) -> Result<()> {
     }
 
     let total = Projects::total(&connection).await?;
+    println!("Total :: {}", total);
     assert_eq!(total, 1000);
 
     Ok(())

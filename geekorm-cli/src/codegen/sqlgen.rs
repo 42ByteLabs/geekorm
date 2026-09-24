@@ -20,10 +20,10 @@ pub async fn generate_create_sql(database: &Database, path: &PathBuf) -> Result<
     for table in tables {
         log::trace!("Creating query for table: {}", table.name);
         let comment = format!("-- {} Table\n", table.name);
-        let query = QueryBuilder::create().table(table.clone()).build()?.query;
+        let query = QueryBuilder::create().table(table).build()?;
 
         data.push_str(&comment);
-        data.push_str(&query);
+        data.push_str(query.as_sql());
         data += "\n\n";
     }
 

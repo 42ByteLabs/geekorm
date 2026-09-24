@@ -7,22 +7,24 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 
 use super::Config;
+use crate::utils::database::{v1::DatabaseV1, v2::DatabaseV2};
+
+mod v1;
+mod v2;
 
 /// This struct represents a database and is based on the `internal`
 /// module of the `geekorm_derive` crate.
 #[derive(Debug, Clone, serde::Deserialize)]
-pub(crate) struct Database {
-    #[serde(default)]
-    pub created_at: chrono::DateTime<chrono::Utc>,
-    #[serde(default)]
-    pub updated_at: chrono::DateTime<chrono::Utc>,
-
-    /// The name of the database
-    #[serde(skip)]
-    pub(crate) name: String,
-    /// The tables in the database
-    pub(crate) tables: Vec<BuilderTable>,
+#[serde(untagged)]
+pub(crate) enum DatabaseLoader {
+    /// v1
+    V1(DatabaseV1),
+    /// v2 (current)
+    V2(DatabaseV2),
 }
+
+/// Database v2 is the current database struct
+pub type Database = DatabaseV2;
 
 impl Database {
     /// Finds the database file in the target directory
@@ -99,15 +101,16 @@ impl Database {
 
     /// Load the database from the file
     pub fn load_database(path: PathBuf) -> Result<Self> {
-        let database = std::fs::read_to_string(path)?;
-        let mut database: Database = serde_json::from_str(&database)?;
+        let database_data = std::fs::read_to_string(path)?;
+        let database_loader: DatabaseLoader = serde_json::from_str(&database_data)?;
 
-        // Remove skipped columns
-        database.tables.iter_mut().for_each(|table| {
-            table.columns.columns.retain(|col| !col.skip);
-        });
-
-        Ok(database)
+        Ok(match database_loader {
+            DatabaseLoader::V1(old_db) => {
+                log::warn!("Migrating database to current spec");
+                old_db.migrate()?
+            }
+            DatabaseLoader::V2(db) => db,
+        })
     }
 
     /// Sorts the tables in the database from least to most dependent
@@ -126,8 +129,11 @@ impl Database {
                 if dependencies.contains(&table.name) {
                     continue;
                 }
-                let table_deps = table.get_dependencies();
-                if table_deps.is_empty() || table_deps.iter().all(|dep| dependencies.contains(dep))
+                let table_deps = table.get_foreign_keys();
+                if table_deps.is_empty()
+                    || table_deps
+                        .iter()
+                        .all(|dep| dependencies.contains(&dep.name))
                 {
                     tables.push(table.clone());
                     dependencies.push(table.name.to_string());
@@ -162,12 +168,7 @@ impl Database {
     }
 
     pub fn get_table_column(&self, table: &str, column: &str) -> Option<&Column> {
-        self.get_table(table)
-            .unwrap()
-            .columns
-            .columns
-            .iter()
-            .find(|col| col.name == column)
+        self.get_table(table).unwrap().columns.get(column)
     }
 
     pub fn get_table_names(&self) -> Vec<&str> {
@@ -177,7 +178,6 @@ impl Database {
     pub fn get_table_columns(&self, table: &str) -> Vec<&str> {
         self.get_table(table)
             .unwrap()
-            .columns
             .columns
             .iter()
             .map(|col| col.name.as_str())

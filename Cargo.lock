@@ -1098,6 +1098,7 @@ dependencies = [
  "chrono",
  "geekorm",
  "geekorm-core",
+ "geekorm-sql",
  "proc-macro2",
  "quote",
  "rand 0.10.2",

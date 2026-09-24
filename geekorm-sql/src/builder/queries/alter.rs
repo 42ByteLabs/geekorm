@@ -31,10 +31,9 @@ pub enum AlterMode {
 }
 
 /// Alter query builder
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct AlterQuery {
     pub(crate) mode: AlterMode,
-
     /// Table name
     pub(crate) table: Table,
     /// Column name
@@ -61,16 +60,31 @@ impl AlterQuery {
         self
     }
 
+    /// Get table
+    pub fn get_table(&self) -> &Table {
+        &self.table
+    }
+
     /// Set column
     pub fn column(&mut self, column: &Column) -> &mut Self {
         self.column = column.clone();
         self
+    }
+    /// Get Column
+    pub fn get_column(&self) -> &Column {
+        &self.column
     }
 
     /// Rename the table
     pub fn rename(&mut self, name: impl Into<String>) -> &mut Self {
         self.rename = Some(name.into());
         self
+    }
+
+    /// Finalise the Alter query
+    pub fn finalise(&mut self) -> Result<Self, crate::Error> {
+        // TODO[geekmasher]: Is this the best way to do this? Feels like a hack
+        Ok(self.clone())
     }
 
     /// Build the Alter query to return a Query
@@ -233,9 +247,9 @@ mod tests {
     use super::*;
 
     fn table() -> Table {
-        Table {
-            name: "Test",
-            columns: crate::Columns::new(vec![
+        Table::new(
+            "Test",
+            crate::Columns::new(vec![
                 Column::from((
                     "id".to_string(),
                     ColumnType::Integer,
@@ -254,7 +268,7 @@ mod tests {
                 )),
             ])
             .into(),
-        }
+        )
     }
 
     #[test]

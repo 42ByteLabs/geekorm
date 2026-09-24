@@ -12,7 +12,7 @@ use syn::{
 
 use crate::{
     attr::{GeekAttribute, GeekAttributeKeys, GeekAttributeValue},
-    derive::{ColumnTypeDerive, ColumnTypeOptionsDerive},
+    derive::{ColumnOptionsDerive, ColumnTypeDerive, columntypes::parse_path},
     internal::TableState,
 };
 
@@ -40,7 +40,7 @@ impl ColumnsDerive {
         self.columns
             .iter()
             .filter_map(|c| {
-                if let ColumnTypeDerive::ForeignKey(_) = &c.coltype {
+                if c.foreign_key.is_some() {
                     Some(c.clone())
                 } else {
                     None
@@ -101,22 +101,22 @@ impl Iterator for ColumnsDerive {
 
 impl ToTokens for ColumnsDerive {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let columns = &self.columns;
+        // Don't include skipped columns
+        // TODO[geekmasher]: Does this impact anything?
+        let columns: Vec<ColumnDerive> = self.columns.iter().filter(|c| !c.skip).cloned().collect();
         tokens.extend(quote! {
-            geekorm::Columns {
-                columns: vec![
+            geekorm::Columns::new(
+                vec![
                     #(#columns ),*
                 ]
-            }
+            )
         })
     }
 }
 
 impl From<ColumnsDerive> for geekorm_core::Columns {
     fn from(value: ColumnsDerive) -> Self {
-        geekorm_core::Columns {
-            columns: value.columns.into_iter().map(|c| c.into()).collect(),
-        }
+        geekorm_core::Columns::new(value.columns.into_iter().map(|c| c.into()).collect())
     }
 }
 
@@ -154,6 +154,8 @@ pub(crate) struct ColumnDerive {
     /// Alias to the original struct name
     pub(crate) alias: String,
     pub(crate) coltype: ColumnTypeDerive,
+    pub(crate) colopts: ColumnOptionsDerive,
+    pub(crate) foreign_key: Option<String>,
     /// Skip the column
     pub(crate) skip: bool,
     /// Update the column
@@ -175,7 +177,7 @@ impl ColumnDerive {
                         self.skip = true;
                     }
                     GeekAttributeKeys::Unique => {
-                        self.coltype.set_unique(true);
+                        self.colopts.set_unique(true);
                         // If the column is unique, then it should be searchable by default
                         self.mode = Some(ColumnMode::Searchable { enabled: true });
                     }
@@ -222,30 +224,34 @@ impl ColumnDerive {
                         }
                     }
                     GeekAttributeKeys::PrimaryKey => {
-                        if let ColumnTypeDerive::Identifier(_) = self.coltype {
-                            // Skip as the column type is already set
-                        } else {
-                            self.coltype = ColumnTypeDerive::Identifier(ColumnTypeOptionsDerive {
-                                primary_key: true,
-                                auto_increment: true,
-                                ..Default::default()
-                            });
-                        }
+                        self.colopts = ColumnOptionsDerive {
+                            primary_key: true,
+                            auto_increment: true,
+                            ..Default::default()
+                        };
+                        self.coltype = ColumnTypeDerive::Integer;
+                        // TODO: What about String PKs?
                     }
                     GeekAttributeKeys::AutoIncrement => {
                         if let Some(value) = &attr.value {
                             if let GeekAttributeValue::Bool(auto_increment) = value {
-                                self.coltype.set_auto_increment(*auto_increment);
+                                self.colopts.set_auto_increment(*auto_increment);
                             }
                         } else {
                             // If no value is set, then set it to true
-                            self.coltype.set_auto_increment(true);
+                            self.colopts.set_auto_increment(true);
                         }
                     }
-                    GeekAttributeKeys::NotNull => self.coltype.set_notnull(true),
+                    GeekAttributeKeys::NotNull => self.colopts.set_notnull(true),
                     GeekAttributeKeys::ForeignKey => {
                         if let Some(value) = &attr.value {
                             if let GeekAttributeValue::String(name) = value {
+                                if name.is_empty() {
+                                    return Err(syn::Error::new(
+                                        attr.value_span.unwrap_or(attr.span.span()),
+                                        "ForeignKey cannot be empty",
+                                    ));
+                                }
                                 let (table, column) = match name.split_once('.') {
                                     Some((table, column)) => (table, column),
                                     None => {
@@ -276,12 +282,20 @@ impl ColumnDerive {
                                 //         "ForeignKey Column not found in Table",
                                 //     ));
                                 // }
-                                self.coltype =
-                                    ColumnTypeDerive::ForeignKey(ColumnTypeOptionsDerive {
-                                        foreign_key: format!("{}.{}", table, column),
-                                        ..Default::default()
-                                    });
+
+                                self.coltype = ColumnTypeDerive::ForeignKey;
+                                self.foreign_key = Some(format!("{}.{}", table, column));
+                            } else {
+                                return Err(syn::Error::new(
+                                    attr.value_span.unwrap_or(attr.span.span()),
+                                    "'foreign_key' needs to be a string",
+                                ));
                             }
+                        } else {
+                            return Err(syn::Error::new(
+                                attr.value_span.unwrap_or(attr.span.span()),
+                                "'foreign_key' needs to be a string",
+                            ));
                         }
                     }
                     GeekAttributeKeys::Rand => {
@@ -337,38 +351,16 @@ impl ColumnDerive {
 
     pub(crate) fn is_primary_key(&self) -> bool {
         // Check the options for a primary key
-        match &self.coltype {
-            ColumnTypeDerive::Identifier(_) => true,
-            ColumnTypeDerive::Text(opts) => {
-                if opts.primary_key {
-                    return true;
-                }
-                false
-            }
-            ColumnTypeDerive::Integer(opts) => {
-                if opts.primary_key {
-                    return true;
-                }
-                false
-            }
-            _ => false,
-        }
+        self.colopts.primary_key
     }
 
     pub(crate) fn is_foreign_key(&self) -> bool {
-        matches!(&self.coltype, ColumnTypeDerive::ForeignKey(_))
+        self.foreign_key.is_some()
     }
 
     /// Check if the column is unique
     pub(crate) fn is_unique(&self) -> bool {
-        match &self.coltype {
-            ColumnTypeDerive::Identifier(opts) => opts.unique,
-            ColumnTypeDerive::Text(opts) => opts.unique,
-            ColumnTypeDerive::Integer(opts) => opts.unique,
-            ColumnTypeDerive::ForeignKey(opts) => opts.unique,
-            ColumnTypeDerive::Blob(opts) => opts.unique,
-            _ => false,
-        }
+        self.colopts.unique
     }
 
     pub(crate) fn is_searchable(&self) -> bool {
@@ -663,7 +655,9 @@ impl Default for ColumnDerive {
     fn default() -> Self {
         ColumnDerive {
             name: String::new(),
-            coltype: ColumnTypeDerive::Text(ColumnTypeOptionsDerive::default()),
+            coltype: ColumnTypeDerive::Text,
+            colopts: ColumnOptionsDerive::default(),
+            foreign_key: None,
             alias: String::new(),
             skip: false,
             update: None,
@@ -689,15 +683,21 @@ impl ToTokens for ColumnDerive {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let name = &self.name;
         let coltype = &self.coltype;
+        let colopts = &self.colopts;
         let alias = &self.alias;
-        let skip = &self.skip;
+        let fk = match &self.foreign_key {
+            Some(key) => quote! { Some(String::from(#key)) },
+            None => quote! { None },
+        };
 
         tokens.extend(quote! {
             geekorm::Column {
                 name: String::from(#name),
                 column_type: #coltype,
-                alias: String::from(#alias),
-                skip: #skip,
+                column_options: #colopts,
+                alias: Some(String::from(#alias)),
+                foreign_key: #fk,
+                table_name: None
             }
         });
     }
@@ -705,12 +705,7 @@ impl ToTokens for ColumnDerive {
 
 impl From<ColumnDerive> for geekorm_core::Column {
     fn from(value: ColumnDerive) -> Self {
-        geekorm_core::Column {
-            name: value.name,
-            column_type: ColumnType::from(value.coltype),
-            alias: value.alias,
-            skip: value.skip,
-        }
+        geekorm_core::Column::from((value.name, ColumnType::from(value.coltype)))
     }
 }
 
@@ -730,7 +725,9 @@ impl TryFrom<&Field> for ColumnDerive {
 
         let itype = value.ty.clone();
         let attributes = GeekAttribute::parse_all(&value.attrs)?;
-        let coltype = ColumnTypeDerive::try_from(&itype)?;
+        //let coltype = ColumnTypeDerive::try_from(&itype)?;
+
+        let (coltype, colopts) = parse_path(&itype)?;
 
         let mut col = ColumnDerive {
             name: name.to_string(),
@@ -738,11 +735,9 @@ impl TryFrom<&Field> for ColumnDerive {
             itype,
             attributes,
             coltype,
-            alias: String::from(""),
+            colopts,
             skip: false,
-            update: None,
-            save: None,
-            mode: None,
+            ..Default::default()
         };
         col.apply_attributes()?;
 
@@ -770,7 +765,24 @@ mod tests {
             identifier: Ident::new("id", Span::call_site()),
             itype: syn::parse_quote! { i32 },
             attributes: vec![],
-            coltype: ColumnTypeDerive::Identifier(Default::default()),
+            coltype: ColumnTypeDerive::Integer,
+            alias: String::from(""),
+            skip: false,
+            mode: None,
+            ..Default::default()
+        };
+        assert!(!column.is_primary_key());
+
+        let column = ColumnDerive {
+            name: "id".to_string(),
+            identifier: Ident::new("id", Span::call_site()),
+            itype: syn::parse_quote! { i32 },
+            attributes: vec![],
+            coltype: ColumnTypeDerive::Text,
+            colopts: ColumnOptionsDerive {
+                primary_key: true,
+                ..Default::default()
+            },
             alias: String::from(""),
             skip: false,
             mode: None,
@@ -783,26 +795,11 @@ mod tests {
             identifier: Ident::new("id", Span::call_site()),
             itype: syn::parse_quote! { i32 },
             attributes: vec![],
-            coltype: ColumnTypeDerive::Text(ColumnTypeOptionsDerive {
+            coltype: ColumnTypeDerive::Integer,
+            colopts: ColumnOptionsDerive {
                 primary_key: true,
                 ..Default::default()
-            }),
-            alias: String::from(""),
-            skip: false,
-            mode: None,
-            ..Default::default()
-        };
-        assert!(column.is_primary_key());
-
-        let column = ColumnDerive {
-            name: "id".to_string(),
-            identifier: Ident::new("id", Span::call_site()),
-            itype: syn::parse_quote! { i32 },
-            attributes: vec![],
-            coltype: ColumnTypeDerive::Integer(ColumnTypeOptionsDerive {
-                primary_key: true,
-                ..Default::default()
-            }),
+            },
             alias: String::from(""),
             skip: false,
             mode: None,

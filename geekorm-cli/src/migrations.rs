@@ -2,10 +2,8 @@ use anyhow::Result;
 use geekorm::Connection;
 use geekorm::ConnectionManager;
 use geekorm::prelude::*;
-use geekorm_core::builder::alter::AlterMode;
 use geekorm_core::error::MigrationError;
 use geekorm_core::migrations::validate::Validator;
-use geekorm_core::{AlterQuery, ToSqlite};
 use std::path::PathBuf;
 
 use crate::codegen;
@@ -131,18 +129,18 @@ pub async fn create_schema_migration(config: &Config, path: &PathBuf) -> Result<
 
         let mut data = "-- This migration will update the schema\n\n".to_string();
 
-        let mut migration_data = Vec::new();
+        let mut migration_data: Vec<AlterQuery> = Vec::new();
 
         for verror in validator.errors.iter() {
             log::info!("Error: {}", verror);
 
-            let query = prompt_table_alter(&database, verror)?;
+            let alterquery = prompt_table_alter(&database, verror)?;
+            let query = alterquery.build()?;
 
-            let table = database.get_table(query.table()).expect("Table not found");
-            data.push_str(table.on_alter(&query)?.as_str());
+            data.push_str(query.as_sql());
             data.push_str("\n\n");
 
-            migration_data.push(query);
+            migration_data.push(alterquery);
         }
 
         log::info!("Writing the `{}` file...", migrations_path.display());
@@ -176,21 +174,27 @@ fn prompt_table_alter(database: &Database, migrations: &MigrationError) -> Resul
             let (choice, _) =
                 prompt_select_with_default("Alter Column:", &vec!["Create", "Rename", "Skip"], 0)?;
 
+            let table = database.get_table(table).expect("Failed to get the table");
+
             if choice == "Rename" {
                 let tables = database.get_table_names();
 
                 let (new_table, _) = prompt_select("New Table Name:", &tables)?;
 
-                let mut alt = AlterQuery::new(AlterMode::RenameTable, table, "");
-                alt.rename(new_table);
-                Ok(alt)
+                Ok(AlterQuery::new()
+                    .mode(AlterMode::RenameTable)
+                    .table(table)
+                    .rename(new_table)
+                    .finalise()?)
             } else if choice == "Create" {
-                let alt = AlterQuery::new(AlterMode::AddTable, table, "");
-                Ok(alt)
+                Ok(AlterQuery::new()
+                    .mode(AlterMode::AddTable)
+                    .table(table)
+                    .finalise()?)
             } else {
                 Err(anyhow::anyhow!(
                     "Table not found (this should never happen): {}",
-                    table
+                    table.name
                 ))
             }
         }
@@ -200,22 +204,31 @@ fn prompt_table_alter(database: &Database, migrations: &MigrationError) -> Resul
             let (choice, _) =
                 prompt_select_with_default("Alter Column:", &vec!["Create", "Rename", "Skip"], 0)?;
 
+            let table = database.get_table(table).expect("Failed to get the table");
+            let column = table.find_column(column).expect("Failed to get the column");
+
             if choice == "Rename" {
-                let columns = database.get_table_columns(table);
+                let columns_names = table.columns.get_names();
 
-                let (new_column, _) = prompt_select("New Column Name:", &columns)?;
+                let (new_column, _) = prompt_select("New Column Name:", &columns_names)?;
 
-                let mut alt = AlterQuery::new(AlterMode::RenameColumn, table, column);
-                alt.rename(new_column);
-                Ok(alt)
+                Ok(AlterQuery::new()
+                    .mode(AlterMode::RenameColumn)
+                    .table(table)
+                    .column(column)
+                    .rename(new_column)
+                    .finalise()?)
             } else if choice == "Create" {
-                let alt = AlterQuery::new(AlterMode::AddColumn, table, column);
-                Ok(alt)
+                Ok(AlterQuery::new()
+                    .mode(AlterMode::AddColumn)
+                    .table(table)
+                    .column(column)
+                    .finalise()?)
             } else {
                 Err(anyhow::anyhow!(
                     "Column not found (this should never happen): {}.{}",
-                    table,
-                    column
+                    table.name,
+                    column.name
                 ))
             }
         }
@@ -230,7 +243,7 @@ pub async fn test_migrations(config: &Config) -> Result<Validator> {
 
     let database = ConnectionManager::in_memory().await?;
 
-    let connection = database.acquire().await;
+    let connection = database.transations().await;
     log::info!("Created an in-memory database to test the migrations against");
     log::info!("Connection: {:?}", connection);
 
@@ -245,10 +258,14 @@ pub async fn test_migrations(config: &Config) -> Result<Validator> {
         };
 
         if query_path.exists() {
-            let query = tokio::fs::read_to_string(&query_path).await?;
-
             log::info!("Running migration: {:?}", query_path);
-            Connection::batch(&connection, geekorm::Query::batch(query)).await?;
+            let batch_queries = geekorm::Query::batch(query_path)?;
+            log::debug!("Running {} queries", batch_queries.len());
+
+            for query in batch_queries.queries() {
+                // TODO[geekmasher]: Can we stop this clone?
+                Connection::batch(&connection, query.clone()).await?;
+            }
 
             log::info!("Migration complete");
         } else {

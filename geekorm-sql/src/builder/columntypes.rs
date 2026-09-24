@@ -1,12 +1,14 @@
 //! # Column types
 
+use serde::{Deserialize, Serialize};
+
 use super::QueryType;
 use super::columns::ColumnOptions;
 use super::queries::alter::AlterQuery;
 use crate::{Error, ToSql};
 
 /// Column types
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ColumnType {
     /// Text column type
     #[default]
@@ -19,6 +21,18 @@ pub enum ColumnType {
     Blob,
     /// Foreign key column type
     ForeignKey,
+}
+
+impl ToString for ColumnType {
+    fn to_string(&self) -> String {
+        match self {
+            ColumnType::Text => String::from("Text"),
+            ColumnType::Integer => String::from("Integer"),
+            ColumnType::Boolean => String::from("Boolean"),
+            ColumnType::Blob => String::from("Blob"),
+            ColumnType::ForeignKey => String::from("ForeignKey"),
+        }
+    }
 }
 
 impl ColumnType {

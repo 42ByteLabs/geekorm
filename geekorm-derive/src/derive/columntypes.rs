@@ -6,115 +6,69 @@ use std::{
 };
 use syn::{GenericArgument, Ident, Type, TypePath};
 
+use super::ColumnDerive;
+
 #[derive(Debug, Clone)]
 pub(crate) enum ColumnTypeDerive {
-    Identifier(ColumnTypeOptionsDerive),
-    Text(ColumnTypeOptionsDerive),
-    Integer(ColumnTypeOptionsDerive),
-    Boolean(ColumnTypeOptionsDerive),
-    Blob(ColumnTypeOptionsDerive),
-    ForeignKey(ColumnTypeOptionsDerive),
+    Text,
+    Integer,
+    Boolean,
+    Blob,
+    ForeignKey,
 }
 
 impl ToTokens for ColumnTypeDerive {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         match self {
-            ColumnTypeDerive::Identifier(options) => {
+            ColumnTypeDerive::Text => {
                 tokens.extend(quote! {
-                    geekorm::ColumnType::Identifier(#options)
+                    geekorm::ColumnType::Text
                 });
             }
-            ColumnTypeDerive::Text(options) => {
+            ColumnTypeDerive::Integer => {
                 tokens.extend(quote! {
-                    geekorm::ColumnType::Text(#options)
+                    geekorm::ColumnType::Integer
                 });
             }
-            ColumnTypeDerive::Integer(options) => {
+            ColumnTypeDerive::Boolean => {
                 tokens.extend(quote! {
-                    geekorm::ColumnType::Integer(#options)
+                    geekorm::ColumnType::Boolean
                 });
             }
-            ColumnTypeDerive::Boolean(options) => {
+            ColumnTypeDerive::Blob => {
                 tokens.extend(quote! {
-                    geekorm::ColumnType::Boolean(#options)
+                    geekorm::ColumnType::Blob
                 });
             }
-            ColumnTypeDerive::Blob(options) => {
-                tokens.extend(quote! {
-                    geekorm::ColumnType::Blob(#options)
-                });
-            }
-            ColumnTypeDerive::ForeignKey(options) => tokens.extend(quote! {
-                geekorm::ColumnType::ForeignKey(#options)
+            ColumnTypeDerive::ForeignKey => tokens.extend(quote! {
+                geekorm::ColumnType::ForeignKey
             }),
         }
     }
 }
 
-impl ColumnTypeDerive {
-    pub fn set_notnull(&mut self, notnull: bool) {
-        match self {
-            ColumnTypeDerive::Identifier(options)
-            | ColumnTypeDerive::Text(options)
-            | ColumnTypeDerive::Integer(options)
-            | ColumnTypeDerive::Boolean(options)
-            | ColumnTypeDerive::Blob(options)
-            | ColumnTypeDerive::ForeignKey(options) => {
-                options.set_notnull(notnull);
-            }
-        }
-    }
-    pub fn set_unique(&mut self, unique: bool) {
-        match self {
-            ColumnTypeDerive::Identifier(options)
-            | ColumnTypeDerive::Text(options)
-            | ColumnTypeDerive::Integer(options)
-            | ColumnTypeDerive::Boolean(options)
-            | ColumnTypeDerive::Blob(options)
-            | ColumnTypeDerive::ForeignKey(options) => {
-                options.set_unique(unique);
-            }
-        }
-    }
-    pub fn set_auto_increment(&mut self, auto_increment: bool) {
-        match self {
-            ColumnTypeDerive::Identifier(options) | ColumnTypeDerive::Integer(options) => {
-                options.set_auto_increment(auto_increment);
-            }
-            _ => {}
-        }
-    }
-}
-
-impl From<ColumnTypeDerive> for geekorm_core::ColumnType {
+impl From<ColumnTypeDerive> for geekorm_sql::ColumnType {
     fn from(coltype: ColumnTypeDerive) -> Self {
         match coltype {
-            ColumnTypeDerive::Identifier(options) => {
-                geekorm_core::ColumnType::Identifier(options.into())
-            }
-            ColumnTypeDerive::Text(options) => geekorm_core::ColumnType::Text(options.into()),
-            ColumnTypeDerive::Integer(options) => geekorm_core::ColumnType::Integer(options.into()),
-            ColumnTypeDerive::Boolean(options) => geekorm_core::ColumnType::Boolean(options.into()),
-            ColumnTypeDerive::Blob(options) => geekorm_core::ColumnType::Blob(options.into()),
-            ColumnTypeDerive::ForeignKey(options) => {
-                geekorm_core::ColumnType::ForeignKey(options.into())
-            }
+            ColumnTypeDerive::Text => geekorm_sql::ColumnType::Text,
+            ColumnTypeDerive::Integer => geekorm_sql::ColumnType::Integer,
+            ColumnTypeDerive::Boolean => geekorm_sql::ColumnType::Boolean,
+            ColumnTypeDerive::Blob => geekorm_sql::ColumnType::Blob,
+            ColumnTypeDerive::ForeignKey => geekorm_sql::ColumnType::ForeignKey,
         }
     }
 }
 
-impl TryFrom<&Type> for ColumnTypeDerive {
-    type Error = syn::Error;
-
-    fn try_from(ty: &Type) -> Result<Self, Self::Error> {
-        parse_path(ty, ColumnTypeOptionsDerive::default())
-    }
-}
-
+/// This function parses and creates the correct Column Type and Options based on the information
+/// passed into it via the derive marco.
+///
+/// HACK: This is a hack and needs massive improvement
 #[allow(unreachable_patterns, unused_variables, non_snake_case)]
-fn parse_path(typ: &Type, opts: ColumnTypeOptionsDerive) -> Result<ColumnTypeDerive, syn::Error> {
+pub(crate) fn parse_path(
+    typ: &Type,
+) -> Result<(ColumnTypeDerive, ColumnOptionsDerive), syn::Error> {
     match typ {
-        Type::Slice(_) => Ok(ColumnTypeDerive::Text(ColumnTypeOptionsDerive::default())),
+        Type::Slice(_) => Ok((ColumnTypeDerive::Text, ColumnOptionsDerive::default())),
         Type::Path(path) => {
             let ident = path.path.segments.first().unwrap().ident.clone();
 
@@ -134,69 +88,88 @@ fn parse_path(typ: &Type, opts: ColumnTypeOptionsDerive) -> Result<ColumnTypeDer
                         _ => panic!("Unsupported PrimaryKey type"),
                     };
 
-                    Ok(ColumnTypeDerive::Identifier(ColumnTypeOptionsDerive {
-                        primary_key: true,
-                        foreign_key: String::new(),
-                        unique: false,
-                        not_null: false,
-                        // If the inner type is an integer, auto increment
-                        auto_increment: inner_type_name == "Integer",
-                    }))
+                    // TODO: Bit of a temp hack
+                    let ctype = if inner_type_name == "Integer" {
+                        ColumnTypeDerive::Integer
+                    } else {
+                        ColumnTypeDerive::Text
+                    };
+
+                    Ok((
+                        ctype,
+                        ColumnOptionsDerive {
+                            primary_key: true,
+                            unique: false,
+                            not_null: false,
+                            // If the inner type is an integer, auto increment
+                            auto_increment: inner_type_name == "Integer",
+                        },
+                    ))
                 }
-                "PrimaryKeyString" | "PrimaryKeyUuid" => {
-                    Ok(ColumnTypeDerive::Identifier(ColumnTypeOptionsDerive {
+                "PrimaryKeyString" | "PrimaryKeyUuid" => Ok((
+                    ColumnTypeDerive::Text,
+                    ColumnOptionsDerive {
                         primary_key: true,
-                        foreign_key: String::new(),
                         unique: false,
                         not_null: false,
                         auto_increment: false,
-                    }))
-                }
-                "PrimaryKeyInteger" => Ok(ColumnTypeDerive::Identifier(ColumnTypeOptionsDerive {
-                    primary_key: true,
-                    foreign_key: String::new(),
-                    unique: false,
-                    not_null: false,
-                    auto_increment: true,
-                })),
-                "ForeignKey" => {
-                    let options = ColumnTypeOptionsDerive {
+                    },
+                )),
+                "PrimaryKeyInteger" => Ok((
+                    ColumnTypeDerive::Integer,
+                    ColumnOptionsDerive {
+                        primary_key: true,
+                        unique: false,
+                        not_null: false,
+                        auto_increment: true,
+                    },
+                )),
+                "ForeignKey" => Ok((
+                    ColumnTypeDerive::ForeignKey,
+                    ColumnOptionsDerive {
                         primary_key: false,
-                        foreign_key: String::from("GeekOrmForeignKey"),
                         unique: false,
                         not_null: true,
                         auto_increment: false,
-                    };
-                    Ok(ColumnTypeDerive::ForeignKey(options))
-                }
+                    },
+                )),
                 // Data types
-                "String" => Ok(ColumnTypeDerive::Text(opts)),
-                "i32" | "i64" | "u32" | "u64" => Ok(ColumnTypeDerive::Integer(opts)),
-                "bool" => Ok(ColumnTypeDerive::Boolean(opts)),
+                "String" => Ok((ColumnTypeDerive::Text, ColumnOptionsDerive::default())),
+                "i32" | "i64" | "u32" | "u64" => {
+                    Ok((ColumnTypeDerive::Integer, ColumnOptionsDerive::default()))
+                }
+                "bool" => Ok((ColumnTypeDerive::Boolean, ColumnOptionsDerive::default())),
                 "Option" => {
-                    let new_opts = ColumnTypeOptionsDerive {
-                        not_null: false,
-                        ..opts
-                    };
-
                     // Get the inner type of the Option
                     let inner_type = match path.path.segments.first().unwrap().arguments {
                         syn::PathArguments::AngleBracketed(ref args) => args.args.first().unwrap(),
-                        _ => return Err(syn::Error::new_spanned(typ, "Unsupported Option type")),
+                        _ => {
+                            return Err(syn::Error::new_spanned(typ, "Unsupported Option type"));
+                        }
                     };
 
                     // Parse the inner type
                     match inner_type {
-                        GenericArgument::Type(typ) => parse_path(typ, new_opts),
+                        GenericArgument::Type(typ) => {
+                            let mut inner = parse_path(typ)?;
+                            // set as nullable
+                            inner.1.set_notnull(false);
+
+                            Ok((inner.0, inner.1))
+                        }
                         _ => Err(syn::Error::new_spanned(typ, "Unsupported Option type")),
                     }
                 }
-                "Vec" => Ok(ColumnTypeDerive::Blob(opts)),
+                "Vec" => Ok((ColumnTypeDerive::Blob, ColumnOptionsDerive::default())),
                 #[cfg(feature = "uuid")]
-                "Uuid" => Ok(ColumnTypeDerive::Text(opts)),
+                "Uuid" => Ok((ColumnTypeDerive::Text, ColumnOptionsDerive::default())),
                 #[cfg(feature = "chrono")]
-                "chrono" | "DateTime" => Ok(ColumnTypeDerive::Text(opts)),
-                _ => Ok(ColumnTypeDerive::Blob(opts)),
+                "chrono" | "DateTime" => {
+                    Ok((ColumnTypeDerive::Text, ColumnOptionsDerive::default()))
+                }
+
+                // Default to blob
+                _ => Ok((ColumnTypeDerive::Blob, ColumnOptionsDerive::default())),
             }
         }
         _ => Err(syn::Error::new_spanned(typ, "Unsupported column type")),
@@ -205,10 +178,8 @@ fn parse_path(typ: &Type, opts: ColumnTypeOptionsDerive) -> Result<ColumnTypeDer
 
 #[allow(unused)]
 #[derive(Debug, Clone)]
-pub(crate) struct ColumnTypeOptionsDerive {
+pub(crate) struct ColumnOptionsDerive {
     pub(crate) primary_key: bool,
-    // TableName::ColumnKey
-    pub(crate) foreign_key: String,
     /// Column is unique
     pub(crate) unique: bool,
     /// Column is not null
@@ -217,7 +188,7 @@ pub(crate) struct ColumnTypeOptionsDerive {
     pub(crate) auto_increment: bool,
 }
 
-impl ColumnTypeOptionsDerive {
+impl ColumnOptionsDerive {
     /// Set Unique
     pub fn set_unique(&mut self, unique: bool) {
         self.unique = unique;
@@ -232,43 +203,39 @@ impl ColumnTypeOptionsDerive {
     }
 }
 
-impl Default for ColumnTypeOptionsDerive {
+impl Default for ColumnOptionsDerive {
     fn default() -> Self {
-        ColumnTypeOptionsDerive {
+        ColumnOptionsDerive {
             primary_key: false,
             unique: false,
             not_null: true,
-            foreign_key: String::new(),
             auto_increment: false,
         }
     }
 }
 
-impl ToTokens for ColumnTypeOptionsDerive {
+impl ToTokens for ColumnOptionsDerive {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let primary_key = &self.primary_key;
-        let foreign_key = &self.foreign_key;
         let unique = &self.unique;
         let not_null = &self.not_null;
         let auto_increment = &self.auto_increment;
 
         tokens.extend(quote! {
-            geekorm::ColumnTypeOptions {
+            geekorm::ColumnOptions {
                 primary_key: #primary_key,
                 unique: #unique,
                 not_null: #not_null,
-                foreign_key: String::from(#foreign_key),
                 auto_increment: #auto_increment,
             }
         });
     }
 }
 
-impl From<ColumnTypeOptionsDerive> for geekorm_core::ColumnTypeOptions {
-    fn from(opts: ColumnTypeOptionsDerive) -> geekorm_core::ColumnTypeOptions {
-        geekorm_core::ColumnTypeOptions {
+impl From<ColumnOptionsDerive> for geekorm_core::ColumnTypeOptions {
+    fn from(opts: ColumnOptionsDerive) -> geekorm_core::ColumnTypeOptions {
+        geekorm_core::ColumnOptions {
             primary_key: opts.primary_key,
-            foreign_key: opts.foreign_key,
             unique: opts.unique,
             not_null: opts.not_null,
             auto_increment: opts.auto_increment,

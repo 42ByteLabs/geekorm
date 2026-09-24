@@ -43,6 +43,7 @@ pub use builder::{
     QueryBuilder, QueryCondition, QueryOrder, QueryType, WhereCondition,
     columns::{Column, ColumnOptions, Columns},
     columntypes::ColumnType,
+    pagination::Page,
     table::{Table, TableExpr},
 };
 pub use error::Error;

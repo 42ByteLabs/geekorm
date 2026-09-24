@@ -125,9 +125,7 @@ async fn generate_migration(config: &Config, database: &Database, path: &PathBuf
         });
     }
 
-    let ast_database = geekorm::Database {
-        tables: database.tables.clone(),
-    };
+    let ast_database = geekorm_core::codegen::CgDatabase::from(database.tables.clone());
 
     let ast = quote! {
         #![doc = #doctitle]

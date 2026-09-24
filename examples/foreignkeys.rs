@@ -34,9 +34,10 @@ fn main() {
         .where_eq("Users.name", "GeekMasher")
         .build()
         .expect("Failed to build query");
-    println!("Posts by user query: {:?}", posts_by_user.query);
+
+    println!("Posts by user query: {:?}", posts_by_user.as_sql());
     assert_eq!(
-        posts_by_user.query.as_str(),
+        posts_by_user.as_sql(),
         "SELECT Posts.id, Posts.title, Posts.author FROM Posts INNER JOIN Users ON Users.id = Posts.author WHERE Users.name = ?;"
     );
 

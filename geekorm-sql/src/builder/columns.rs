@@ -2,18 +2,20 @@
 //!
 //! This module is for handling SQL column definitions and their conversions to SQL strings.
 
+use serde::{Deserialize, Serialize};
+
 use super::QueryType;
 use super::columntypes::ColumnType;
 use crate::{Error, ToSql};
 
 /// Columns is a collection of `Column` definitions for a table.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Columns {
     pub(crate) columns: Vec<Column>,
 }
 
 /// Options for a column, such as primary key, unique, not null, and auto increment.
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ColumnOptions {
     /// If the column is a primary key
     pub primary_key: bool,
@@ -26,20 +28,31 @@ pub struct ColumnOptions {
 }
 
 /// Column structure representing a single column in a table.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Column {
-    pub(crate) name: String,
-    pub(crate) column_type: ColumnType,
-    pub(crate) column_options: ColumnOptions,
-    pub(crate) alias: Option<String>,
-    pub(crate) foreign_key: Option<String>,
-    pub(crate) table_name: Option<String>,
+    /// Name of the column
+    pub name: String,
+    /// Column Type information
+    pub column_type: ColumnType,
+    /// Options set for the column
+    pub column_options: ColumnOptions,
+    /// Alias used for this column (if any)
+    pub alias: Option<String>,
+    /// If the column is a FK, this must be set
+    pub foreign_key: Option<String>,
+    /// Name of the table this column is assosiated too
+    pub table_name: Option<String>,
 }
 
 impl Column {
     /// Get the column name
     pub fn name(&self) -> String {
         self.name.clone()
+    }
+
+    /// Get the column type
+    pub fn column_type(&self) -> &ColumnType {
+        &self.column_type
     }
 
     /// Full column name
@@ -77,12 +90,30 @@ impl Column {
         }
         None
     }
+
+    /// If the column is a private key
+    pub fn is_primary_key(&self) -> bool {
+        self.column_options.primary_key
+    }
+    /// If the column is unique
+    pub fn is_unique(&self) -> bool {
+        self.column_options.unique
+    }
+    /// If the column is null
+    pub fn is_not_null(&self) -> bool {
+        self.column_options.not_null
+    }
 }
 
 impl Columns {
     /// Create a new collection of columns.
     pub fn new(columns: Vec<Column>) -> Self {
         Columns { columns }
+    }
+
+    /// Get a list of names of all of the columns
+    pub fn get_names(&self) -> Vec<&str> {
+        self.columns.iter().map(|c| c.name.as_str()).collect()
     }
 
     /// Add a new column to the collection.
@@ -103,6 +134,50 @@ impl Columns {
             .iter()
             .filter(|col| col.column_type == ColumnType::ForeignKey && col.foreign_key.is_some())
             .collect()
+    }
+
+    /// Get a column by name
+    pub fn get(&self, name: impl Into<String>) -> Option<&Column> {
+        let name = name.into();
+        self.columns.iter().find(|c| c.name() == name)
+    }
+
+    /// Iter
+    pub fn iter(&self) -> ColumnsInterator<'_> {
+        ColumnsInterator {
+            columns: self,
+            index: 0,
+        }
+    }
+
+    /// Number of columns
+    pub fn len(&self) -> usize {
+        self.columns.len()
+    }
+
+    /// If there are no columns
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+}
+
+/// Columns Interator
+pub struct ColumnsInterator<'a> {
+    columns: &'a Columns,
+    index: usize,
+}
+
+impl<'a> Iterator for ColumnsInterator<'a> {
+    type Item = &'a Column;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index < self.columns.columns.len() {
+            let result = self.columns.columns.get(self.index);
+            self.index += 1;
+            result
+        } else {
+            None
+        }
     }
 }
 

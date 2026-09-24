@@ -63,6 +63,8 @@ migrations = ["dep:syn", "dep:quote", "dep:proc-macro2"]
 
 internal = []
 
+codegen = []
+
 [dependencies]
 geekorm-sql = { version = "0.1.0", path = "../geekorm-sql/", features = ["all"] }
 

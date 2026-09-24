@@ -12,7 +12,7 @@ impl QueryType {
         if let Some(table) = query.find_table_default() {
             full_query.push_str("DELETE ");
 
-            let table_expr = TableExpr::new(table.name);
+            let table_expr = TableExpr::new(table.name.clone());
             table_expr.to_sql_stream(&mut full_query, query).unwrap();
 
             // WHERE {where_clause}
@@ -37,9 +37,9 @@ mod tests {
     use crate::{QueryType, Table, ToSql};
 
     fn table() -> Table {
-        Table {
-            name: "Test",
-            columns: Columns::new(vec![
+        Table::new(
+            "Test",
+            Columns::new(vec![
                 Column::from((
                     "id".to_string(),
                     ColumnType::Integer,
@@ -48,7 +48,7 @@ mod tests {
                 Column::from(("name".to_string(), ColumnType::Text)),
             ])
             .into(),
-        }
+        )
     }
 
     #[test]

@@ -128,7 +128,7 @@ impl ToSql for TableJoinOptions {
         _query: &super::QueryBuilder,
     ) -> Result<(), crate::Error> {
         // Child table
-        stream.push_str(self.child.name);
+        stream.push_str(&self.child.name);
         stream.push('.');
         // Get the column to join on or use the primary key of the table
         // TODO: Add support for dynamic column lookup
@@ -147,7 +147,7 @@ impl ToSql for TableJoinOptions {
             .parent
             .get_foreign_key(self.child.name.to_string())
             .expect("Failed to get Foreign Key");
-        stream.push_str(self.parent.name);
+        stream.push_str(&self.parent.name);
         stream.push('.');
 
         // Get the column name or alias

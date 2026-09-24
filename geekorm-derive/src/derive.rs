@@ -20,5 +20,5 @@ use crate::{
     internal::TableState,
 };
 pub(crate) use column::{ColumnDerive, ColumnsDerive};
-pub(crate) use columntypes::{ColumnTypeDerive, ColumnTypeOptionsDerive};
+pub(crate) use columntypes::{ColumnOptionsDerive, ColumnTypeDerive};
 pub(crate) use table::TableDerive;

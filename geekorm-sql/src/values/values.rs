@@ -21,26 +21,34 @@ pub enum ValueBindingMode {
 /// Named Value
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct NamedValue {
+    /// Name of the value
     name: String,
+    /// Raw value
     value: Value,
+    /// Mode
+    mode: ValueBindingMode,
 }
 
 impl NamedValue {
     /// New NamedValue
-    pub fn new(name: impl Into<String>, value: impl Into<Value>) -> Self {
+    pub fn new(name: impl Into<String>, value: impl Into<Value>, mode: &ValueBindingMode) -> Self {
         NamedValue {
             name: name.into(),
             value: value.into(),
+            mode: mode.clone(),
         }
     }
     /// Get name
     pub fn name(&self) -> &str {
         &self.name
     }
-
     /// Get Value
     pub fn value(&self) -> &Value {
         &self.value
+    }
+    /// Get binding mode
+    pub fn mode(&self) -> &ValueBindingMode {
+        &self.mode
     }
 }
 
@@ -95,8 +103,11 @@ impl Values {
 
     /// Push a value to the list of values
     pub fn push(&mut self, column: impl Into<String>, value: impl Into<Value>) {
-        self.values
-            .push(NamedValue::new(column.into(), value.into()))
+        self.values.push(NamedValue::new(
+            column.into(),
+            value.into(),
+            &self.binding_mode,
+        ))
     }
 
     /// Get a value by index from the list of values
@@ -181,15 +192,19 @@ mod tests {
         let mut builder = QueryBuilder::update();
         builder.set_value_mode(ValueBindingMode::Named);
 
-        let named = NamedValue::new("id", Value::Integer(1));
+        let named = NamedValue::new("id", Value::Integer(1), &ValueBindingMode::Named);
         let query = named.to_sql(&builder).unwrap();
         assert_eq!(query.as_str(), ":id");
 
-        let named = NamedValue::new("username", Value::Text("geekmasher".to_string()));
+        let named = NamedValue::new(
+            "username",
+            Value::Text("geekmasher".to_string()),
+            &ValueBindingMode::Named,
+        );
         let query = named.to_sql(&builder).unwrap();
         assert_eq!(query.as_str(), ":username");
 
-        let named = NamedValue::new("id", Value::Identifier(1));
+        let named = NamedValue::new("id", Value::Identifier(1), &ValueBindingMode::Named);
         let query = named.to_sql(&builder).unwrap();
         assert_eq!(query.as_str(), ":id");
     }

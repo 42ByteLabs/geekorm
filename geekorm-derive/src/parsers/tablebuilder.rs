@@ -38,21 +38,27 @@ pub fn generate_table_builder(
 
     let table_name = quote::format_ident!("{}", table.name);
 
+    let table_name_ident = quote::format_ident!("{}Table", table.name);
+
     Ok(quote! {
-        impl #impl_generics geekorm::prelude::TableBuilder for #ident #ty_generics #where_clause {
-            /// Get the table instance.
-            fn table() -> geekorm::Table {
-                #table
+        const _: () = {
+            geekorm::lazy_static! {
+                pub static ref #table_name_ident: Box<geekorm::Table> = Box::new(
+                    #table
+                );
             }
-            /// Get the table name.
-            fn get_table(&self) -> geekorm::Table {
-                #ident::table()
+
+            impl #impl_generics geekorm::prelude::TableBuilder for #ident #ty_generics #where_clause {
+                /// Get the table instance.
+                fn table() -> &'static geekorm::Table {
+                    &#table_name_ident
+                }
+                /// Get the table name.
+                fn table_name() -> String {
+                    String::from(stringify!(#table_name))
+                }
             }
-            /// Get the table name.
-            fn table_name() -> String {
-                stringify!(#table_name).to_string()
-            }
-        }
+        };
     })
 }
 
@@ -72,22 +78,22 @@ pub fn generate_table_builder(
 /// # fn main() {
 /// let create = Users::query_create().build()
 ///     .expect("Failed to build CREATE TABLE query");
-/// # assert_eq!(create.to_str(), "CREATE TABLE IF NOT EXISTS Users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL);");
+/// # assert_eq!(create.as_sql(), "CREATE TABLE IF NOT EXISTS Users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL);");
 ///
 /// let select = Users::query_select().build()
 ///     .expect("Failed to build SELECT query");
-/// # assert_eq!(select.to_str(), "SELECT id, name FROM Users;");
+/// # assert_eq!(select.as_sql(), "SELECT id, name FROM Users;");
 ///
 /// let user = Users::default();
 /// let insert = Users::query_insert(&user);
-/// # assert_eq!(insert.to_str(), "INSERT INTO Users (name) VALUES (?);");
+/// # assert_eq!(insert.as_sql(), "INSERT INTO Users (name) VALUES (?1);");
 ///
 /// let update = Users::query_update(&user);
-/// # assert_eq!(update.to_str(), "UPDATE Users SET name = ? WHERE id = 0;");
+/// # assert_eq!(update.as_sql(), "UPDATE Users SET name = ?2 WHERE id = ?1;");
 ///
 /// let count = Users::query_count().build()
 ///     .expect("Failed to build COUNT query");
-/// # assert_eq!(count.to_str(), "SELECT COUNT(1) FROM Users;");
+/// # assert_eq!(count.as_sql(), "SELECT COUNT(1) FROM Users;");
 /// }
 /// ```
 pub fn generate_query_builder(
@@ -110,16 +116,18 @@ pub fn generate_query_builder(
     }
 
     Ok(quote! {
-        impl #impl_generics geekorm::prelude::QueryBuilderTrait for #ident #ty_generics #where_clause {
+        impl #impl_generics geekorm::QueryBuilderTrait for #ident #ty_generics #where_clause {
             /// Create table query.
-            fn query_create() -> geekorm::QueryBuilder {
-                geekorm::QueryBuilder::create()
-                    .table(#ident::table())
+            fn query_create() -> geekorm::QueryBuilder<'static> {
+                let mut query = geekorm::QueryBuilder::create();
+                query.table(#ident::table());
+                query
             }
             /// Select query.
-            fn query_select() -> geekorm::QueryBuilder {
-                geekorm::QueryBuilder::select()
-                    .table(#ident::table())
+            fn query_select() -> geekorm::QueryBuilder<'static> {
+                let mut query = geekorm::QueryBuilder::select();
+                query.table(#ident::table());
+                query
             }
             /// Insert query.
             fn query_insert(item: &Self) -> geekorm::Query {
@@ -146,10 +154,10 @@ pub fn generate_query_builder(
                     .expect("Failed to build delete query")
             }
             /// Count query.
-            fn query_count() -> geekorm::QueryBuilder {
-                geekorm::QueryBuilder::select()
-                    .table(#ident::table())
-                    .count()
+            fn query_count() -> geekorm::QueryBuilder<'static> {
+                let mut query = geekorm::QueryBuilder::count();
+                query.table(#ident::table());
+                query
             }
         }
     })
