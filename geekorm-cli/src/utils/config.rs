@@ -1,5 +1,5 @@
 //! # Utils Configuration
-use anyhow::Result;
+use anyhow::{Context, Result};
 use std::path::PathBuf;
 
 use crate::utils::cargo::Cargo;
@@ -93,7 +93,7 @@ impl Config {
             log::debug!("Set version to `{}`", config.version);
         }
 
-        config.versions = config.get_versions().await?;
+        config.versions = config.get_versions().await.unwrap_or_default();
         log::debug!("Versions: {:?}", config.versions);
 
         Ok(config)
@@ -227,6 +227,7 @@ impl Config {
     }
 
     async fn get_versions(&self) -> Result<Vec<String>> {
+        log::debug!("Getting versions");
         if self.mode.is_empty() {
             // No mode means we haven't initialised geekorm yet
             return Ok(vec![]);
@@ -238,8 +239,11 @@ impl Config {
         } else {
             self.migrations_path()?
         };
+        log::debug!("Source directory: {:?}", src_dir);
 
-        let mut dirs = tokio::fs::read_dir(&src_dir).await?;
+        let mut dirs = tokio::fs::read_dir(&src_dir)
+            .await
+            .with_context(|| "Failed to read source directory")?;
 
         while let Some(dir) = dirs.next_entry().await? {
             if dir.file_type().await?.is_dir() {
