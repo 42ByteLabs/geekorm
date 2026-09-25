@@ -109,6 +109,9 @@ chrono = { version = "0.4", features = ["serde"] }
 semver = { version = "1.0", features = ["serde"] }
 totp-rs = { version = "5.7", features = ["serde_support", "gen_secret"] }
 
+criterion = { version = "0.8", features = ["async_futures", "async_tokio", "html_reports"] }
+csv = "1.4.0"
+
 libsql = "0.9"
 rusqlite = "0.40"
 
@@ -117,6 +120,11 @@ rocket = { version = "0.5" }
 [profile.test]
 opt-level = 1
 
+
+[[bench]]
+name = "movies"
+harness = false
+required-features = ["all", "rusqlite"]
 
 [[example]]
 name = "users"
