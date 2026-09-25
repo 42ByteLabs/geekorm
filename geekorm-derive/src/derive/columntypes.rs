@@ -8,6 +8,11 @@ use syn::{GenericArgument, Ident, Type, TypePath};
 
 use super::ColumnDerive;
 
+const INTEGER_TYPES: &[&str] = &[
+    "Integer", "i8", "i16", "i32", "i64", "i128", "isize", "u8", "u16", "u32", "u64", "u128",
+    "usize",
+];
+
 #[derive(Debug, Clone)]
 pub(crate) enum ColumnTypeDerive {
     Text,
@@ -89,7 +94,7 @@ pub(crate) fn parse_path(
                     };
 
                     // TODO: Bit of a temp hack
-                    let ctype = if inner_type_name == "Integer" {
+                    let ctype = if INTEGER_TYPES.contains(&inner_type_name.as_str()) {
                         ColumnTypeDerive::Integer
                     } else {
                         ColumnTypeDerive::Text
@@ -102,7 +107,7 @@ pub(crate) fn parse_path(
                             unique: false,
                             not_null: false,
                             // If the inner type is an integer, auto increment
-                            auto_increment: inner_type_name == "Integer",
+                            auto_increment: INTEGER_TYPES.contains(&inner_type_name.as_str()),
                         },
                     ))
                 }
@@ -240,5 +245,19 @@ impl From<ColumnOptionsDerive> for geekorm_core::ColumnTypeOptions {
             not_null: opts.not_null,
             auto_increment: opts.auto_increment,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{ColumnTypeDerive, parse_path};
+
+    #[test]
+    fn integer_primary_key_uses_integer_column_type() {
+        let (column_type, options) = parse_path(&syn::parse_quote!(PrimaryKey<i32>)).unwrap();
+
+        assert!(matches!(column_type, ColumnTypeDerive::Integer));
+        assert!(options.primary_key);
+        assert!(options.auto_increment);
     }
 }

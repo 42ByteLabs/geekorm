@@ -1,7 +1,7 @@
 //! # Internal CodeGen module
 
 use geekorm_sql::{Column, ColumnOptions, ColumnType, Table};
-use quote::{ToTokens, quote};
+use quote::{ToTokens, format_ident, quote};
 
 /// Database for Code Generation
 pub struct CgDatabase {
@@ -21,11 +21,11 @@ impl ToTokens for CgDatabase {
         let tables = &self.tables;
 
         tokens.extend(quote! {
-            geekorm::Database {
+            pub static ref Database: geekorm::Database = geekorm::Database {
                 tables: vec![
                     #(#tables ),*
                 ]
-            }
+            };
         });
     }
 }
@@ -80,9 +80,9 @@ impl ToTokens for CgColumn {
         let name = &self.name;
         let column_type = &self.column_type;
         let column_options = &self.column_options;
-        let alias = &self.alias;
-        let foreign_key = &self.foreign_key;
-        let table_name = &self.table_name;
+        let alias = option_string_tokens(&self.alias);
+        let foreign_key = option_string_tokens(&self.foreign_key);
+        let table_name = option_string_tokens(&self.table_name);
 
         tokens.extend(quote! {
             geekorm::Column {
@@ -163,7 +163,7 @@ pub enum CgColumnType {
 
 impl ToTokens for CgColumnType {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let ident = self.to_string();
+        let ident = format_ident!("{}", self.to_string());
         tokens.extend(quote! {
             geekorm::ColumnType::#ident
         });
@@ -191,5 +191,12 @@ impl From<ColumnType> for CgColumnType {
             ColumnType::Blob => Self::Blob,
             ColumnType::ForeignKey => Self::ForeignKey,
         }
+    }
+}
+
+fn option_string_tokens(value: &Option<String>) -> proc_macro2::TokenStream {
+    match value {
+        Some(value) => quote! { Some(String::from(#value)) },
+        None => quote! { None },
     }
 }
