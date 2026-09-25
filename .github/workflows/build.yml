@@ -23,7 +23,7 @@ jobs:
 
   cli:
     name: CLI
-    needs: [ build ]
+    needs: [build]
     runs-on: ubuntu-latest
     steps:
       - name: "Checkout GeekORM"
@@ -41,8 +41,8 @@ jobs:
         with:
           toolchain: nightly
           components: clippy,rustfmt
-       
-      - name: Restore cached Cargo 
+
+      - name: Restore cached Cargo
         id: cache-restore
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
@@ -56,13 +56,12 @@ jobs:
           key: ${{ runner.os }}-stable-cargo
 
       - name: Build CLI
+        working-directory: ${{ github.workspace }}/geekorm-migrations
         run: |
           cargo install --path ../geekorm/geekorm-cli
 
-          cargo run
-
-          geekorm-cli --help
-
           geekorm-cli display
+
           geekorm-cli test
-        working-directory: ${{ github.workspace }}/geekorm-migrations
+
+          cargo run
