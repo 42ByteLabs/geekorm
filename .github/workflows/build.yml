@@ -62,6 +62,6 @@ jobs:
 
           cargo run
 
-          geekorm-cli display
+          geekorm-cli --debug display
 
-          geekorm-cli test
+          geekorm-cli --debug test
