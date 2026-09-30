@@ -36,10 +36,10 @@ impl Database {
         let name = config.name();
         let glob_paths = vec![
             // Current builds should be first
-            "target/*/build/geekorm-derive-*/out/geekorm-*.json",
+            String::from("target/*/build/geekorm-derive-*/out/geekorm-*.json"),
             // Fall back to crate or modules
-            name.as_str(),
-            "src",
+            format!("{}/src/*/database.json", name),
+            format!("src/{}/*/database.json", name),
         ];
 
         for glob_str in glob_paths {
