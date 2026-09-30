@@ -27,41 +27,57 @@ pub(crate) enum DatabaseLoader {
 pub type Database = DatabaseV2;
 
 impl Database {
-    /// Finds the database file in the target directory
+    /// Finds the database file in the target or in the config directories
     ///
     /// During the build process, the `geekorm_derive` crate will generate
     /// a database file in the target directory. This function will find
     /// the latest database file based on the creation date.
     pub fn find_database(config: &Config) -> Result<Self> {
-        let target_path = "target/*/build/geekorm-derive-*/out/geekorm-*.json";
+        let name = config.name();
+        let glob_paths = vec![
+            // Current builds should be first
+            String::from("target/*/build/geekorm-derive-*/out/geekorm-*.json"),
+            // Fall back to crate or modules
+            format!("{}/src/*/database.json", name),
+            format!("src/{}/*/database.json", name),
+        ];
 
-        let path = config.working_dir.join(target_path);
-        let path_str = path.to_str().ok_or_else(|| {
-            anyhow::anyhow!("Failed to convert path to string: {:?}", config.working_dir)
-        })?;
+        for glob_str in glob_paths {
+            let path = config.working_dir.join(glob_str);
+            log::debug!("Glob path: {:?}", path);
+            let path_str = path
+                .to_str()
+                .ok_or(anyhow::anyhow!("Failed to create str from path"))?;
 
-        // Find the latest database file based on the creation date
-        glob(path_str)?
-            .filter_map(|entry| entry.ok())
-            .fold(None, |acc, entry| {
-                log::trace!("Database Entry: {:#?}", entry);
-                let database = match Self::load_database(entry) {
-                    Ok(database) => database,
-                    Err(err) => {
-                        log::warn!("Failed to load database: {}", err);
-                        return acc;
-                    }
-                };
+            // Find the latest database file based on the creation date
+            let result = glob(path_str)?
+                .filter_map(|entry| entry.ok())
+                .fold(None, |acc, entry| {
+                    log::debug!("Database Entry: {:#?}", entry);
+                    let database = match Self::load_database(entry) {
+                        Ok(database) => database,
+                        Err(err) => {
+                            log::warn!("Failed to load database: {}", err);
+                            return acc;
+                        }
+                    };
 
-                Some(acc.map_or(database.clone(), |ref acc: Database| {
-                    if database.updated_at < acc.updated_at {
-                        database
-                    } else {
-                        acc.clone()
-                    }
-                }))
-            })
-            .ok_or_else(|| anyhow::anyhow!("Database not found"))
+                    Some(acc.map_or(database.clone(), |ref acc: Database| {
+                        if database.updated_at < acc.updated_at {
+                            database
+                        } else {
+                            acc.clone()
+                        }
+                    }))
+                })
+                .ok_or_else(|| anyhow::anyhow!("Database not found"));
+
+            if let Ok(db) = result {
+                return Ok(db);
+            }
+        }
+
+        Err(anyhow::anyhow!("Failed to find database"))
     }
 
     /// Find the default database

@@ -243,7 +243,7 @@ pub async fn test_migrations(config: &Config) -> Result<Validator> {
 
     let database = ConnectionManager::in_memory().await?;
 
-    let connection = database.transations().await;
+    let connection = database.acquire().await;
     log::info!("Created an in-memory database to test the migrations against");
     log::info!("Connection: {:?}", connection);
 
